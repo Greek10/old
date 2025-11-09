@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Python Sandbox v4</title>
+<title>Python Sandbox v4 </title>
 
 <!-- Pyodide -->
 <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
@@ -17,16 +17,20 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.css">
 
+<!-- Split.js -->
+<script src="https://cdn.jsdelivr.net/npm/split.js/dist/split.min.js"></script>
+
 <style>
 body { margin:0; height:100vh; display:flex; flex-direction:column; background:#121212; color:white; font-family: monospace;}
 #toolbar { background:#1e1e1e; padding:8px; display:flex; gap:8px; align-items:center; border-bottom:1px solid #333; }
 button { background:#282828; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; transition:0.2s; }
 button:hover { background:#3a3a3a; }
 input[type="file"] { display:none; }
-#sandbox { flex:1; display:flex; overflow:hidden; }
-#editor { width:30%; overflow:auto; }
-#output { width:70%; overflow:auto; background:#0b0b0b; padding:10px; white-space:pre-wrap; font-size:15px; }
+#sandbox { flex:1; display:flex; overflow:hidden; height:100%; }
+#editor { overflow:auto; }
+#output { overflow:auto; background:#0b0b0b; padding:10px; white-space:pre-wrap; font-size:15px; }
 .error { color:#ff4c4c; cursor:pointer; text-decoration:underline dotted; }
+.gutter { background-color: #333; cursor: col-resize; width: 8px; }
 </style>
 </head>
 <body>
@@ -52,7 +56,15 @@ let pyodide;
 const output = document.getElementById("output");
 const status = document.getElementById("status");
 
-// --- Initialize CodeMirror with Python hint (auto-completion) ---
+// --- Initialize Split.js for resizable panes ---
+Split(['#editor', '#output'], {
+  sizes: [30, 70],
+  minSize: [200, 300],
+  gutterSize: 8,
+  cursor: 'col-resize'
+});
+
+// --- Initialize CodeMirror with Python hint ---
 const editor = CodeMirror(document.getElementById("editor"), {
   value:'print("Hello, world!")',
   mode:'python',
@@ -159,8 +171,8 @@ document.getElementById("loadPkg").onclick = async ()=>{
   if(!pkg) return;
   try{
     await pyodide.runPythonAsync(`import micropip; await micropip.install("${pkg}")`);
-    printOut(`✅ Package "${pkg}" installed`);
-  } catch(e){ printOut(`❌ Failed: ${e}`); }
+    printOut(\`✅ Package "\${pkg}" installed\`);
+  } catch(e){ printOut(\`❌ Failed: \${e}\`); }
 };
 
 // --- File upload/download ---
