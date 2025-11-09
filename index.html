@@ -5,225 +5,293 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>Modern Multi-Tool Hub</title>
-  <meta name="description" content="A modern site with Roblox, Discord, and Python Code Sandbox tools" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+  <meta name="description" content="A modern site with Roblox, Discord, and Python Code Sandbox tools" />  <!-- CodeMirror -->  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
   <style>
-    :root {
-      --transition: 0.4s ease;
-      --midnight-bg: #0b0c2a;
-      --midnight-text: #f0f0f0;
-      --accent: #ff6ec4;
-      --card-bg: rgba(255, 255, 255, 0.05);
-      --sidebar-width: 220px;
-    }
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', Roboto, sans-serif;
-      background: var(--midnight-bg);
-      color: var(--midnight-text);
-      display: flex;
-      flex-direction: row;
-      overflow-x: hidden;
-      transition: background var(--transition), color var(--transition);
-    }
-    .sidebar {
-      width: var(--sidebar-width);
-      background: rgba(0,0,0,0.3);
-      height: 100vh;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      transition: transform 0.5s ease, width 0.5s ease, padding 0.5s ease;
-      white-space: nowrap;
-      position: fixed;
-      z-index: 100;
-    }
-    .sidebar.hidden { transform: translateX(-100%); width: 0; padding: 0; }
-    .toggle-sidebar {
-      position: fixed;
-      top: 20px;
-      left: var(--sidebar-width);
-      background: var(--accent);
-      color: #fff;
-      padding: 5px 10px;
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
-      z-index: 101;
-      transition: left 0.5s ease;
-    }
-    .sidebar.hidden + .toggle-sidebar { left: 10px; }
-    .tool-button {
-      padding: 15px;
-      border-radius: 12px;
-      border: none;
-      background: var(--accent);
-      color: #fff;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      text-align: center;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .tool-button:hover { background: #ff85d1; }
-    main {
-      flex: 1;
-      margin-left: var(--sidebar-width);
-      padding: 20px;
-      overflow-y: auto;
-      transition: margin-left 0.5s ease;
-    }
-    section { display: none; background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; }
-    section.active { display: block; }
-    pre { background: rgba(0,0,0,0.3); color: #fff; padding: 14px; border-radius: 8px; margin-top: 16px; width: 100%; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; }
-    .CodeMirror { height: auto; background: rgba(0,0,0,0.2); color: #fff; border-radius: 8px; padding-left: 10px; }
-    .error-line { background-color: rgba(255,0,0,0.2) !important; }/* Mobile responsiveness */
-@media (max-width: 768px) {
-  body { flex-direction: column; }
-  .sidebar { width: 100%; height: auto; position: relative; transform: translateX(0); padding: 10px; }
-  .sidebar.hidden { transform: translateY(-100%); width: 100%; padding: 0; }
-  .toggle-sidebar { top: 10px; left: auto; right: 10px; }
-  main { margin-left: 0; margin-top: 10px; padding: 10px; }
-  .tool-button { font-size: 14px; padding: 10px; }
+    :root{
+      --sidebar-w: 240px;
+      --glass: rgba(255,255,255,0.06);
+      --accent-a: rgba(255,110,196,0.12);
+      --accent-b: rgba(120,115,245,0.12);
+      --text: #eef2ff;
+      --transition: 0.35s ease;
+    }/* Reset + layout */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  background: linear-gradient(135deg,#0f172a 0%, #071029 100%);
+  color:var(--text);
+  display:flex;min-height:100vh;overflow:hidden;
+}
+
+/* Sidebar (glass) */
+.sidebar{
+  width:var(--sidebar-w);
+  min-width:var(--sidebar-w);
+  background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  backdrop-filter: blur(10px) saturate(120%);
+  box-shadow: 0 8px 30px rgba(10,10,20,0.6);
+  padding:18px;display:flex;flex-direction:column;gap:12px;transition:transform var(--transition), width var(--transition);
+  position:relative;z-index:30;
+}
+.sidebar.hidden{transform:translateX(-120%);width:0;padding:0 0}
+
+/* Sidebar header */
+.brand{font-weight:700;letter-spacing:0.6px;margin-bottom:6px}
+.desc{font-size:12px;color:rgba(255,255,255,0.7)}
+
+/* Buttons in sidebar */
+.menu-btn{display:flex;align-items:center;gap:10px;padding:12px;border-radius:12px;border:none;background:linear-gradient(90deg,rgba(255,255,255,0.03), rgba(255,255,255,0.01));color:var(--text);cursor:pointer;transition:all .25s ease}
+.menu-btn:hover{transform:translateY(-4px);box-shadow:0 10px 30px rgba(0,0,0,0.4)}
+.menu-btn .dot{width:36px;height:36px;border-radius:10px;flex:0 0 36px;background:linear-gradient(135deg,#ff6ec4,#7873f5);display:grid;place-items:center;font-weight:700}
+.menu-btn .label{font-weight:600}
+
+/* Themes area */
+.themes{margin-top:6px;padding:8px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent)}
+.theme-presets{display:flex;gap:8px;flex-wrap:wrap}
+.preset{width:36px;height:36px;border-radius:8px;cursor:pointer;border:2px solid rgba(255,255,255,0.04)}
+.preset:hover{transform:scale(1.06)}
+.theme-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+.color-picker{width:40px;height:28px;border-radius:6px;border:none;padding:0}
+.save-theme{margin-top:8px;padding:8px;border-radius:8px;border:none;background:linear-gradient(90deg,#8b5cf6,#ec4899);color:white;cursor:pointer}
+
+/* Toggle control */
+.toggle-btn{position:fixed;left:calc(var(--sidebar-w) + 12px);top:18px;background:linear-gradient(90deg,#8b5cf6,#ec4899);border:none;padding:10px;border-radius:999px;color:white;cursor:pointer;box-shadow:0 8px 30px rgba(120,80,200,0.25);transition:transform var(--transition), left var(--transition);z-index:35}
+.sidebar.hidden + .toggle-btn{left:12px}
+
+/* Main content */
+main{flex:1;padding:26px 30px;overflow:auto;}
+.card{background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));padding:18px;border-radius:12px;backdrop-filter:blur(6px);box-shadow:0 8px 30px rgba(0,0,0,0.6);}
+h2{margin:0 0 10px 0}
+
+/* Controls/layout inside cards */
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+input[type="text"], textarea{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--text)}
+textarea{min-height:96px}
+.actions{display:flex;gap:8px;margin-top:12px}
+
+/* CodeMirror tweaks */
+.CodeMirror{height:auto;border-radius:8px;min-height:200px}
+.cm-s-default .CodeMirror-gutters{background:transparent;border-right:0;padding-right:8px}
+.cm-s-default .CodeMirror-linenumber{color:rgba(255,255,255,0.6);padding-right:8px}
+.error-line{background:linear-gradient(90deg, rgba(255,0,0,0.08), rgba(255,0,0,0.02)) !important}
+
+/* download btn */
+.download-btn{margin-left:auto;padding:8px 12px;border-radius:8px;border:none;background:linear-gradient(90deg,#06b6d4,#3b82f6);color:white;cursor:pointer}
+
+/* Responsive */
+@media (max-width:900px){
+  :root{--sidebar-w:200px}
+  .sidebar{position:fixed;left:0;top:0;height:100vh}
+  main{padding:18px;margin-left:0}
+  .toggle-btn{left:12px}
+}
+@media (max-width:600px){
+  .row{flex-direction:column}
+  .menu-btn{justify-content:flex-start}
 }
 
   </style>
 </head>
-<body>
-  <div class="sidebar" id="sidebar">
-    <button class="tool-button" data-target="robloxSection">Roblox Badge Checker</button>
-    <button class="tool-button" data-target="discordSection">Discord Webhook Sender</button>
-    <button class="tool-button" data-target="codeSection">Python Code Sandbox</button>
+<body>  <aside class="sidebar" id="sidebar">
+    <div>
+      <div class="brand">Multi-Tool Hub</div>
+      <div class="desc">Roblox • Discord • Python Sandbox</div>
+    </div><button class="menu-btn" data-target="robloxSection"><div class="dot">R</div><div class="label">Roblox Badge Checker</div></button>
+<button class="menu-btn" data-target="discordSection"><div class="dot">D</div><div class="label">Discord Webhook Sender</div></button>
+<button class="menu-btn" data-target="codeSection"><div class="dot">Py</div><div class="label">Python Sandbox</div></button>
+
+<div class="themes card" style="margin-top:auto">
+  <div style="font-weight:600;margin-bottom:8px">Themes</div>
+  <div class="theme-presets">
+    <div class="preset" data-grad="linear-gradient(135deg,#6b21a8,#3b82f6)" style="background:linear-gradient(135deg,#6b21a8,#3b82f6)"></div>
+    <div class="preset" data-grad="linear-gradient(135deg,#06b6d4,#3b82f6)" style="background:linear-gradient(135deg,#06b6d4,#3b82f6)"></div>
+    <div class="preset" data-grad="linear-gradient(135deg,#ff6ec4,#7873f5)" style="background:linear-gradient(135deg,#ff6ec4,#7873f5)"></div>
+    <div class="preset" data-grad="linear-gradient(135deg,#ff7a18,#f56040)" style="background:linear-gradient(135deg,#ff7a18,#f56040)"></div>
   </div>
-  <button class="toggle-sidebar" id="toggleSidebar">☰</button>
-  <main id="mainContent">
-    <section id="robloxSection">
+
+  <div class="theme-row">
+    <input type="color" id="colorA" class="color-picker" title="Start color">
+    <input type="color" id="colorB" class="color-picker" title="End color">
+    <button class="save-theme" id="applyCustom">Apply</button>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+    <label style="font-size:13px"><input type="checkbox" id="saveTheme"> Save as default</label>
+    <button id="resetTheme" style="margin-left:auto;padding:8px;border-radius:8px;border:none;background:rgba(255,255,255,0.04);color:var(--text);cursor:pointer">Reset</button>
+  </div>
+</div>
+
+  </aside><button class="toggle-btn" id="toggleBtn" aria-label="Toggle menu">☰</button>
+
+  <main>
+    <section id="robloxSection" class="card">
       <h2>Roblox Badge Checker</h2>
-      <input type="text" id="rbUsername" placeholder="Username">
-      <input type="text" id="badgeId" placeholder="Badge ID">
-      <button id="checkBadge" class="submit">Check Badge</button>
+      <div class="row">
+        <input id="rbUsername" type="text" placeholder="Roblox username">
+        <input id="badgeId" type="text" placeholder="Badge ID">
+        <div style="display:flex;gap:8px">
+          <button id="checkBadge" class="download-btn">Check Badge</button>
+        </div>
+      </div>
       <pre id="rbOutput"></pre>
-    </section><section id="discordSection">
+    </section><section id="discordSection" class="card" style="display:none">
   <h2>Discord Webhook Sender</h2>
-  <input type="text" id="webhookUrl" placeholder="Webhook URL">
-  <textarea id="webhookMsg" placeholder="Message"></textarea>
-  <button id="sendWebhook" class="submit">Send Message</button>
+  <div class="row">
+    <input id="webhookUrl" type="text" placeholder="Webhook URL">
+    <button id="testWebhook" class="download-btn">Test Webhook</button>
+  </div>
+  <textarea id="webhookMsg" placeholder="Message to send"></textarea>
+  <div class="actions">
+    <button id="sendWebhook" class="download-btn">Send</button>
+    <button id="sendJson" class="download-btn">Send JSON</button>
+  </div>
   <pre id="discordOutput"></pre>
 </section>
 
-<section id="codeSection">
-  <h2>Python Code Sandbox</h2>
-  <label><input type="checkbox" id="toggleLineNumbers" checked> Show Line Numbers</label>
-  <textarea id="codeInput" rows="10"></textarea>
-  <button id="runCode" class="submit">Run Python</button>
+<section id="codeSection" class="card" style="display:none">
+  <div style="display:flex;align-items:center;gap:12px">
+    <h2 style="margin:0">Python Sandbox</h2>
+    <label style="margin-left:8px;display:flex;align-items:center;gap:6px"><input id="toggleLineNumbers" type="checkbox" checked> Line numbers</label>
+    <button id="downloadCode" class="download-btn">Download .py</button>
+  </div>
+
+  <textarea id="codeInput" rows="10">print("Hello from Pyodide!")</textarea>
+  <div class="actions" style="margin-top:8px">
+    <button id="runCode" class="download-btn">Run</button>
+    <button id="clearOutput" class="download-btn">Clear Output</button>
+  </div>
   <pre id="codeOutput"></pre>
 </section>
 
-  </main>  <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/matchbrackets.min.js"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/closebrackets.min.js"></script>  <script>
+  </main>  <!-- libs -->  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/matchbrackets.min.js"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/closebrackets.min.js"></script>  <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>  <script>
+    // UI wiring
     const sidebar = document.getElementById('sidebar');
-    const toggleBtn = document.getElementById('toggleSidebar');
-    const sections = document.querySelectorAll('main section');
-    const mainContent = document.getElementById('mainContent');
+    const toggleBtn = document.getElementById('toggleBtn');
+    const presets = document.querySelectorAll('.preset');
+    const applyCustom = document.getElementById('applyCustom');
+    const colorA = document.getElementById('colorA');
+    const colorB = document.getElementById('colorB');
+    const saveTheme = document.getElementById('saveTheme');
+    const resetTheme = document.getElementById('resetTheme');
+    const menuBtns = document.querySelectorAll('.menu-btn');
+    const sections = { roblox: document.getElementById('robloxSection'), discord: document.getElementById('discordSection'), code: document.getElementById('codeSection') };
 
-    toggleBtn.addEventListener('click', ()=>{
-      sidebar.classList.toggle('hidden');
-    });
+    // Toggle sidebar
+    toggleBtn.addEventListener('click', ()=>{ sidebar.classList.toggle('hidden'); });
 
-    document.querySelectorAll('.tool-button').forEach(btn => {
+    // Menu navigation
+    menuBtns.forEach(btn=>{
       btn.addEventListener('click', ()=>{
-        sections.forEach(s => s.classList.remove('active'));
-        document.getElementById(btn.dataset.target).classList.add('active');
+        document.querySelectorAll('main .card').forEach(c=>c.style.display='none');
+        const t = btn.dataset.target;
+        document.getElementById(t).style.display = 'block';
       });
     });
 
-    // Roblox Badge Checker
-    document.getElementById('checkBadge').addEventListener('click', async () => {
+    // Theme handling
+    function applyGradient(css){
+      document.documentElement.style.setProperty('--accent-a','rgba(255,255,255,0.06)');
+      document.body.style.background = css;
+    }
+    presets.forEach(p=>p.addEventListener('click', ()=>{ const g = p.dataset.grad; applyGradient(g); if(saveTheme.checked) localStorage.setItem('savedTheme', g); }));
+    applyCustom.addEventListener('click', ()=>{ const g = `linear-gradient(135deg, ${colorA.value}, ${colorB.value})`; applyGradient(g); if(saveTheme.checked) localStorage.setItem('savedTheme', g); });
+    resetTheme.addEventListener('click', ()=>{ localStorage.removeItem('savedTheme'); location.reload(); });
+    // load saved
+    if(localStorage.getItem('savedTheme')) applyGradient(localStorage.getItem('savedTheme'));
+
+    // Roblox Badge Checker (uses roproxy for CORS)
+    document.getElementById('checkBadge').addEventListener('click', async ()=>{
       const username = document.getElementById('rbUsername').value.trim();
       const badgeId = document.getElementById('badgeId').value.trim();
-      const output = document.getElementById('rbOutput');
-      if(!username || !badgeId){ output.textContent = 'Please provide both username and badge ID.'; return; }
-      output.textContent = 'Fetching...';
+      const out = document.getElementById('rbOutput');
+      if(!username || !badgeId){ out.textContent='Please enter username and badge id.'; return; }
+      out.textContent='Fetching...';
       try{
-        const userRes = await fetch(`https://users.roblox.com/v1/users/search?username=${encodeURIComponent(username)}`);
-        const userData = await userRes.json();
-        if(!userData.data || userData.data.length === 0){ output.textContent = 'User not found.'; return; }
-        const userId = userData.data[0].id;
-        const badgeRes = await fetch(`https://badges.roblox.com/v1/users/${userId}/badges`);
-        const badgeData = await badgeRes.json();
-        const badge = badgeData.data.find(b => b.id == badgeId);
-        if(badge){ output.textContent = `Badge awarded on: ${new Date(badge.earnedDate).toLocaleString()}`; }
-        else{ output.textContent = 'Badge not found for this user.'; }
-      }catch(err){ output.textContent = 'Error fetching data.'; }
+        const ures = await fetch(`https://api.roproxy.com/users/get-by-username?username=${encodeURIComponent(username)}`);
+        const udata = await ures.json();
+        if(!udata.Id){ out.textContent='User not found.'; return; }
+        const userId = udata.Id;
+        // badges via roproxy
+        const bres = await fetch(`https://api.roproxy.com/badges/v1/users/${userId}/badges`);
+        const bdata = await bres.json();
+        const found = (bdata.data||[]).find(b=>String(b.badgeId)===String(badgeId) || String(b.id)===String(badgeId));
+        if(found){ out.textContent = `Badge awarded on: ${found.issuedAt || found.earnedDate || found.updated}`; }
+        else out.textContent='Badge not owned by this user.';
+      }catch(e){ out.textContent='Error fetching badge info.'; console.error(e); }
     });
 
-    // Discord Webhook Sender
-    document.getElementById('sendWebhook').addEventListener('click', async () => {
+    // Discord Webhook (fix: display verbose errors)
+    document.getElementById('sendWebhook').addEventListener('click', async ()=>{
       const url = document.getElementById('webhookUrl').value.trim();
-      const msg = document.getElementById('webhookMsg').value;
-      const output = document.getElementById('discordOutput');
-      if(!url || !msg){ output.textContent = 'Please provide both webhook URL and message.'; return; }
-      output.textContent = 'Sending...';
+      const msg = document.getElementById('webhookMsg').value.trim();
+      const out = document.getElementById('discordOutput');
+      if(!url || !msg){ out.textContent='Provide webhook URL and message.'; return; }
+      out.textContent='Sending...';
       try{
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: msg })
-        });
-        output.textContent = res.ok ? 'Message sent successfully.' : 'Failed to send message.';
-      }catch(err){ output.textContent = 'Error sending message.'; }
+        const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({content: msg}) });
+        const text = await res.text();
+        out.textContent = res.ok ? 'Message sent successfully.' : `Failed (${res.status}): ${text}`;
+      }catch(e){ out.textContent = 'Error sending webhook: '+e; console.error(e); }
     });
 
-    // Python Sandbox
-    async function initPySandbox(){
-      const pyodide = await loadPyodide();
-      const codeArea = CodeMirror.fromTextArea(document.getElementById('codeInput'), {
-        mode: 'python',
-        lineNumbers: true,
-        indentUnit: 4,
-        matchBrackets: true,
-        autoCloseBrackets: true,
-        styleActiveLine: true,
+    // optional test webhook button (sends a small test)
+    document.getElementById('testWebhook').addEventListener('click', ()=>{ document.getElementById('webhookMsg').value = 'Test message from Multi-Tool Hub'; });
+    document.getElementById('sendJson').addEventListener('click', async ()=>{
+      const url = document.getElementById('webhookUrl').value.trim();
+      const out = document.getElementById('discordOutput');
+      try{ const payload = JSON.parse(document.getElementById('webhookMsg').value); const res = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); out.textContent = res.ok? 'JSON sent.':'Failed to send JSON'; }catch(e){ out.textContent='Invalid JSON or error: '+e }
+    });
+
+    // PYODIDE + CodeMirror setup
+    let pyodide = null, codeArea = null;
+    async function initPy(){
+      pyodide = await loadPyodide();
+      codeArea = CodeMirror.fromTextArea(document.getElementById('codeInput'),{
+        mode:'python',lineNumbers:true,indentUnit:4,matchBrackets:true,autoCloseBrackets:true,tabSize:4
       });
 
-      const lineToggle = document.getElementById('toggleLineNumbers');
-      lineToggle.addEventListener('change', ()=>{
-        codeArea.setOption('lineNumbers', lineToggle.checked);
-      });
+      document.getElementById('toggleLineNumbers').addEventListener('change', (e)=>{ codeArea.setOption('lineNumbers', e.target.checked); });
 
       document.getElementById('runCode').addEventListener('click', async ()=>{
-        const code = codeArea.getValue();
-        const output = document.getElementById('codeOutput');
-        codeArea.getAllMarks().forEach(m => m.clear());
-        output.textContent = 'Running...';
-        try {
-          await pyodide.runPythonAsync(`
-import sys
-class Capturer:
-    def __init__(self):
-        self.data = ''
-    def write(self, s):
-        self.data += s
-    def flush(self):
-        pass
-sys.stdout = Capturer()
-sys.stderr = sys.stdout
-exec('''${code.replace(/`/g,'\`')}''')
-`);
-          let captured = pyodide.globals.get('sys').stdout.data;
-          output.textContent = captured || 'Code executed successfully with no output.';
-        } catch(e){
-          output.textContent = e;
-          const lineMatch = e.toString().match(/<string>\,(\d+)/);
-          if(lineMatch){
-            const errLine = parseInt(lineMatch[1])-1;
-            codeArea.addLineClass(errLine, 'background', 'error-line');
+        const out = document.getElementById('codeOutput');
+        out.textContent = '';
+        codeArea.getAllMarks().forEach(m=>m.clear());
+        try{
+          // capture stdout
+          await pyodide.runPythonAsync(`import sys\nclass Capturer:\n  def __init__(self):\n    self.data = ''\n  def write(self,s):\n    self.data += str(s)\n  def flush(self):\n    pass\nsys.stdout = Capturer()\nsys.stderr = sys.stdout\n`);
+          // run user code
+          await pyodide.runPythonAsync(`exec('''${codeArea.getValue().replace(/`/g,'\\`').replace(/\$/g,'\\$')}''')`);
+          const captured = pyodide.runPython('sys.stdout.data');
+          out.textContent = captured || 'Code executed with no printed output.';
+        }catch(err){
+          const msg = err.toString();
+          out.textContent = msg;
+          // try to parse line number from message
+          const m = msg.match(/<string>, (\d+)/) || msg.match(/File "<string>", line (\d+)/);
+          if(m){
+            const line = parseInt(m[1]) - 1;
+            codeArea.addLineClass(line,'background','error-line');
+            codeArea.scrollIntoView({line, ch:0});
           }
         }
       });
+
+      document.getElementById('clearOutput').addEventListener('click', ()=>{ document.getElementById('codeOutput').textContent = ''; });
+
+      document.getElementById('downloadCode').addEventListener('click', ()=>{
+        const code = codeArea.getValue();
+        const blob = new Blob([code],{type:'text/x-python'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'script.py'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      });
     }
 
-    initPySandbox();
+    initPy();
+
+    // Auto open first section
+    document.querySelector('.menu-btn').click();
   </script></body>
 </html>
