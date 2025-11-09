@@ -53,7 +53,7 @@ body{
 
 .toggle-btn{position:fixed;left:12px;top:20px;width:50px;height:50px;border-radius:50%;border:none;background:linear-gradient(135deg,#8b5cf6,#ec4899);backdrop-filter:blur(6px);color:white;cursor:pointer;box-shadow:0 8px 30px rgba(120,80,200,0.25);transition:transform var(--transition), left var(--transition);z-index:35;display:grid;place-items:center;font-size:20px}
 
-main{flex:1;padding:26px 30px;overflow:auto;}
+main{flex:1;padding:26px 30px;overflow:auto;transition:margin-left var(--transition);}
 .card{background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));padding:18px;border-radius:12px;backdrop-filter:blur(6px);box-shadow:0 8px 30px rgba(0,0,0,0.6);}
 h2{margin:0 0 10px 0}
 
@@ -110,7 +110,7 @@ textarea{min-height:96px}
 
   </aside><button class="toggle-btn" id="toggleBtn" aria-label="Toggle menu">☰</button>
 
-  <main>
+  <main id="mainContent">
     <!-- Sections remain unchanged -->
     <section id="robloxSection" class="card">
       <h2>Roblox Badge Checker</h2>
@@ -150,5 +150,22 @@ textarea{min-height:96px}
   <pre id="codeOutput"></pre>
 </section>
 
-  </main>  <!-- Scripts remain unchanged --></body>
+  </main>  <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/matchbrackets.min.js"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/closebrackets.min.js"></script>  <script>
+    const sidebar = document.getElementById('sidebar');
+    const toggleBtn = document.getElementById('toggleBtn');
+    const sections = document.querySelectorAll('main section');
+    const menuButtons = document.querySelectorAll('.menu-btn');
+    const mainContent = document.getElementById('mainContent');
+
+    toggleBtn.addEventListener('click', ()=>{
+      sidebar.classList.toggle('hidden');
+    });
+
+    menuButtons.forEach(btn => {
+      btn.addEventListener('click', ()=>{
+        sections.forEach(s=>s.style.display='none');
+        document.getElementById(btn.dataset.target).style.display='block';
+      });
+    });
+  </script></body>
 </html>
