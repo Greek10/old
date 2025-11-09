@@ -2,234 +2,183 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Python Sandbox</title>
-
-  <!-- CodeMirror (syntax highlighting) -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Python Sandbox v2</title>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
-
-  <!-- Pyodide (Python in browser) -->
-  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
-
-  <!-- Split.js for resizable panels -->
-  <script src="https://unpkg.com/split.js/dist/split.min.js"></script>
-
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
   <style>
     body {
-      background-color: #1e1e1e;
-      color: #ffffff;
-      font-family: "Consolas", "Courier New", monospace;
-      margin: 0;
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
+      margin: 0; height: 100vh; display: flex; flex-direction: column;
+      background-color: #121212; color: white; font-family: monospace;
     }
-
-    #editor-container, #output-container {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      padding: 10px;
+    #toolbar {
+      background: #1e1e1e; padding: 8px; display: flex; gap: 8px; align-items: center;
+      border-bottom: 1px solid #333;
     }
-
-    #editor-container { background: #1e1e1e; }
-    #output-container { background: #111; }
-
-    h3 {
-      margin: 5px 0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 16px;
-    }
-
-    #editor, #output {
-      flex: 1;
-      border: 1px solid #333;
-      padding: 0;
-      overflow: hidden;
-    }
-
-    #output {
-      background: #111;
-      color: #ccc;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      padding: 10px;
-    }
-
-    .error {
-      color: #ff5555;
-      font-weight: bold;
-    }
-
-    .error-line {
-      background-color: rgba(255, 85, 85, 0.2);
-    }
-
-    .CodeMirror {
-      height: 100%;
-      font-size: 15px;
-    }
-
     button {
-      background: #0078d7;
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
+      background: #282828; color: white; border: none; padding: 6px 12px;
+      border-radius: 6px; cursor: pointer; transition: background 0.2s;
+    }
+    button:hover { background: #3a3a3a; }
+    input[type="file"] { display: none; }
+    #sandbox { flex: 1; display: flex; overflow: hidden; }
+    #editor, #output {
+      flex: 1; overflow: auto;
+    }
+    .CodeMirror {
+      height: 100%; font-size: 15px;
+    }
+    #output {
+      background: #0b0b0b; padding: 10px; white-space: pre-wrap;
+      border-left: 2px solid #333;
+    }
+    .error {
+      color: #ff4c4c;
       cursor: pointer;
-      margin-left: 4px;
-    }
-
-    button:hover {
-      background: #005fa3;
-    }
-
-    #buttons {
-      display: flex;
-      gap: 4px;
-      align-items: center;
-    }
-
-    @media (max-width: 700px) {
-      body { flex-direction: column; }
-    }
-
-    .gutter {
-      background-color: #333;
-      cursor: col-resize;
+      text-decoration: underline dotted;
     }
   </style>
 </head>
 <body>
-  <div id="editor-container">
-    <h3>
-      Python Code <small style="font-size:0.8em;color:#888;">(Ctrl + Enter to run)</small>
-      <div id="buttons">
-        <button id="runBtn">▶ Run</button>
-        <button id="clearBtn">🧹 Clear</button>
-        <button id="themeBtn">🌙 Theme</button>
-        <button id="shareBtn">🔗 Share</button>
-      </div>
-    </h3>
-    <textarea id="editor">print("Hello, world!")</textarea>
+  <div id="toolbar">
+    <button id="run">▶ Run</button>
+    <button id="runSel">▶ Run Selection</button>
+    <button id="format">🧹 Format</button>
+    <button id="loadPkg">📦 Load Package</button>
+    <button id="openBtn">📂 Open</button>
+    <button id="saveBtn">💾 Save</button>
+    <input type="file" id="fileInput" accept=".py">
+    <span id="status"></span>
   </div>
 
-  <div id="output-container">
-    <h3>Output</h3>
-    <pre id="output">Loading Python environment...</pre>
+  <div id="sandbox">
+    <div id="editor"></div>
+    <pre id="output">Loading Pyodide...</pre>
   </div>
 
   <script>
-    // Initialize CodeMirror
-    let editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
+    let pyodide;
+    const output = document.getElementById("output");
+    const status = document.getElementById("status");
+
+    // --- Initialize CodeMirror ---
+    const editor = CodeMirror(document.getElementById("editor"), {
+      value: 'print("Hello, world!")',
       mode: "python",
       theme: "dracula",
       lineNumbers: true,
       indentUnit: 4,
-      autoCloseBrackets: true,
+      extraKeys: {
+        "Tab": cm => cm.replaceSelection(" ".repeat(4)),
+        "Ctrl-Enter": () => runCode(),
+      },
     });
 
-    // Restore previous code
-    const saved = localStorage.getItem("userCode");
-    if (saved) editor.setValue(saved);
-    editor.on("change", () => localStorage.setItem("userCode", editor.getValue()));
-
-    // Load Pyodide
-    let pyodide;
-    let pyReady = false;
-    async function loadPython() {
+    // --- Load Pyodide ---
+    async function init() {
       pyodide = await loadPyodide();
-      await pyodide.loadPackage([]);
-      document.getElementById("output").textContent = "Ready! Write Python code and click ▶ Run.";
-      pyReady = true;
+      await pyodide.loadPackage(["micropip"]);
+      output.textContent = "Pyodide loaded. Ready to run Python 🐍\n";
+      pyodide.runPython(`
+__builtins__.input = lambda prompt='': js.prompt(prompt)
+`);
     }
-    loadPython();
+    init();
 
-    // Utility: Append output
-    function appendOutput(msg, type="normal") {
-      const out = document.getElementById("output");
-      const span = document.createElement("span");
-      span.textContent = msg;
-      span.style.color = type === "error" ? "#ff5555" : "#ccc";
-      out.appendChild(span);
-      out.appendChild(document.createElement("br"));
-      out.scrollTop = out.scrollHeight;
+    // --- Output Helper ---
+    function printOut(text) {
+      output.textContent += text + "\n";
+      output.scrollTop = output.scrollHeight;
     }
 
-    // Run code
-    const runBtn = document.getElementById("runBtn");
-    runBtn.addEventListener("click", async () => {
-      if (!pyReady) return alert("Python still loading...");
-
-      const output = document.getElementById("output");
-      output.textContent = "";
-      runBtn.disabled = true;
-      runBtn.textContent = "Running...";
-
-      // Clear error highlights
-      editor.eachLine(line => editor.removeLineClass(line, "background", "error-line"));
-
-      try {
-        pyodide.setStdout({ batched: (msg) => appendOutput(msg) });
-        pyodide.setStderr({ batched: (msg) => appendOutput(msg, "error") });
-        await pyodide.runPythonAsync(editor.getValue());
-      } catch (err) {
-        appendOutput("❌ " + err, "error");
-
-        // Highlight error line if found
-        const match = err.toString().match(/File "<stdin>", line (\d+)/);
-        if (match) {
-          const lineNum = parseInt(match[1]) - 1;
-          editor.addLineClass(lineNum, "background", "error-line");
-        }
-      } finally {
-        runBtn.disabled = false;
-        runBtn.textContent = "▶ Run";
+    // --- Error Display Helper (Clickable Traceback) ---
+    function showError(err) {
+      const msg = err.toString();
+      const lineMatch = msg.match(/line (\\d+)/);
+      if (lineMatch) {
+        const line = parseInt(lineMatch[1]);
+        const span = document.createElement("span");
+        span.textContent = msg;
+        span.className = "error";
+        span.onclick = () => editor.setCursor(line - 1);
+        output.appendChild(span);
+      } else {
+        printOut(msg);
       }
-    });
-
-    // Ctrl+Enter to run
-    editor.addKeyMap({ "Ctrl-Enter": () => runBtn.click() });
-
-    // Clear output
-    document.getElementById("clearBtn").onclick = () => {
-      document.getElementById("output").textContent = "";
-    };
-
-    // Theme toggle
-    const themes = ["dracula", "default"];
-    let themeIndex = 0;
-    document.getElementById("themeBtn").onclick = () => {
-      themeIndex = 1 - themeIndex;
-      editor.setOption("theme", themes[themeIndex]);
-    };
-
-    // Share code link
-    document.getElementById("shareBtn").onclick = () => {
-      const code = encodeURIComponent(editor.getValue());
-      const url = location.origin + location.pathname + "#code=" + code;
-      navigator.clipboard.writeText(url);
-      alert("Copied shareable link!");
-    };
-
-    // Load shared code from URL hash
-    if (location.hash.startsWith("#code=")) {
-      const code = decodeURIComponent(location.hash.slice(6));
-      editor.setValue(code);
+      printOut("");
     }
 
-    // Resizable layout
-    Split(["#editor-container", "#output-container"], {
-      sizes: [50, 50],
-      minSize: 200,
-      gutterSize: 6,
-      cursor: "col-resize"
-    });
+    // --- Run Code ---
+    async function runCode(code = editor.getValue()) {
+      if (!pyodide) return;
+      output.textContent = "";
+      status.textContent = "Running...";
+      try {
+        let result = await pyodide.runPythonAsync(code);
+        if (result !== undefined) printOut(result.toString());
+      } catch (err) {
+        showError(err);
+      }
+      status.textContent = "";
+    }
+
+    // --- Run Selection ---
+    document.getElementById("runSel").onclick = () => {
+      const sel = editor.getSelection();
+      if (sel.trim()) runCode(sel);
+      else runCode();
+    };
+    document.getElementById("run").onclick = () => runCode();
+
+    // --- Format Code (Black-like) ---
+    document.getElementById("format").onclick = async () => {
+      if (!pyodide) return;
+      try {
+        await pyodide.runPythonAsync(`
+import micropip
+await micropip.install("black")
+`);
+        const code = editor.getValue();
+        const formatted = await pyodide.runPythonAsync(`
+from black import format_str, FileMode
+format_str("""${code.replace(/`/g, "\\`")}""", mode=FileMode())
+`);
+        editor.setValue(formatted);
+      } catch (e) {
+        printOut("Formatter error: " + e);
+      }
+    };
+
+    // --- Load Custom Package ---
+    document.getElementById("loadPkg").onclick = async () => {
+      const pkg = prompt("Enter package name to install (PyPI):");
+      if (!pkg) return;
+      try {
+        await pyodide.runPythonAsync(`import micropip; await micropip.install("${pkg}")`);
+        printOut(`✅ Package "${pkg}" installed`);
+      } catch (e) {
+        printOut(`❌ Failed to install ${pkg}: ${e}`);
+      }
+    };
+
+    // --- File Upload/Download ---
+    document.getElementById("openBtn").onclick = () => {
+      document.getElementById("fileInput").click();
+    };
+    document.getElementById("fileInput").onchange = e => {
+      const file = e.target.files[0];
+      file.text().then(txt => editor.setValue(txt));
+    };
+    document.getElementById("saveBtn").onclick = () => {
+      const blob = new Blob([editor.getValue()], {type: "text/plain"});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "script.py";
+      a.click();
+    };
   </script>
 </body>
 </html>
