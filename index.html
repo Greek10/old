@@ -2,131 +2,131 @@
 
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Modern Multi-Tool Hub</title>
-  <meta name="description" content="A modern site with Roblox, Discord, and Python Code Sandbox tools" />  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
-  <style>
-    :root{--sidebar-w:240px;--glass:rgba(255,255,255,0.06);--accent-a:rgba(255,110,196,0.12);--accent-b:rgba(120,115,245,0.12);--text:#eef2ff;--transition:0.35s ease}
-    *{box-sizing:border-box} html,body{height:100%} body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;background:linear-gradient(135deg,#0f172a 0%,#071029 100%);color:var(--text);display:flex;min-height:100vh;overflow:hidden}
-    .sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));backdrop-filter:blur(10px) saturate(120%);box-shadow:0 8px 30px rgba(10,10,20,0.6);padding:18px;display:flex;flex-direction:column;gap:12px;transition:transform var(--transition),width var(--transition);position:relative;z-index:30}
-    .sidebar.hidden{transform:translateX(-120%);width:0;padding:0}
-    .brand{font-weight:700;letter-spacing:0.6px;margin-bottom:6px}.desc{font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:12px}
-    .menu-btn{display:flex;align-items:center;gap:10px;padding:12px;border-radius:12px;border:none;background:linear-gradient(90deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));color:var(--text);cursor:pointer;transition:all .25s ease}.menu-btn:hover{transform:translateY(-4px);box-shadow:0 10px 30px rgba(0,0,0,0.4)}
-    .menu-btn .dot{width:36px;height:36px;border-radius:10px;flex:0 0 36px;background:linear-gradient(135deg,#ff6ec4,#7873f5);display:grid;place-items:center;font-weight:700}
-    .menu-btn .label{font-weight:600}
-    .themes{margin-bottom:12px;padding:8px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);order:-1}
-    .theme-presets{display:flex;gap:8px;flex-wrap:wrap}.preset{width:36px;height:36px;border-radius:8px;cursor:pointer;border:2px solid rgba(255,255,255,0.04)}.preset:hover{transform:scale(1.06)}
-    .theme-row{display:flex;gap:8px;align-items:center;margin-top:8px}.color-picker{width:40px;height:28px;border-radius:6px;border:none;padding:0}.save-theme{margin-top:8px;padding:8px;border-radius:8px;border:none;background:linear-gradient(90deg,#8b5cf6,#ec4899);color:white;cursor:pointer}
-    .toggle-btn{position:fixed;left:12px;top:20px;width:50px;height:50px;border-radius:50%;border:none;background:linear-gradient(135deg,#8b5cf6,#ec4899);backdrop-filter:blur(6px);color:white;cursor:pointer;box-shadow:0 8px 30px rgba(120,80,200,0.25);transition:transform var(--transition),left var(--transition);z-index:35;display:grid;place-items:center;font-size:20px}
-    main{flex:1;padding:26px 30px;overflow:auto;transition:margin-left var(--transition)}.card{background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));padding:18px;border-radius:12px;backdrop-filter:blur(6px);box-shadow:0 8px 30px rgba(0,0,0,0.6)}
-    h2{margin:0 0 10px 0}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}input[type="text"],textarea{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--text)}textarea{min-height:96px}.actions{display:flex;gap:8px;margin-top:12px}
-    .CodeMirror{height:auto;border-radius:8px;min-height:200px}.cm-s-default .CodeMirror-gutters{background:transparent;border-right:0;padding-right:8px}.cm-s-default .CodeMirror-linenumber{color:rgba(255,255,255,0.6);padding-right:8px}.error-line{background:linear-gradient(90deg, rgba(255,0,0,0.08), rgba(255,0,0,0.02)) !important}
-    .download-btn{margin-left:auto;padding:8px 12px;border-radius:8px;border:none;background:linear-gradient(90deg,#06b6d4,#3b82f6);color:white;cursor:pointer}
-    @media (max-width:900px){:root{--sidebar-w:200px}.sidebar{position:fixed;left:0;top:0;height:100vh}main{padding:18px;margin-left:0}.toggle-btn{left:12px}}
-    @media (max-width:600px){.row{flex-direction:column}.menu-btn{justify-content:flex-start}}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Modern Multi-Tool Hub</title>
+<meta name="description" content="A modern site with Roblox, Discord, Python Code Sandbox, and Chat tools" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+<style>
+:root{--sidebar-w:240px;--glass:rgba(255,255,255,0.06);--accent-a:rgba(255,110,196,0.12);--accent-b:rgba(120,115,245,0.12);--text:#eef2ff;--transition:0.35s ease}
+*{box-sizing:border-box} html,body{height:100%} body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;background:linear-gradient(135deg,#0f172a 0%,#071029 100%);color:var(--text);display:flex;min-height:100vh;overflow:hidden}
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));backdrop-filter:blur(10px) saturate(120%);box-shadow:0 8px 30px rgba(10,10,20,0.6);padding:18px;display:flex;flex-direction:column;gap:12px;transition:transform var(--transition),width var(--transition);position:relative;z-index:30}
+.sidebar.hidden{transform:translateX(-120%);width:0;padding:0}
+.brand{font-weight:700;letter-spacing:0.6px;margin-bottom:6px}.desc{font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:12px}
+.menu-btn{display:flex;align-items:center;gap:10px;padding:12px;border-radius:12px;border:none;background:linear-gradient(90deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));color:var(--text);cursor:pointer;transition:all .25s ease}.menu-btn:hover{transform:translateY(-4px);box-shadow:0 10px 30px rgba(0,0,0,0.4)}
+.menu-btn .dot{width:36px;height:36px;border-radius:10px;flex:0 0 36px;background:linear-gradient(135deg,#ff6ec4,#7873f5);display:grid;place-items:center;font-weight:700}
+.menu-btn .label{font-weight:600}
+.themes{margin-bottom:12px;padding:8px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);order:-1}
+.theme-presets{display:flex;gap:8px;flex-wrap:wrap}.preset{width:36px;height:36px;border-radius:8px;cursor:pointer;border:2px solid rgba(255,255,255,0.04)}.preset:hover{transform:scale(1.06)}
+.theme-row{display:flex;gap:8px;align-items:center;margin-top:8px}.color-picker{width:40px;height:28px;border-radius:6px;border:none;padding:0}.save-theme{margin-top:8px;padding:8px;border-radius:8px;border:none;background:linear-gradient(90deg,#8b5cf6,#ec4899);color:white;cursor:pointer}
+.toggle-btn{position:fixed;left:12px;top:20px;width:50px;height:50px;border-radius:50%;border:none;background:linear-gradient(135deg,#8b5cf6,#ec4899);backdrop-filter:blur(6px);color:white;cursor:pointer;box-shadow:0 8px 30px rgba(120,80,200,0.25);transition:transform var(--transition),left var(--transition);z-index:35;display:grid;place-items:center;font-size:20px}
+main{flex:1;padding:26px 30px;overflow:auto;transition:margin-left var(--transition)}.card{background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));padding:18px;border-radius:12px;backdrop-filter:blur(6px);box-shadow:0 8px 30px rgba(0,0,0,0.6)}
+h2{margin:0 0 10px 0}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}input[type="text"],textarea{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--text)}textarea{min-height:96px}.actions{display:flex;gap:8px;margin-top:12px}
+.CodeMirror{height:auto;border-radius:8px;min-height:200px}.cm-s-default .CodeMirror-gutters{background:transparent;border-right:0;padding-right:8px}.cm-s-default .CodeMirror-linenumber{color:rgba(255,255,255,0.6);padding-right:8px}.error-line{background:linear-gradient(90deg, rgba(255,0,0,0.08), rgba(255,0,0,0.02)) !important}
+.download-btn{margin-left:auto;padding:8px 12px;border-radius:8px;border:none;background:linear-gradient(90deg,#06b6d4,#3b82f6);color:white;cursor:pointer}
+@media (max-width:900px){:root{--sidebar-w:200px}.sidebar{position:fixed;left:0;top:0;height:100vh}main{padding:18px;margin-left:0}.toggle-btn{left:12px}}
+@media (max-width:600px){.row{flex-direction:column}.menu-btn{justify-content:flex-start}}
+</style>
 </head>
 <body>
-  <aside class="sidebar" id="sidebar">
-    <div class="brand">Multi-Tool Hub</div>
-    <div class="desc">Roblox • Discord • Python Sandbox</div><div class="themes card">
-  <div style="font-weight:600;margin-bottom:8px">Themes</div>
-  <div class="theme-presets">
-    <div class="preset" data-grad="linear-gradient(135deg,#6b21a8,#3b82f6)" style="background:linear-gradient(135deg,#6b21a8,#3b82f6)"></div>
-    <div class="preset" data-grad="linear-gradient(135deg,#06b6d4,#3b82f6)" style="background:linear-gradient(135deg,#06b6d4,#3b82f6)"></div>
-    <div class="preset" data-grad="linear-gradient(135deg,#ff6ec4,#7873f5)" style="background:linear-gradient(135deg,#ff6ec4,#7873f5)"></div>
-    <div class="preset" data-grad="linear-gradient(135deg,#ff7a18,#f56040)" style="background:linear-gradient(135deg,#ff7a18,#f56040)"></div>
-  </div>
-  <div class="theme-row">
-    <input type="color" id="colorA" class="color-picker" title="Start color">
-    <input type="color" id="colorB" class="color-picker" title="End color">
-    <button class="save-theme" id="applyCustom">Apply</button>
-  </div>
+<aside class="sidebar" id="sidebar">
+<div class="brand">Multi-Tool Hub</div>
+<div class="desc">Roblox • Discord • Python Sandbox • Chat</div>
+<div class="themes card">
+<div style="font-weight:600;margin-bottom:8px">Themes</div>
+<div class="theme-presets">
+<div class="preset" data-grad="linear-gradient(135deg,#6b21a8,#3b82f6)" style="background:linear-gradient(135deg,#6b21a8,#3b82f5)"></div>
+<div class="preset" data-grad="linear-gradient(135deg,#06b6d4,#3b82f6)" style="background:linear-gradient(135deg,#06b6d4,#3b82f6)"></div>
+<div class="preset" data-grad="linear-gradient(135deg,#ff6ec4,#7873f5)" style="background:linear-gradient(135deg,#ff6ec4,#7873f5)"></div>
 </div>
+<div class="theme-row">
+<input type="color" id="colorA" class="color-picker" title="Start color">
+<input type="color" id="colorB" class="color-picker" title="End color">
+<button class="save-theme" id="applyCustom">Apply</button>
+</div>
+</div><button class="menu-btn" data-target="robloxSection"><div class="dot">R</div><div class="label">Roblox Badge Checker</div></button> <button class="menu-btn" data-target="discordSection"><div class="dot">D</div><div class="label">Discord Webhook Sender</div></button> <button class="menu-btn" data-target="codeSection"><div class="dot">Py</div><div class="label">Python Sandbox</div></button> <button class="menu-btn" data-target="chatSection"><div class="dot">C</div><div class="label">Chat</div></button>
 
-<button class="menu-btn" data-target="robloxSection"><div class="dot">R</div><div class="label">Roblox Badge Checker</div></button>
-<button class="menu-btn" data-target="discordSection"><div class="dot">D</div><div class="label">Discord Webhook Sender</div></button>
-<button class="menu-btn" data-target="codeSection"><div class="dot">Py</div><div class="label">Python Sandbox</div></button>
+</aside><button class="toggle-btn" id="toggleBtn">☰</button>
 
-  </aside><button class="toggle-btn" id="toggleBtn" aria-label="Toggle menu">☰</button>
-
-  <main id="mainContent">
-    <section id="robloxSection" class="card">
-      <h2>Roblox Badge Checker</h2>
-      <div class="row">
-        <input id="rbUsername" type="text" placeholder="Roblox username">
-        <input id="badgeId" type="text" placeholder="Badge ID">
-        <button id="checkBadge" class="download-btn">Check Badge</button>
-      </div>
-      <pre id="rbOutput"></pre>
-    </section><section id="discordSection" class="card" style="display:none">
-  <h2>Discord Webhook Sender</h2>
-  <input id="webhookUrl" type="text" placeholder="Webhook URL">
-  <textarea id="webhookMsg" placeholder="Message to send"></textarea>
-  <button id="sendWebhook" class="download-btn">Send</button>
-  <pre id="discordOutput"></pre>
+<main id="mainContent">
+<section id="robloxSection" class="card">
+<h2>Roblox Badge Checker</h2>
+<div class="row">
+<input id="rbUsername" type="text" placeholder="Roblox username">
+<input id="badgeId" type="text" placeholder="Badge ID">
+<button id="checkBadge" class="download-btn">Check Badge</button>
+</div>
+<pre id="rbOutput"></pre>
+</section><section id="discordSection" class="card" style="display:none">
+<h2>Discord Webhook Sender</h2>
+<input id="webhookUrl" type="text" placeholder="Webhook URL">
+<textarea id="webhookMsg" placeholder="Message to send"></textarea>
+<button id="sendWebhook" class="download-btn">Send</button>
+<pre id="discordOutput"></pre>
+</section><section id="codeSection" class="card" style="display:none">
+<h2>Python Sandbox</h2>
+<textarea id="codeInput" rows="10">print("Hello World")</textarea>
+<button id="runCode" class="download-btn">Run</button>
+<button id="downloadCode" class="download-btn">Download .py</button>
+<pre id="codeOutput"></pre>
+</section><section id="chatSection" class="card" style="display:none">
+<h2>Discord Chat</h2>
+<input id="chatName" type="text" placeholder="Your Name">
+<textarea id="chatMsg" placeholder="Type your message..."></textarea>
+<button id="sendChat" class="download-btn">Send</button>
+<pre id="chatOutput"></pre>
 </section>
+</main><script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script><script>
+const sidebar = document.getElementById('sidebar');
+const toggleBtn = document.getElementById('toggleBtn');
+const sections = document.querySelectorAll('main section');
+const menuButtons = document.querySelectorAll('.menu-btn');
 
-<section id="codeSection" class="card" style="display:none">
-  <h2>Python Sandbox</h2>
-  <textarea id="codeInput" rows="10">print("Hello World")</textarea>
-  <button id="runCode" class="download-btn">Run</button>
-  <button id="downloadCode" class="download-btn">Download .py</button>
-  <pre id="codeOutput"></pre>
-</section>
+toggleBtn.addEventListener('click', ()=> sidebar.classList.toggle('hidden'));
+menuButtons.forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    sections.forEach(s=>s.style.display='none');
+    document.getElementById(btn.dataset.target).style.display='block';
+  });
+});
 
-  </main>  <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>  <script>
-    const sidebar = document.getElementById('sidebar');
-    const toggleBtn = document.getElementById('toggleBtn');
-    const sections = document.querySelectorAll('main section');
-    const menuButtons = document.querySelectorAll('.menu-btn');
+// Roblox Badge Checker
+document.getElementById('checkBadge').addEventListener('click', async ()=>{
+  const username = document.getElementById('rbUsername').value.trim();
+  const badgeId = document.getElementById('badgeId').value.trim();
+  const output = document.getElementById('rbOutput');
+  if(!username||!badgeId){output.textContent='Enter username and badge ID'; return;}
+  try{
+    const userRes = await fetch(`https://users.roblox.com/v1/users/search?keyword=${username}`);
+    const userData = await userRes.json();
+    const userId = userData.data[0].id;
+    const badgeRes = await fetch(`https://badges.roblox.com/v1/badges/${badgeId}/users/${userId}/roblox`);
+    const badgeData = await badgeRes.json();
+    output.textContent = badgeData.hasBadge ? 'User has the badge' : 'User does NOT have the badge';
+  }catch(e){output.textContent='Error fetching data.';}
+});
 
-    toggleBtn.addEventListener('click', ()=> sidebar.classList.toggle('hidden'));
-    menuButtons.forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        sections.forEach(s=>s.style.display='none');
-        document.getElementById(btn.dataset.target).style.display='block';
-      });
-    });
+// Discord Webhook
+document.getElementById('sendWebhook').addEventListener('click', async ()=>{
+  const url = document.getElementById('webhookUrl').value.trim();
+  const msg = document.getElementById('webhookMsg').value;
+  const out = document.getElementById('discordOutput');
+  if(!url||!msg){out.textContent='Webhook URL and message required'; return;}
+  try{
+    const res = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:msg})});
+    out.textContent=res.ok?'Message sent!':'Failed to send message';
+  }catch(e){out.textContent='Error sending message';}
+});
 
-    // Roblox Badge Checker
-    document.getElementById('checkBadge').addEventListener('click', async ()=>{
-      const username = document.getElementById('rbUsername').value.trim();
-      const badgeId = document.getElementById('badgeId').value.trim();
-      const output = document.getElementById('rbOutput');
-      if(!username || !badgeId){output.textContent='Please enter username and badge ID'; return;}
-      try{
-        const userRes = await fetch(`https://users.roblox.com/v1/users/search?keyword=${username}`);
-        const userData = await userRes.json();
-        const userId = userData.data[0].id;
-        const badgeRes = await fetch(`https://badges.roblox.com/v1/badges/${badgeId}/users/${userId}/roblox`);
-        const badgeData = await badgeRes.json();
-        output.textContent = badgeData.hasBadge ? `User has the badge` : `User does NOT have the badge`;
-      }catch(e){output.textContent='Error fetching data.';}
-    });
-
-    // Discord Webhook
-    document.getElementById('sendWebhook').addEventListener('click', async ()=>{
-      const url = document.getElementById('webhookUrl').value.trim();
-      const msg = document.getElementById('webhookMsg').value;
-      const out = document.getElementById('discordOutput');
-      if(!url || !msg){out.textContent='Webhook URL and message required'; return;}
-      try{
-        const res = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:msg})});
-        out.textContent=res.ok ? 'Message sent!' : 'Failed to send message';
-      }catch(e){out.textContent='Error sending message';}
-    });
-
-    // Python Sandbox
-    (async function(){
-      const pyodide = await loadPyodide();
-      document.getElementById('runCode').addEventListener('click', async ()=>{
-        const code = document.getElementById('codeInput').value;
-        const output = document.getElementById('codeOutput');
-        try{
-          let captured = '';
-          await pyodide.runPythonAsync(`import sys
+// Python Sandbox
+(async function(){
+  const pyodide = await loadPyodide();
+  document.getElementById('runCode').addEventListener('click', async ()=>{
+    const code = document.getElementById('codeInput').value;
+    const output = document.getElementById('codeOutput');
+    try{
+      let captured = '';
+      await pyodide.runPythonAsync(`import sys
 class Capturer:
  def __init__(self): self.data=''
  def write(self,s): self.data+=s
@@ -134,15 +134,28 @@ class Capturer:
 sys.stdout=Capturer(); sys.stderr=sys.stdout
 exec('''${code.replace(/`/g,'\`')}''')
 captured=sys.stdout.data`);
-          captured = pyodide.globals.get('captured') || '';
-          output.textContent=captured || 'Code executed successfully with no output';
-        }catch(e){output.textContent=e;}
-      });
+      captured = pyodide.globals.get('captured')||'';
+      output.textContent = captured||'Code executed successfully with no output';
+    }catch(e){output.textContent=e;}
+  });
 
-      document.getElementById('downloadCode').addEventListener('click', ()=>{
-        const blob = new Blob([document.getElementById('codeInput').value], {type:'text/plain'});
-        const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='code.py'; a.click();
-      });
-    })();
-  </script></body>
+  document.getElementById('downloadCode').addEventListener('click', ()=>{
+    const blob = new Blob([document.getElementById('codeInput').value], {type:'text/plain'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='code.py';a.click();
+  });
+})();
+
+// Chat Section
+document.getElementById('sendChat').addEventListener('click', async ()=>{
+  const name=document.getElementById('chatName').value.trim();
+  const msg=document.getElementById('chatMsg').value.trim();
+  const output=document.getElementById('chatOutput');
+  if(!name||!msg){output.textContent='Enter name and message.'; return;}
+  const webhookURL='https://discord.com/api/webhooks/1436991417116266647/NGbwrRbh2Cj1MJzae3-GYjjVOsmJcIusW5Fh8-yePWUpiS8tnNJdbHAkcLNkY8ILW6yl';
+  try{
+    const res=await fetch(webhookURL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:name,content:msg})});
+    output.textContent=res.ok?'Message sent!':'Failed to send message';
+  }catch(e){output.textContent='Error sending message: '+e;}
+});
+</script></body>
 </html>
