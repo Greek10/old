@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Python Sandbox v2 (Fixed Output)</title>
+  <title>Python Sandbox v2.1 (Fixed JS Bridge)</title>
   <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
@@ -79,14 +79,14 @@
 
     // --- Output Helper ---
     function printOut(text) {
-      output.textContent += text + "\n";
+      output.textContent += text;
       output.scrollTop = output.scrollHeight;
     }
 
     // --- Error Display Helper (Clickable Traceback) ---
     function showError(err) {
       const msg = err.toString();
-      const lineMatch = msg.match(/line (\\d+)/);
+      const lineMatch = msg.match(/line (\d+)/);
       if (lineMatch) {
         const line = parseInt(lineMatch[1]);
         const span = document.createElement("span");
@@ -95,9 +95,9 @@
         span.onclick = () => editor.setCursor(line - 1);
         output.appendChild(span);
       } else {
-        printOut(msg);
+        printOut(msg + "\n");
       }
-      printOut("");
+      printOut("\n");
     }
 
     // --- Load Pyodide ---
@@ -105,18 +105,23 @@
       pyodide = await loadPyodide();
       await pyodide.loadPackage(["micropip"]);
 
-      // Redirect Python stdout/stderr to JS
+      // ✅ Redirect stdout/stderr & define input() properly
       pyodide.runPython(`
+from pyodide.ffi import to_js, create_proxy, JsProxy, JsException, JsModule, JsFunction, JsValue, JsObject, JsArray, JsTypedArray, JsBuffer, JsArrayBuffer, JsDataView, JsDate, JsError, JsPromise, JsWeakMap, JsWeakRef, JsWeakSet, JsSymbol, JsAsyncIterator, JsGenerator, JsAsyncGenerator, JsMap, JsSet, JsRegExp, JsIterator, JsTypedArray, JsArrayBuffer, JsFunction, JsModule, JsObject, JsProxy, JsValue
 import sys
+import builtins
+import js
+
 class JSWriter:
     def write(self, s):
-        if s.strip() != '':
+        if s and not s.isspace():
             js.printOut(s)
     def flush(self): pass
+
 sys.stdout = JSWriter()
 sys.stderr = JSWriter()
 
-__builtins__.input = lambda prompt='': js.prompt(prompt)
+builtins.input = lambda prompt='': js.prompt(prompt)
 `);
       output.textContent = "Pyodide loaded. Ready to run Python 🐍\n";
     }
@@ -129,7 +134,7 @@ __builtins__.input = lambda prompt='': js.prompt(prompt)
       status.textContent = "Running...";
       try {
         let result = await pyodide.runPythonAsync(code);
-        if (result !== undefined) printOut(result.toString());
+        if (result !== undefined) printOut(result.toString() + "\n");
       } catch (err) {
         showError(err);
       }
@@ -159,7 +164,7 @@ format_str("""${code.replace(/`/g, "\\`")}""", mode=FileMode())
 `);
         editor.setValue(formatted);
       } catch (e) {
-        printOut("Formatter error: " + e);
+        printOut("Formatter error: " + e + "\n");
       }
     };
 
@@ -169,9 +174,9 @@ format_str("""${code.replace(/`/g, "\\`")}""", mode=FileMode())
       if (!pkg) return;
       try {
         await pyodide.runPythonAsync(`import micropip; await micropip.install("${pkg}")`);
-        printOut(`✅ Package "${pkg}" installed`);
+        printOut(`✅ Package "${pkg}" installed\n`);
       } catch (e) {
-        printOut(`❌ Failed to install ${pkg}: ${e}`);
+        printOut(`❌ Failed to install ${pkg}: ${e}\n`);
       }
     };
 
