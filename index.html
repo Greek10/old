@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Python Sandbox v5</title>
+<title>Python Sandbox v8</title>
 
 <!-- Pyodide -->
 <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
@@ -18,7 +18,6 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.css">
 
 <style>
-/* --- Global --- */
 body {
   margin:0;
   height:100vh;
@@ -31,7 +30,7 @@ body {
   transition: background 0.3s;
 }
 
-/* --- Toolbar --- */
+/* Toolbar */
 #toolbar {
   background: linear-gradient(90deg, #1e1f2a, #272936);
   padding:8px;
@@ -57,7 +56,6 @@ button {
   transition: 0.2s all ease;
   box-shadow: 0 2px 5px rgba(0,0,0,0.3);
 }
-
 button:hover {
   background:#505164;
   transform: translateY(-2px);
@@ -82,7 +80,7 @@ button:hover {
   transform: translateY(-2px);
 }
 
-/* Toolbar restore button */
+/* Restore toolbar button */
 #toolbarRestore {
   position:fixed;
   top:10px;
@@ -155,7 +153,6 @@ button:hover {
 </head>
 <body>
 
-<!-- Toolbar -->
 <div id="toolbar">
   <button id="run">▶ Run</button>
   <button id="runSel">▶ Run Selection</button>
@@ -178,7 +175,6 @@ button:hover {
   <label>Output:</label><input type="color" id="outputColor" value="#0b0b0b">
 </div>
 
-<!-- Sandbox -->
 <div id="sandbox">
   <div id="editor"></div>
   <div id="divider"></div>
@@ -186,41 +182,43 @@ button:hover {
 </div>
 
 <script>
+// --- Pyodide init ---
 let pyodide;
-const output=document.getElementById("output");
-const status=document.getElementById("status");
+const output = document.getElementById("output");
+const status = document.getElementById("status");
 
-// CodeMirror
-const editor=CodeMirror(document.getElementById("editor"),{
-  value:'print("Hello, world!")',
-  mode:'python',
-  theme:'dracula',
-  lineNumbers:true,
-  indentUnit:4,
-  extraKeys:{"Tab":cm=>cm.replaceSelection(" ".repeat(4)),"Ctrl-Enter":()=>runCode(),"Ctrl-Space":"autocomplete"}
+const editor = CodeMirror(document.getElementById("editor"), {
+  value: 'print("Hello, world!")',
+  mode: 'python',
+  theme: 'dracula',
+  lineNumbers: true,
+  indentUnit: 4,
+  extraKeys: {
+    "Tab": cm => cm.replaceSelection(" ".repeat(4)),
+    "Ctrl-Enter": ()=>runCode(),
+    "Ctrl-Space": "autocomplete"
+  }
 });
 
 // Output helper
-function printOut(text){ output.textContent+=text+"\n"; output.scrollTop=output.scrollHeight; }
-
-// Error helper
-function showError(err){
-  const msg=err.toString();
-  const lineMatch=msg.match(/line (\d+)/);
+function printOut(text) { output.textContent += text + "\n"; output.scrollTop = output.scrollHeight; }
+function showError(err) {
+  const msg = err.toString();
+  const lineMatch = msg.match(/line (\d+)/);
   if(lineMatch){
-    const line=parseInt(lineMatch[1]);
-    const span=document.createElement("span");
-    span.textContent=msg;
-    span.className="error";
-    span.onclick=()=>editor.setCursor(line-1);
+    const line = parseInt(lineMatch[1]);
+    const span = document.createElement("span");
+    span.textContent = msg;
+    span.className = "error";
+    span.onclick = () => editor.setCursor(line-1);
     output.appendChild(span);
   } else printOut(msg);
   printOut("");
 }
 
 // Load Pyodide
-async function init(){
-  pyodide=await loadPyodide();
+async function init() {
+  pyodide = await loadPyodide();
   await pyodide.loadPackage(["micropip"]);
   pyodide.globals.set("printOut", printOut);
   pyodide.globals.set("getInput", ()=>prompt("Input:")||"");
@@ -228,93 +226,90 @@ async function init(){
 import sys
 from pyodide.ffi import create_proxy
 import builtins
-
 printOut=create_proxy(printOut)
 getInput=create_proxy(getInput)
-
 class JSWriter:
     def write(self,s):
         if s.strip()!="": printOut(s)
     def flush(self): pass
-
 sys.stdout=JSWriter()
 sys.stderr=JSWriter()
 builtins.input=lambda prompt='': getInput()
-`);
-  output.textContent="Pyodide loaded. Input() and auto-completion ready.\n";
+  `);
+  output.textContent = "Pyodide loaded. Input() and auto-completion ready.\n";
 }
 init();
 
-// Run code
-async function runCode(code=editor.getValue()){
+// --- Run code ---
+async function runCode(code=editor.getValue()) {
   if(!pyodide) return;
-  output.textContent="";
-  status.textContent="Running...";
-  try{ const result=await pyodide.runPythonAsync(code); if(result!==undefined) printOut(result.toString()); }
+  output.textContent = "";
+  status.textContent = "Running...";
+  try { const result = await pyodide.runPythonAsync(code); if(result!==undefined) printOut(result.toString()); }
   catch(err){ showError(err); }
-  status.textContent="";
+  status.textContent = "";
 }
 
-// Run selection
-document.getElementById("runSel").onclick=()=>{ const sel=editor.getSelection(); if(sel.trim()) runCode(sel); else runCode(); };
-document.getElementById("run").onclick=()=>runCode();
-
-// Format code
-document.getElementById("format").onclick=async ()=>{
-  if(!pyodide) return;
-  try{
+// --- Buttons ---
+document.getElementById("run").onclick = ()=>runCode();
+document.getElementById("runSel").onclick = ()=>{
+  const sel = editor.getSelection();
+  runCode(sel.trim()? sel : undefined);
+};
+document.getElementById("format").onclick = async ()=>{
+  try {
     await pyodide.runPythonAsync(`import micropip; await micropip.install("black")`);
-    const code=editor.getValue();
-    const formatted=await pyodide.runPythonAsync(`
+    const code = editor.getValue();
+    const formatted = await pyodide.runPythonAsync(`
 from black import format_str, FileMode
 format_str("""${code.replace(/`/g,"\\`")}""", mode=FileMode())
 `);
     editor.setValue(formatted);
   } catch(e){ printOut("Formatter error: "+e); }
 };
-
-// Load package
-document.getElementById("loadPkg").onclick=async ()=>{
-  const pkg=prompt("Enter package name to install (PyPI):");
+document.getElementById("loadPkg").onclick = async ()=>{
+  const pkg = prompt("Enter package name (PyPI):");
   if(!pkg) return;
   try{ await pyodide.runPythonAsync(`import micropip; await micropip.install("${pkg}")`); printOut(`✅ Package "${pkg}" installed`); }
   catch(e){ printOut(`❌ Failed: ${e}`); }
 };
 
-// File upload/download
-document.getElementById("openBtn").onclick=()=>document.getElementById("fileInput").click();
-document.getElementById("fileInput").onchange=e=>{ e.target.files[0].text().then(txt=>editor.setValue(txt)); };
-document.getElementById("saveBtn").onclick=()=>{ const blob=new Blob([editor.getValue()],{type:"text/plain"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="script.py"; a.click(); };
-
-// Toolbar toggle animation
-const toolbar=document.getElementById("toolbar");
-const toggle=document.getElementById("toolbarToggle");
-const restore=document.getElementById("toolbarRestore");
-toggle.onclick=()=>{
-  toolbar.style.maxHeight="0";
-  toolbar.style.opacity="0";
-  toolbar.style.padding="0";
-  setTimeout(()=>{ toolbar.style.display="none"; restore.style.display="block"; }, 400);
-};
-restore.onclick=()=>{
-  toolbar.style.display="flex";
-  setTimeout(()=>{
-    toolbar.style.maxHeight="200px";
-    toolbar.style.opacity="1";
-    toolbar.style.padding="8px";
-    restore.style.display="none";
-  },10);
+// File open/save
+const fileInput = document.getElementById("fileInput");
+document.getElementById("openBtn").onclick = ()=>fileInput.click();
+fileInput.onchange = e => e.target.files[0].text().then(txt=>editor.setValue(txt));
+document.getElementById("saveBtn").onclick = ()=>{
+  const blob = new Blob([editor.getValue()], {type:"text/plain"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "script.py";
+  a.click();
 };
 
-// Theme panel toggle
-const themePanel=document.getElementById("themePanel");
-document.getElementById("themeBtn").onclick=()=>{ themePanel.style.display = themePanel.style.display==="block"?"none":"block"; };
-document.getElementById("bgColor").oninput=e=>document.body.style.background=e.target.value;
-document.getElementById("editorColor").oninput=e=>editor.getWrapperElement().style.background=e.target.value;
-document.getElementById("outputColor").oninput=e=>output.style.background=e.target.value;
+// Toolbar toggle
+const toolbar = document.getElementById("toolbar");
+const toggle = document.getElementById("toolbarToggle");
+const restore = document.getElementById("toolbarRestore");
+toggle.onclick = ()=>{
+  toolbar.style.maxHeight = "0";
+  toolbar.style.opacity = "0";
+  toolbar.style.padding = "0";
+  setTimeout(()=>{ toolbar.style.display = "none"; restore.style.display = "block"; },400);
+};
+restore.onclick = ()=>{
+  toolbar.style.display = "flex";
+  setTimeout(()=>{ toolbar.style.maxHeight="200px"; toolbar.style.opacity="1"; toolbar.style.padding="8px"; restore.style.display="none"; },10);
+};
+
+// Theme panel
+const themePanel = document.getElementById("themePanel");
+document.getElementById("themeBtn").onclick = ()=>themePanel.style.display = themePanel.style.display==="block"?"none":"block";
+document.getElementById("bgColor").oninput = e=>document.body.style.background = e.target.value;
+document.getElementById("editorColor").oninput = e=>editor.getWrapperElement().style.background = e.target.value;
+document.getElementById("outputColor").oninput = e=>output.style.background = e.target.value;
 
 // Resizable editor/output
-const divider=document.getElementById("divider");
+const divider = document.getElementById("divider");
 let isResizing=false;
 divider.addEventListener("mousedown",()=>isResizing=true);
 document.addEventListener("mousemove",e=>{
