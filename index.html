@@ -1,9 +1,10 @@
 <!doctype html>
+
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>67 is NOT funny</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Modern Multi-Tool Hub</title>
   <meta name="description" content="A modern site with Roblox, Discord, and Python Code Sandbox tools" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
   <style>
@@ -21,6 +22,7 @@
       background: var(--midnight-bg);
       color: var(--midnight-text);
       display: flex;
+      flex-direction: row;
       overflow-x: hidden;
       transition: background var(--transition), color var(--transition);
     }
@@ -34,10 +36,12 @@
       gap: 10px;
       transition: transform 0.5s ease, width 0.5s ease, padding 0.5s ease;
       white-space: nowrap;
+      position: fixed;
+      z-index: 100;
     }
     .sidebar.hidden { transform: translateX(-100%); width: 0; padding: 0; }
     .toggle-sidebar {
-      position: absolute;
+      position: fixed;
       top: 20px;
       left: var(--sidebar-width);
       background: var(--accent);
@@ -46,7 +50,7 @@
       border: none;
       cursor: pointer;
       border-radius: 5px;
-      z-index: 10;
+      z-index: 101;
       transition: left 0.5s ease;
     }
     .sidebar.hidden + .toggle-sidebar { left: 10px; }
@@ -61,19 +65,30 @@
       text-align: center;
       overflow: hidden;
       text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .tool-button:hover { background: #ff85d1; }
     main {
       flex: 1;
-      padding: 30px;
+      margin-left: var(--sidebar-width);
+      padding: 20px;
       overflow-y: auto;
       transition: margin-left 0.5s ease;
     }
-    section { display: none; background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 30px; }
+    section { display: none; background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; }
     section.active { display: block; }
     pre { background: rgba(0,0,0,0.3); color: #fff; padding: 14px; border-radius: 8px; margin-top: 16px; width: 100%; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; }
     .CodeMirror { height: auto; background: rgba(0,0,0,0.2); color: #fff; border-radius: 8px; padding-left: 10px; }
-    .error-line { background-color: rgba(255,0,0,0.2) !important; }
+    .error-line { background-color: rgba(255,0,0,0.2) !important; }/* Mobile responsiveness */
+@media (max-width: 768px) {
+  body { flex-direction: column; }
+  .sidebar { width: 100%; height: auto; position: relative; transform: translateX(0); padding: 10px; }
+  .sidebar.hidden { transform: translateY(-100%); width: 100%; padding: 0; }
+  .toggle-sidebar { top: 10px; left: auto; right: 10px; }
+  main { margin-left: 0; margin-top: 10px; padding: 10px; }
+  .tool-button { font-size: 14px; padding: 10px; }
+}
+
   </style>
 </head>
 <body>
@@ -90,31 +105,23 @@
       <input type="text" id="badgeId" placeholder="Badge ID">
       <button id="checkBadge" class="submit">Check Badge</button>
       <pre id="rbOutput"></pre>
-    </section>
+    </section><section id="discordSection">
+  <h2>Discord Webhook Sender</h2>
+  <input type="text" id="webhookUrl" placeholder="Webhook URL">
+  <textarea id="webhookMsg" placeholder="Message"></textarea>
+  <button id="sendWebhook" class="submit">Send Message</button>
+  <pre id="discordOutput"></pre>
+</section>
 
-    <section id="discordSection">
-      <h2>Discord Webhook Sender</h2>
-      <input type="text" id="webhookUrl" placeholder="Webhook URL">
-      <textarea id="webhookMsg" placeholder="Message"></textarea>
-      <button id="sendWebhook" class="submit">Send Message</button>
-      <pre id="discordOutput"></pre>
-    </section>
+<section id="codeSection">
+  <h2>Python Code Sandbox</h2>
+  <label><input type="checkbox" id="toggleLineNumbers" checked> Show Line Numbers</label>
+  <textarea id="codeInput" rows="10"></textarea>
+  <button id="runCode" class="submit">Run Python</button>
+  <pre id="codeOutput"></pre>
+</section>
 
-    <section id="codeSection">
-      <h2>Python Code Sandbox</h2>
-      <label><input type="checkbox" id="toggleLineNumbers" checked> Show Line Numbers</label>
-      <textarea id="codeInput" rows="10"></textarea>
-      <button id="runCode" class="submit">Run Python</button>
-      <pre id="codeOutput"></pre>
-    </section>
-  </main>
-
-  <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/matchbrackets.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/closebrackets.min.js"></script>
-  <script>
+  </main>  <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/matchbrackets.min.js"></script>  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/closebrackets.min.js"></script>  <script>
     const sidebar = document.getElementById('sidebar');
     const toggleBtn = document.getElementById('toggleSidebar');
     const sections = document.querySelectorAll('main section');
@@ -122,7 +129,6 @@
 
     toggleBtn.addEventListener('click', ()=>{
       sidebar.classList.toggle('hidden');
-      mainContent.style.marginLeft = sidebar.classList.contains('hidden') ? '10px' : '0';
     });
 
     document.querySelectorAll('.tool-button').forEach(btn => {
@@ -219,6 +225,5 @@ exec('''${code.replace(/`/g,'\`')}''')
     }
 
     initPySandbox();
-  </script>
-</body>
-</html>
+  </script></body>
+        </html>
