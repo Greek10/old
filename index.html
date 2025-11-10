@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Python Sandbox v5</title>
+<title>Python Sandbox v5 — Dark Neon Glass</title>
 
 <!-- Pyodide -->
 <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
@@ -80,6 +80,7 @@ body{
 /* main content area with glass panels */
 .workspace {
   display:grid; grid-template-columns: 40% 1fr; gap:18px; height: calc(100% - 72px);
+  transition: margin-left 0.3s cubic-bezier(.2,.9,.3,1);
 }
 .panel {
   background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
@@ -129,10 +130,48 @@ input[type=color]{ width:42px; height:36px; border-radius:8px; border:none; padd
 /* hidden toolbar state (makes top area go away cleanly) */
 .header.collapsed{ transform: translateY(-60px); opacity:0; pointer-events:none; transition:all .3s cubic-bezier(.2,.9,.3,1) }
 
+/* Side menu */
+.side-menu {
+  position: fixed;
+  top:0; left:-240px; /* hidden */
+  width:240px; height:100%;
+  background: linear-gradient(180deg, rgba(20,20,30,0.8), rgba(8,8,12,0.7));
+  border-right:1px solid rgba(255,255,255,0.05);
+  backdrop-filter: blur(12px);
+  display:flex; flex-direction:column; gap:12px; padding:20px;
+  transition: left 0.3s cubic-bezier(.2,.9,.3,1);
+  z-index:999;
+}
+.side-menu.open { left:0; }
+.menu-btn {
+  padding:10px 16px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,0.04);
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  color:#fff; text-align:left; cursor:pointer;
+  font-weight:500; transition: all 0.2s ease;
+}
+.menu-btn:hover { background: rgba(160,80,255,0.08); }
+#closeMenuBtn {
+  margin-top:auto;
+  padding:8px; border:none; background:rgba(255,255,255,0.02); border-radius:8px; cursor:pointer;
+}
 </style>
 </head>
 <body>
 <div class="app">
+
+  <!-- Side Menu -->
+  <div id="sideMenu" class="side-menu">
+    <button class="menu-btn" data-page="python">Python</button>
+    <button class="menu-btn" data-page="page1">Page 1</button>
+    <button class="menu-btn" data-page="page2">Page 2</button>
+    <button class="menu-btn" data-page="page3">Page 3</button>
+    <button id="closeMenuBtn">✕</button>
+  </div>
+  <button id="openMenuBtn" class="small-btn" style="position:absolute; top:12px; left:12px; z-index:1000;">☰</button>
+
+  <!-- Header -->
   <div class="header" id="mainHeader">
     <div class="brand">
       <div class="logo">Py</div>
@@ -154,6 +193,7 @@ input[type=color]{ width:42px; height:36px; border-radius:8px; border:none; padd
     </div>
   </div>
 
+  <!-- Workspace -->
   <div class="workspace">
     <div class="panel" id="leftPanel">
       <div class="header-row">
@@ -187,6 +227,7 @@ input[type=color]{ width:42px; height:36px; border-radius:8px; border:none; padd
 
   </div>
 
+  <!-- Customizer -->
   <div class="customizer" id="customizer">
     <h4>Customize Accent</h4>
     <div class="color-row">
@@ -287,7 +328,7 @@ document.getElementById('runSel').addEventListener('click', ()=> {
 // -----------------------------
 // Format with black (uses micropip)
 // -----------------------------
-document.getElementById('format').addEventListener('click', async ()=>{
+document.getElementById('format').addEventListener('click', async ()=> {
   if(!pyodide) return;
   status.textContent = 'Formatting...';
   try{
@@ -302,7 +343,7 @@ document.getElementById('format').addEventListener('click', async ()=>{
 // -----------------------------
 // Install packages
 // -----------------------------
-document.getElementById('loadPkg').addEventListener('click', async ()=>{
+document.getElementById('loadPkg').addEventListener('click', async ()=> {
   const pkg = prompt('Enter package name to install (PyPI):');
   if(!pkg) return;
   status.textContent = 'Installing...';
@@ -323,12 +364,10 @@ fileInput.addEventListener('change', e=>{
 });
 
 document.getElementById('openBtn').addEventListener('click', ()=> fileInput.click());
-
 document.getElementById('saveBtn').addEventListener('click', ()=>{
   const blob = new Blob([editor.getValue()],{type:'text/plain'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'script.py'; a.click();
 });
-
 document.getElementById('openFileBtn').addEventListener('click', ()=> fileInput.click());
 document.getElementById('saveFileBtn').addEventListener('click', ()=> document.getElementById('saveBtn').click());
 
@@ -355,7 +394,7 @@ window.addEventListener('mousemove', e=>{
 });
 
 // -----------------------------
-// Header toggle (hide top) — when hidden it "goes" instead of leaving a black square
+// Header toggle
 // -----------------------------
 const header = document.getElementById('mainHeader');
 let headerHidden = false;
@@ -371,14 +410,12 @@ document.getElementById('toggleHeader').addEventListener('click', ()=>{
 const accentPicker = document.getElementById('accentPicker');
 const accentVal = document.getElementById('accentVal');
 const customizer = document.getElementById('customizer');
-let accent = { r:160, g:80, b:255 };
 
 function hexToRgb(hex){ const v = hex.replace('#',''); return { r: parseInt(v.substring(0,2),16), g: parseInt(v.substring(2,4),16), b: parseInt(v.substring(4,6),16) }; }
 function applyAccent(){
   const hex = accentPicker.value;
   const rgb = hexToRgb(hex);
   const intensity = parseInt(accentVal.value);
-  // scale by intensity / 160 (default)
   const scale = intensity/160;
   const r = Math.max(0, Math.min(255, Math.round(rgb.r * scale)));
   const g = Math.max(0, Math.min(255, Math.round(rgb.g * scale)));
@@ -388,9 +425,7 @@ function applyAccent(){
 }
 accentPicker.addEventListener('input', applyAccent);
 accentVal.addEventListener('input', applyAccent);
-
 document.getElementById('resetAccent').addEventListener('click', ()=>{ accentPicker.value = '#A050FF'; accentVal.value = 160; applyAccent(); });
-
 document.getElementById('toggleCustomizer').addEventListener('click', ()=>{ customizer.style.display = 'none'; });
 
 // -----------------------------
@@ -399,28 +434,41 @@ document.getElementById('toggleCustomizer').addEventListener('click', ()=>{ cust
 leftPanel.addEventListener('mouseenter', ()=>{ leftPanel.classList.add('focused'); rightPanel.classList.remove('focused'); });
 const rightPanel = document.getElementById('rightPanel');
 rightPanel.addEventListener('mouseenter', ()=>{ rightPanel.classList.add('focused'); leftPanel.classList.remove('focused'); });
-
-// refresh CodeMirror on panel resize
 new ResizeObserver(()=> editor.refresh && editor.refresh()).observe(leftPanel);
-
-// set initial accent
 applyAccent();
 
 // -----------------------------
 // Accessibility: keyboard shortcuts
 // -----------------------------
 window.addEventListener('keydown', e=>{
-  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){
-    e.preventDefault(); document.getElementById('saveBtn').click();
-  }
-  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='o'){
-    e.preventDefault(); fileInput.click();
-  }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){ e.preventDefault(); document.getElementById('saveBtn').click(); } 
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='o'){ e.preventDefault(); fileInput.click(); }
 });
 
-// notify user where to change theme
-appendOut('Tip: use the color picker bottom-right to change the accent color.');
+// -----------------------------
+// Side Menu
+// -----------------------------
+const sideMenu = document.getElementById('sideMenu');
+const openMenuBtn = document.getElementById('openMenuBtn');
+const closeMenuBtn = document.getElementById('closeMenuBtn');
 
+openMenuBtn.addEventListener('click', ()=>{
+  sideMenu.classList.add('open');
+  workspace.style.marginLeft = '240px';
+});
+closeMenuBtn.addEventListener('click', ()=>{
+  sideMenu.classList.remove('open');
+  workspace.style.marginLeft = '0';
+});
+document.querySelectorAll('.menu-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const page = btn.dataset.page;
+    if(page==='python'){ window.location.href = window.location.pathname; }
+    else{ window.location.href = page+'.html'; }
+  });
+});
+
+appendOut('Tip: use the color picker bottom-right to change the accent color.');
 </script>
 </body>
 </html>
