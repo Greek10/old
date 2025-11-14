@@ -1,474 +1,726 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Python Sandbox v5 — Dark Neon Glass</title>
-
-<!-- Pyodide -->
-<script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
-
-<!-- CodeMirror 5 -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/python-hint.min.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.css">
-
+<title>50 Minigames — Play on GitHub Pages</title>
 <style>
-:root{
-  --bg-1: #081123; /* deep navy */
-  --bg-2: #0e1020; /* dark panel */
-  --glass: rgba(255,255,255,0.06);
-  --accent: 160, 80, 255; /* purple (rgb without alpha) */
-  --accent-hex: #A050FF;
-  --glass-border: rgba(255,255,255,0.06);
-  --glass-blur: 10px;
-}
-*{box-sizing:border-box}
-html,body{height:100%;margin:0;font-family:Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
-body{
-  background: radial-gradient(1200px 600px at 10% 10%, rgba(160,80,255,0.12), transparent),
-              radial-gradient(900px 400px at 90% 90%, rgba(0,210,255,0.06), transparent),
-              linear-gradient(180deg,var(--bg-1), #02030a);
-  color: #e9eef8;
-  -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
-  overflow:hidden;
-}
-/* floating container centered */
-.app {
-  position: absolute;
-  inset: 3vh 3vw 3vh 3vw;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  gap: 18px;
-  align-items:start;
-}
-.header {
-  display:flex;align-items:center;gap:12px;
-}
-.brand {
-  display:flex;gap:12px;align-items:center;
-}
-.logo {
-  width:48px;height:48px;border-radius:12px;
-  background: linear-gradient(135deg, rgba(var(--accent),0.18), rgba(0,210,255,0.06));
-  box-shadow: 0 6px 30px rgba(var(--accent),0.12), inset 0 1px 0 rgba(255,255,255,0.04);
-  display:flex;align-items:center;justify-content:center;font-weight:700;color:transparent;
-  -webkit-backdrop-filter: blur(var(--glass-blur));backdrop-filter: blur(var(--glass-blur));
-}
-.title { font-size:18px;font-weight:600; }
-.subtitle { font-size:12px; color:rgba(255,255,255,0.6); }
-
-/* floating toolbar (compact) */
-.toolbar {
-  margin-left:auto; display:flex;gap:8px;align-items:center;
-}
-.tool-btn {
-  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
-  border:1px solid rgba(255,255,255,0.04);
-  padding:8px 12px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;
-  box-shadow: 0 6px 20px rgba(8,8,12,0.6);
-  transition:transform .18s ease, box-shadow .18s ease;
-}
-.tool-btn:hover{ transform:translateY(-4px); box-shadow: 0 12px 40px rgba(var(--accent),0.12); }
-.tool-ico { width:16px; height:16px; opacity:0.95; filter: drop-shadow(0 3px 8px rgba(var(--accent),0.18)); }
-
-/* main content area with glass panels */
-.workspace {
-  display:grid; grid-template-columns: 40% 1fr; gap:18px; height: calc(100% - 72px);
-  transition: margin-left 0.3s cubic-bezier(.2,.9,.3,1);
-}
-.panel {
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-  border-radius:14px; padding:12px; overflow:hidden; position:relative;
-  border: 1px solid var(--glass-border);
-  -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur));
-  box-shadow: 0 8px 40px rgba(2,4,8,0.6);
-}
-.panel .header-row{ display:flex;align-items:center;justify-content:space-between;padding:6px 8px 12px 8px}
-.panel .panel-title{font-weight:600}
-.panel .panel-sub{font-size:12px;color:rgba(255,255,255,0.6)}
-
-/* editor specifics */
-#editor { height: calc(100% - 54px); border-radius:10px; overflow:auto; }
-.CodeMirror { height:100%; font-size:13px; border-radius:8px }
-
-/* output */
-#output { height: calc(100% - 54px); background:transparent; border-radius:8px; padding:12px; overflow:auto; white-space:pre-wrap; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, 'Courier New', monospace; }
-.output-line { color: #cfe8ff }
-.output-err { color:#ffb3b3 }
-
-/* vertical splitter */
-.splitter { width:12px; cursor:col-resize; display:flex; align-items:center; justify-content:center; }
-.splitter .grip { width:3px; height:40px; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(var(--accent),0.12)); border-radius:4px; }
-
-/* bottom mini controls */
-.bottom-controls{ position:absolute; left:12px; bottom:12px; display:flex;gap:8px }
-.small-btn{ padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.03); cursor:pointer }
-.small-btn:hover{ transform:translateY(-3px) }
-
-/* floating color customizer */
-.customizer{ position: absolute; right:12px; bottom:12px; padding:10px; border-radius:12px; width:230px; background:linear-gradient(180deg, rgba(20,20,30,0.7), rgba(8,8,12,0.55)); border:1px solid rgba(255,255,255,0.04); }
-.customizer h4{ margin:0 0 8px 0; font-size:13px }
-.color-row{ display:flex; gap:8px; align-items:center }
-input[type=color]{ width:42px; height:36px; border-radius:8px; border:none; padding:0 }
-.range{ width:100% }
-
-/* responsive */
-@media (max-width:900px){
-  .workspace{ grid-template-columns: 1fr; grid-auto-rows: 50% 50% }
-  .splitter{ display:none }
-}
-
-/* small animated glow around focused panel */
-.panel.focused{ box-shadow: 0 18px 60px rgba(var(--accent),0.12), 0 6px 24px rgba(0,0,0,0.7); border-color: rgba(var(--accent),0.16) }
-
-/* hidden toolbar state (makes top area go away cleanly) */
-.header.collapsed{ transform: translateY(-60px); opacity:0; pointer-events:none; transition:all .3s cubic-bezier(.2,.9,.3,1) }
-
-/* Side menu */
-.side-menu {
-  position: fixed;
-  top:0; left:-240px; /* hidden */
-  width:240px; height:100%;
-  background: linear-gradient(180deg, rgba(20,20,30,0.8), rgba(8,8,12,0.7));
-  border-right:1px solid rgba(255,255,255,0.05);
-  backdrop-filter: blur(12px);
-  display:flex; flex-direction:column; gap:12px; padding:20px;
-  transition: left 0.3s cubic-bezier(.2,.9,.3,1);
-  z-index:999;
-}
-.side-menu.open { left:0; }
-.menu-btn {
-  padding:10px 16px;
-  border-radius:12px;
-  border:1px solid rgba(255,255,255,0.04);
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-  color:#fff; text-align:left; cursor:pointer;
-  font-weight:500; transition: all 0.2s ease;
-}
-.menu-btn:hover { background: rgba(160,80,255,0.08); }
-#closeMenuBtn {
-  margin-top:auto;
-  padding:8px; border:none; background:rgba(255,255,255,0.02); border-radius:8px; cursor:pointer;
-}
+  :root{
+    --bg:#0f1724; --card:#0b1220; --accent:#6ee7b7; --muted:#98a1b3; --glass: rgba(255,255,255,0.03);
+    --tile:#0c1626; --accent-2:#60a5fa;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;background:linear-gradient(180deg,#071229 0%, #071a2b 100%);color:#e6eef8}
+  header{display:flex;align-items:center;gap:16px;padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.03);background:linear-gradient(90deg, rgba(255,255,255,0.01), transparent)}
+  h1{font-size:18px;margin:0}
+  .wrap{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 64px)}
+  nav{padding:18px;border-right:1px solid rgba(255,255,255,0.02);background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent)}
+  .brand{display:flex;align-items:center;gap:10px}
+  .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:700;color:#04212a}
+  .sidebar-actions{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+  button.btn{background:var(--card);border:1px solid rgba(255,255,255,0.04);padding:8px 10px;border-radius:8px;color:var(--muted);cursor:pointer}
+  main{padding:18px}
+  .games-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+  .tile{background:var(--tile);padding:12px;border-radius:10px;cursor:pointer;border:1px solid rgba(255,255,255,0.02);transition:transform .12s ease, box-shadow .12s ease}
+  .tile:hover{transform:translateY(-6px);box-shadow: 0 8px 20px rgba(2,6,23,0.6)}
+  .tile h3{margin:0 0 6px 0;font-size:14px}
+  .tile p{margin:0;font-size:12px;color:var(--muted)}
+  .play-area{margin-left:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:18px;border-radius:12px;min-height:60vh;border:1px solid rgba(255,255,255,0.03)}
+  .game-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .small{font-size:13px;color:var(--muted)}
+  canvas{display:block;background:#071428;border-radius:8px}
+  .controls{display:flex;gap:8px;align-items:center}
+  .score{font-weight:700;color:var(--accent)}
+  .center{display:flex;align-items:center;justify-content:center}
+  footer{padding:12px 18px;color:var(--muted);font-size:13px}
+  /* responsive */
+  @media (max-width:1000px){
+    .wrap{grid-template-columns:1fr}
+    nav{order:2;border-right:none;border-top:1px solid rgba(255,255,255,0.02)}
+    .games-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  }
+  @media (max-width:640px){
+    .games-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    header{padding:12px}
+  }
 </style>
 </head>
 <body>
-<div class="app">
-
-  <!-- Side Menu -->
-  <div id="sideMenu" class="side-menu">
-    <button class="menu-btn" data-page="python">Python</button>
-    <button class="menu-btn" data-page="page1">Page 1</button>
-    <button class="menu-btn" data-page="page2">Page 2</button>
-    <button class="menu-btn" data-page="page3">Page 3</button>
-    <button id="closeMenuBtn">✕</button>
+<header>
+  <div class="brand">
+    <div class="logo">MG</div>
+    <div>
+      <h1>Minigame Arcade — 50 Games</h1>
+      <div class="small">All client-side, open-source — drop into GitHub Pages</div>
+    </div>
   </div>
-  <button id="openMenuBtn" class="small-btn" style="position:absolute; top:12px; left:12px; z-index:1000;">☰</button>
+</header>
 
-  <!-- Header -->
-  <div class="header" id="mainHeader">
-    <div class="brand">
-      <div class="logo">Py</div>
+<div class="wrap">
+  <nav>
+    <div style="display:flex;align-items:center;justify-content:space-between">
       <div>
-        <div class="title">Python Sandbox v5</div>
-        <div class="subtitle">Dark Neon Glass — Pyodide + CodeMirror</div>
+        <strong>Arcade</strong>
+        <div class="small">Choose a game tile to play</div>
+      </div>
+      <div class="controls">
+        <button id="shuffleBtn" class="btn">Shuffle</button>
       </div>
     </div>
 
-    <div class="toolbar" id="toolbar">
-      <button class="tool-btn" id="run"><svg class="tool-ico" viewBox="0 0 24 24" fill="none"><path d="M5 3v18l15-9L5 3z" fill="white"/></svg> Run</button>
-      <button class="tool-btn" id="runSel">⤷ Sel</button>
-      <button class="tool-btn" id="format">Format</button>
-      <button class="tool-btn" id="loadPkg">Install</button>
-      <button class="tool-btn" id="openBtn">Open</button>
-      <button class="tool-btn" id="saveBtn">Save</button>
-      <div style="width:8px"></div>
-      <button class="tool-btn" id="toggleHeader">Hide Top</button>
-    </div>
-  </div>
+    <hr style="border:none;height:10px">
 
-  <!-- Workspace -->
-  <div class="workspace">
-    <div class="panel" id="leftPanel">
-      <div class="header-row">
-        <div><div class="panel-title">Editor</div><div class="panel-sub">Write Python — smart autocomplete, run with Ctrl+Enter</div></div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button class="small-btn" id="editorThemeBtn">Theme</button>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:8px">Games</div>
+    <div class="games-grid" id="gamesGrid" style="max-height:66vh;overflow:auto;padding-right:6px"></div>
+
+    <hr style="border:none;height:10px">
+    <div style="font-size:13px;color:var(--muted)">Info</div>
+    <div class="small" style="margin-top:8px">This is a single-file app. You can edit or replace games inside the <code>games</code> array in the script.</div>
+  </nav>
+
+  <main>
+    <div class="play-area" id="playArea">
+      <div class="game-header">
+        <div>
+          <h2 id="gameTitle">Welcome — Pick a game</h2>
+          <div class="small" id="gameDesc">50 minigame slots ready. Click a tile to start playing.</div>
+        </div>
+        <div class="controls">
+          <div class="small">Score: <span id="scoreDisplay">—</span></div>
+          <button id="restartBtn" class="btn" style="display:none">Restart</button>
         </div>
       </div>
-      <div id="editor"></div>
-      <div class="bottom-controls">
-        <button class="small-btn" id="openFileBtn">📂</button>
-        <button class="small-btn" id="saveFileBtn">💾</button>
-        <input type="file" id="fileInput" accept=".py" style="display:none">
-      </div>
-    </div>
 
-    <div class="splitter" id="splitter"><div class="grip"></div></div>
-
-    <div class="panel" id="rightPanel">
-      <div class="header-row">
-        <div><div class="panel-title">Output</div><div class="panel-sub">Program output, errors, and logs</div></div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <div id="status" class="panel-sub">Loading...</div>
+      <div id="gameContent" class="center" style="min-height:320px">
+        <div style="max-width:720px;text-align:center;color:var(--muted)">
+          <p style="font-size:15px">This arcade contains 50 minigames. Some are built as distinct games (reaction, tic-tac-toe, whack-a-mole...), others are generated dynamically by a microgame engine so you get quick, varied play sessions. Everything runs in your browser.</p>
+          <p>Tip: open the dev console (F12) if you want to inspect the game's internals or tweak the code.</p>
         </div>
       </div>
-      <pre id="output">Loading Pyodide...</pre>
-      <div class="bottom-controls" style="right:12px; left:auto;">
-        <button class="small-btn" id="clearOut">Clear</button>
-      </div>
-    </div>
 
-  </div>
-
-  <!-- Customizer -->
-  <div class="customizer" id="customizer">
-    <h4>Customize Accent</h4>
-    <div class="color-row">
-      <input type="color" id="accentPicker" value="#A050FF">
-      <div style="flex:1">
-        <label style="font-size:12px;color:rgba(255,255,255,0.7)">Intensity</label>
-        <input type="range" min="40" max="220" value="160" id="accentVal" class="range">
-      </div>
     </div>
-    <div style="height:8px"></div>
-    <div style="display:flex;gap:8px">
-      <button class="small-btn" id="resetAccent">Reset</button>
-      <button class="small-btn" id="toggleCustomizer">Close</button>
-    </div>
-  </div>
+    <footer>Made for GitHub Pages — all client-side</footer>
+  </main>
 </div>
 
 <script>
-// -----------------------------
-// Basic state + helpers
-// -----------------------------
-let pyodide = null;
-const output = document.getElementById('output');
-const status = document.getElementById('status');
+/*
+  50 Minigames App
+  - Each tile has id 1..50
+  - Some slots map to dedicated games; others are generated microgames
+  - Add/modify games by editing 'games' array below
+*/
 
-function appendOut(txt, cls){
-  const line = document.createElement('div');
-  line.textContent = txt;
-  line.className = cls || 'output-line';
-  output.appendChild(line);
-  output.scrollTop = output.scrollHeight;
+const gamesGrid = document.getElementById('gamesGrid');
+const gameTitle = document.getElementById('gameTitle');
+const gameDesc = document.getElementById('gameDesc');
+const gameContent = document.getElementById('gameContent');
+const scoreDisplay = document.getElementById('scoreDisplay');
+const restartBtn = document.getElementById('restartBtn');
+const shuffleBtn = document.getElementById('shuffleBtn');
+
+let currentGame = null;
+let currentState = {};
+
+function makeTile(i, title, desc){
+  const t = document.createElement('div');
+  t.className = 'tile';
+  t.dataset.id = i;
+  t.innerHTML = `<h3>${i}. ${title}</h3><p>${desc}</p>`;
+  t.addEventListener('click', ()=> startGame(i));
+  return t;
 }
 
-function clearOut(){ output.textContent = ''; }
+/* ----- Game implementations ----- */
 
-// -----------------------------
-// Initialize CodeMirror
-// -----------------------------
-const editor = CodeMirror(document.getElementById('editor'), {
-  value: `# Hello — Python Sandbox v5\nprint('Hello, world!')`,
-  mode: 'python', theme: 'dracula', lineNumbers: true, indentUnit: 4,
-  extraKeys: {
-    'Tab': cm => cm.replaceSelection(' '.repeat(4)),
-    'Ctrl-Enter': () => runCode(),
-    'Ctrl-Space': 'autocomplete'
+/* Helpers */
+function clearArea(){
+  gameContent.innerHTML = '';
+  scoreDisplay.textContent = '—';
+  restartBtn.style.display = 'none';
+  currentState = {};
+}
+function setTitle(t,d){ gameTitle.textContent = t; gameDesc.textContent = d; }
+
+/* 1: Reaction Time */
+function game_reaction_init(){
+  clearArea();
+  setTitle('Reaction Test','Wait for the screen to turn green, then click as fast as you can.');
+  const box = document.createElement('div');
+  box.style.width='80%'; box.style.height='220px'; box.style.borderRadius='10px';
+  box.style.background='#123'; box.style.display='flex'; box.style.alignItems='center'; box.style.justifyContent='center';
+  box.style.cursor='pointer'; box.style.userSelect='none';
+  box.innerHTML = '<div class="small">Click to start</div>';
+  gameContent.appendChild(box);
+
+  let timeout = null, start=0;
+  function startWait(){
+    box.innerHTML = '<div class="small">Get ready...</div>';
+    box.style.background = '#331a3a';
+    const wait = 1000 + Math.random()*2500;
+    timeout = setTimeout(()=>{
+      start = performance.now();
+      box.style.background = '#0b8a45'; box.innerHTML = '<div style="font-size:20px">CLICK!</div>';
+    }, wait);
   }
-});
-
-// -----------------------------
-// Pyodide initialization
-// -----------------------------
-async function initPyodide(){
-  status.textContent = 'Loading Pyodide...';
-  pyodide = await loadPyodide();
-  await pyodide.loadPackage(['micropip']);
-  pyodide.globals.set('appendOut', text => appendOut(text));
-  pyodide.globals.set('getInput', () => prompt('Input:') || '');
-
-  await pyodide.runPythonAsync(`
-import sys
-from pyodide.ffi import create_proxy
-appendOut = create_proxy(appendOut)
-getInput = create_proxy(getInput)
-class JSWriter:
-    def write(self,s):
-        if s and str(s).strip(): appendOut(str(s))
-    def flush(self): pass
-sys.stdout = JSWriter()
-sys.stderr = JSWriter()
-import builtins
-builtins.input = lambda prompt='': getInput()
-  `);
-  status.textContent = 'Ready';
-  output.textContent = 'Pyodide loaded. Use Run to execute the code.\n';
-}
-initPyodide();
-
-// -----------------------------
-// Run code
-// -----------------------------
-async function runCode(code){
-  if(!pyodide) return;
-  clearOut();
-  status.textContent = 'Running...';
-  try{
-    const src = code || editor.getValue();
-    const result = await pyodide.runPythonAsync(src);
-    if(result !== undefined) appendOut(String(result));
-  } catch(err){ appendOut(err.toString(), 'output-err'); }
-  status.textContent = 'Ready';
-}
-
-document.getElementById('run').addEventListener('click', ()=> runCode());
-document.getElementById('runSel').addEventListener('click', ()=> {
-  const sel = editor.getSelection(); runCode(sel || editor.getValue());
-});
-
-// -----------------------------
-// Format with black (uses micropip)
-// -----------------------------
-document.getElementById('format').addEventListener('click', async ()=> {
-  if(!pyodide) return;
-  status.textContent = 'Formatting...';
-  try{
-    await pyodide.runPythonAsync(`import micropip; await micropip.install('black')`);
-    const code = editor.getValue();
-    const formatted = await pyodide.runPythonAsync(`from black import format_str, FileMode\nformat_str('''${code.replace(/`/g,'`')}''' , mode=FileMode())`);
-    editor.setValue(formatted);
-  } catch(e){ appendOut('Formatter error: '+e, 'output-err'); }
-  status.textContent = 'Ready';
-});
-
-// -----------------------------
-// Install packages
-// -----------------------------
-document.getElementById('loadPkg').addEventListener('click', async ()=> {
-  const pkg = prompt('Enter package name to install (PyPI):');
-  if(!pkg) return;
-  status.textContent = 'Installing...';
-  try{
-    await pyodide.runPythonAsync(`import micropip; await micropip.install('${pkg}')`);
-    appendOut(`✅ Package ${pkg} installed`);
-  } catch(e){ appendOut('❌ Failed: '+e, 'output-err'); }
-  status.textContent = 'Ready';
-});
-
-// -----------------------------
-// File open / save
-// -----------------------------
-const fileInput = document.getElementById('fileInput');
-fileInput.addEventListener('change', e=>{
-  const file = e.target.files[0]; if(!file) return;
-  file.text().then(txt=> editor.setValue(txt));
-});
-
-document.getElementById('openBtn').addEventListener('click', ()=> fileInput.click());
-document.getElementById('saveBtn').addEventListener('click', ()=>{
-  const blob = new Blob([editor.getValue()],{type:'text/plain'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'script.py'; a.click();
-});
-document.getElementById('openFileBtn').addEventListener('click', ()=> fileInput.click());
-document.getElementById('saveFileBtn').addEventListener('click', ()=> document.getElementById('saveBtn').click());
-
-// -----------------------------
-// Clear output
-// -----------------------------
-document.getElementById('clearOut').addEventListener('click', clearOut);
-
-// -----------------------------
-// Splitter (resizable panels)
-// -----------------------------
-const splitter = document.getElementById('splitter');
-const leftPanel = document.getElementById('leftPanel');
-const workspace = document.querySelector('.workspace');
-let dragging = false;
-splitter.addEventListener('mousedown', e=>{ dragging = true; document.body.style.cursor='col-resize'; });
-window.addEventListener('mouseup', ()=>{ dragging=false; document.body.style.cursor=''; });
-window.addEventListener('mousemove', e=>{
-  if(!dragging) return;
-  const rect = workspace.getBoundingClientRect();
-  const px = Math.max(240, Math.min(e.clientX - rect.left, rect.width - 200));
-  workspace.style.gridTemplateColumns = px+'px 12px 1fr';
-  editor.refresh && editor.refresh();
-});
-
-// -----------------------------
-// Header toggle
-// -----------------------------
-const header = document.getElementById('mainHeader');
-let headerHidden = false;
-document.getElementById('toggleHeader').addEventListener('click', ()=>{
-  headerHidden = !headerHidden;
-  if(headerHidden){ header.classList.add('collapsed'); document.getElementById('toggleHeader').textContent = 'Show Top'; }
-  else { header.classList.remove('collapsed'); document.getElementById('toggleHeader').textContent = 'Hide Top'; }
-});
-
-// -----------------------------
-// Accent color customizer
-// -----------------------------
-const accentPicker = document.getElementById('accentPicker');
-const accentVal = document.getElementById('accentVal');
-const customizer = document.getElementById('customizer');
-
-function hexToRgb(hex){ const v = hex.replace('#',''); return { r: parseInt(v.substring(0,2),16), g: parseInt(v.substring(2,4),16), b: parseInt(v.substring(4,6),16) }; }
-function applyAccent(){
-  const hex = accentPicker.value;
-  const rgb = hexToRgb(hex);
-  const intensity = parseInt(accentVal.value);
-  const scale = intensity/160;
-  const r = Math.max(0, Math.min(255, Math.round(rgb.r * scale)));
-  const g = Math.max(0, Math.min(255, Math.round(rgb.g * scale)));
-  const b = Math.max(0, Math.min(255, Math.round(rgb.b * scale)));
-  document.documentElement.style.setProperty('--accent', `${r}, ${g}, ${b}`);
-  document.documentElement.style.setProperty('--accent-hex', hex);
-}
-accentPicker.addEventListener('input', applyAccent);
-accentVal.addEventListener('input', applyAccent);
-document.getElementById('resetAccent').addEventListener('click', ()=>{ accentPicker.value = '#A050FF'; accentVal.value = 160; applyAccent(); });
-document.getElementById('toggleCustomizer').addEventListener('click', ()=>{ customizer.style.display = 'none'; });
-
-// -----------------------------
-// small enhancement: focus glow for panels
-// -----------------------------
-leftPanel.addEventListener('mouseenter', ()=>{ leftPanel.classList.add('focused'); rightPanel.classList.remove('focused'); });
-const rightPanel = document.getElementById('rightPanel');
-rightPanel.addEventListener('mouseenter', ()=>{ rightPanel.classList.add('focused'); leftPanel.classList.remove('focused'); });
-new ResizeObserver(()=> editor.refresh && editor.refresh()).observe(leftPanel);
-applyAccent();
-
-// -----------------------------
-// Accessibility: keyboard shortcuts
-// -----------------------------
-window.addEventListener('keydown', e=>{
-  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){ e.preventDefault(); document.getElementById('saveBtn').click(); } 
-  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='o'){ e.preventDefault(); fileInput.click(); }
-});
-
-// -----------------------------
-// Side Menu
-// -----------------------------
-const sideMenu = document.getElementById('sideMenu');
-const openMenuBtn = document.getElementById('openMenuBtn');
-const closeMenuBtn = document.getElementById('closeMenuBtn');
-
-openMenuBtn.addEventListener('click', ()=>{
-  sideMenu.classList.add('open');
-  workspace.style.marginLeft = '240px';
-});
-closeMenuBtn.addEventListener('click', ()=>{
-  sideMenu.classList.remove('open');
-  workspace.style.marginLeft = '0';
-});
-document.querySelectorAll('.menu-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    const page = btn.dataset.page;
-    if(page==='python'){ window.location.href = window.location.pathname; }
-    else{ window.location.href = page+'.html'; }
+  box.addEventListener('click', ()=>{
+    if(!start){
+      // if waiting, but clicked early -> penalty
+      if(timeout && box.style.background !== 'rgb(11, 138, 69)'){
+        clearTimeout(timeout);
+        box.innerHTML = '<div class="small">Too soon! Click to retry.</div>';
+        start = 0;
+        timeout = null;
+      } else {
+        startWait();
+      }
+    } else {
+      const rt = Math.round(performance.now() - start);
+      box.innerHTML = `<div style="font-size:18px">Reaction: ${rt} ms</div>`;
+      scoreDisplay.textContent = rt + ' ms';
+      restartBtn.style.display = 'inline-block';
+      start = 0;
+      clearTimeout(timeout);
+      timeout = null;
+    }
   });
+  restartBtn.onclick = game_reaction_init;
+}
+
+/* 2: Click Speed */
+function game_clickspeed_init(){
+  clearArea();
+  setTitle('Click Speed','How many clicks can you make in 5 seconds? Click the big button to start.');
+  const container = document.createElement('div');
+  container.style.textAlign='center';
+  const btn = document.createElement('button');
+  btn.textContent='Start';
+  btn.style.fontSize='20px'; btn.style.padding='18px 28px'; btn.style.borderRadius='10px';
+  const info = document.createElement('div'); info.className='small';
+  container.appendChild(btn); container.appendChild(info);
+  gameContent.appendChild(container);
+
+  let clicks=0, running=false, timer=null;
+  btn.addEventListener('click', ()=>{
+    if(!running){
+      running=true; clicks=0; btn.textContent='Click me!'; info.textContent='Time left: 5.0s';
+      const end = performance.now()+5000;
+      timer = setInterval(()=>{
+        const left=(end-performance.now())/1000;
+        info.textContent='Time left: '+Math.max(0,(left).toFixed(1))+'s';
+        if(left<=0){
+          clearInterval(timer); running=false; btn.textContent='Start'; info.textContent='Done! Clicks: '+clicks;
+          scoreDisplay.textContent = clicks;
+          restartBtn.style.display='inline-block';
+        }
+      },50);
+    } else {
+      clicks++; info.textContent='Clicks: '+clicks;
+    }
+  });
+  restartBtn.onclick = game_clickspeed_init;
+}
+
+/* 3: Math Quiz (timed) */
+function game_math_init(){
+  clearArea();
+  setTitle('Math Blitz','Solve as many problems as possible in 30 seconds.');
+  const container = document.createElement('div'); container.style.textAlign='center';
+  const q = document.createElement('div'); q.style.fontSize='22px'; q.style.margin='12px';
+  const input = document.createElement('input'); input.type='number'; input.style.fontSize='18px'; input.style.padding='8px'; input.style.width='120px';
+  const start = document.createElement('button'); start.textContent='Start 30s'; start.className='btn';
+  const info = document.createElement('div'); info.className='small';
+  container.append(q, input, start, info);
+  gameContent.appendChild(container);
+
+  let score=0, timer=null, end=0, currentA=0, currentB=0;
+  function newQ(){
+    currentA = Math.floor(Math.random()*12)+1;
+    currentB = Math.floor(Math.random()*12)+1;
+    q.textContent = `${currentA} × ${currentB} = ?`;
+    input.value='';
+    input.focus();
+  }
+  start.addEventListener('click', ()=>{
+    score=0; end = performance.now() + 30000; info.textContent='Time left: 30.0s'; start.style.display='none';
+    newQ();
+    timer = setInterval(()=>{
+      const left = Math.max(0,(end-performance.now())/1000);
+      info.textContent = 'Time left: '+left.toFixed(1)+'s • Score: '+score;
+      if(left<=0){
+        clearInterval(timer); q.textContent='Time! Score: '+score; input.style.display='none';
+        scoreDisplay.textContent = score;
+        restartBtn.style.display='inline-block';
+      }
+    },70);
+  });
+  input.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter'){
+      const val = Number(input.value);
+      if(val === currentA * currentB){ score++; newQ(); } else { input.value=''; }
+    }
+  });
+  restartBtn.onclick = game_math_init;
+}
+
+/* 4: Guess Number */
+function game_guess_init(){
+  clearArea();
+  setTitle('Guess the Number','Guess the secret number between 1 and 100. You have 10 tries.');
+  const container = document.createElement('div');
+  container.innerHTML = `
+    <div class="small">Attempts left: <span id="attempts">10</span></div>
+    <input id="guessInput" type="number" style="padding:8px;width:120px;margin-top:8px" />
+    <button id="guessBtn" class="btn" style="margin-left:8px">Guess</button>
+    <div id="hint" class="small" style="margin-top:8px"></div>
+  `;
+  gameContent.appendChild(container);
+  const guessInput = container.querySelector('#guessInput');
+  const guessBtn = container.querySelector('#guessBtn');
+  const hint = container.querySelector('#hint');
+  const attemptsLabel = container.querySelector('#attempts');
+
+  const secret = Math.floor(Math.random()*100)+1;
+  let tries = 10;
+  attemptsLabel.textContent = tries;
+  guessBtn.addEventListener('click', ()=>{
+    const g = Number(guessInput.value);
+    if(!g){ hint.textContent = 'Enter a number.'; return; }
+    tries--; attemptsLabel.textContent = tries;
+    if(g===secret){ hint.textContent = 'Correct! You win!'; scoreDisplay.textContent='Win'; restartBtn.style.display='inline-block'; }
+    else if(tries<=0){ hint.textContent = `Out of tries — number was ${secret}`; scoreDisplay.textContent='Lose'; restartBtn.style.display='inline-block'; }
+    else if(g < secret) hint.textContent = 'Too low';
+    else hint.textContent = 'Too high';
+  });
+  restartBtn.onclick = game_guess_init;
+}
+
+/* 5: Tic-Tac-Toe (2 players on same device) */
+function game_ttt_init(){
+  clearArea();
+  setTitle('Tic-Tac-Toe','Two players — click a cell to place. First to 3 in a row wins.');
+  const grid = document.createElement('div');
+  grid.style.display='grid'; grid.style.gridTemplateColumns='repeat(3,80px)'; grid.style.gap='6px';
+  grid.style.justifyContent='center';
+  const cells = [];
+  let turn = 'X';
+  let state = Array(9).fill(null);
+  function render(){
+    grid.innerHTML='';
+    state.forEach((v,i)=>{
+      const c = document.createElement('div');
+      c.style.width='80px'; c.style.height='80px'; c.style.borderRadius='8px'; c.style.display='flex'; c.style.alignItems='center'; c.style.justifyContent='center';
+      c.style.fontSize='28px'; c.style.cursor='pointer'; c.style.background='rgba(255,255,255,0.02)';
+      c.textContent = v || '';
+      c.addEventListener('click', ()=>{
+        if(state[i] || checkWin()) return;
+        state[i]=turn; turn = (turn==='X')?'O':'X';
+        render();
+        const winner = checkWin();
+        if(winner){ gameDesc.textContent = `Winner: ${winner}`; scoreDisplay.textContent = winner; restartBtn.style.display='inline-block'; }
+      });
+      grid.appendChild(c);
+    });
+  }
+  function checkWin(){
+    const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    for(const l of lines){
+      const [a,b,c]=l;
+      if(state[a] && state[a]===state[b] && state[b]===state[c]) return state[a];
+    }
+    return null;
+  }
+  render();
+  gameContent.appendChild(grid);
+  restartBtn.onclick = ()=>{ state = Array(9).fill(null); turn='X'; render(); scoreDisplay.textContent='—'; restartBtn.style.display='none'; gameDesc.textContent='Two players — click a cell to place.'; };
+}
+
+/* 6: Whack-a-mole */
+function game_whack_init(){
+  clearArea();
+  setTitle('Whack-a-Mole','Click the mole as many times as you can in 20 seconds.');
+  const field = document.createElement('div');
+  field.style.display='grid'; field.style.gridTemplateColumns='repeat(5,60px)'; field.style.gap='10px'; field.style.justifyContent='center';
+  const holes = [];
+  for(let i=0;i<10;i++){
+    const h = document.createElement('div');
+    h.style.width='60px'; h.style.height='60px'; h.style.borderRadius='10px'; h.style.background='rgba(255,255,255,0.02)';
+    h.style.display='flex'; h.style.alignItems='center'; h.style.justifyContent='center';
+    field.appendChild(h); holes.push(h);
+  }
+  const info = document.createElement('div'); info.className='small'; info.style.marginTop='8px';
+  gameContent.appendChild(field); gameContent.appendChild(info);
+  let score=0, running=false, timeout;
+  function spawn(){
+    holes.forEach(h=>h.textContent='');
+    const index = Math.floor(Math.random()*holes.length);
+    holes[index].textContent='🐹';
+    holes[index].style.cursor='pointer';
+    const clickHandler = ()=>{
+      score++; holes[index].textContent=''; holes[index].style.cursor='default';
+      scoreDisplay.textContent = score;
+      holes[index].removeEventListener('click', clickHandler);
+    };
+    holes[index].addEventListener('click', clickHandler);
+    timeout = setTimeout(()=>{
+      holes[index].textContent='';
+      if(running) spawn();
+    }, 700 - Math.random()*400);
+  }
+  const start = ()=>{
+    score=0; scoreDisplay.textContent=0; running=true; info.textContent='Time left: 20.0s';
+    const end = performance.now()+20000;
+    spawn();
+    const t = setInterval(()=>{
+      const left=(end-performance.now())/1000;
+      info.textContent='Time left: '+Math.max(0,left.toFixed(1))+'s • Score: '+score;
+      if(left<=0){ clearInterval(t); running=false; clearTimeout(timeout); holes.forEach(h=>h.textContent=''); info.textContent='Done! Score: '+score; restartBtn.style.display='inline-block'; }
+    },80);
+  };
+  // Start immediately
+  start();
+  restartBtn.onclick = game_whack_init;
+}
+
+/* 7: Typing Test (short) */
+function game_typing_init(){
+  clearArea();
+  setTitle('Typing Practice','Type the shown word as fast as you can. Press Enter when done.');
+  const words = ['rocket','banana','mountain','javascript','github','canvas','neon','arcade','memory','galaxy','light','python','keyboard'];
+  const target = words[Math.floor(Math.random()*words.length)];
+  const p = document.createElement('div'); p.style.fontSize='22px'; p.style.margin='12px'; p.textContent = target;
+  const input = document.createElement('input'); input.style.padding='8px'; input.style.fontSize='18px';
+  const info = document.createElement('div'); info.className='small';
+  gameContent.append(p, input, info);
+  let start=0;
+  input.addEventListener('keydown', (e)=>{
+    if(!start) start = performance.now();
+    if(e.key==='Enter'){
+      const took = Math.round(performance.now()-start);
+      if(input.value.trim()===target){ info.textContent = `Correct! Time: ${took} ms`; scoreDisplay.textContent = took+' ms'; restartBtn.style.display='inline-block'; }
+      else info.textContent = 'Incorrect. Try again or restart.';
+    }
+  });
+  restartBtn.onclick = game_typing_init;
+}
+
+/* 8: Avoid Blocks (move square) */
+function game_avoid_init(){
+  clearArea();
+  setTitle('Avoid the Blocks','Move the blue square with arrow keys. Avoid falling red blocks for 25 seconds.');
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.min(720, window.innerWidth-120);
+  canvas.height = 320;
+  gameContent.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  let player = {x: canvas.width/2-12, y: canvas.height-40, w:24, h:24};
+  let blocks = [];
+  let left=false,right=false;
+  let startTime = performance.now();
+  const endTime = startTime + 25000;
+  let alive = true;
+  let score = 0;
+
+  function spawnBlock(){
+    const bw = 30 + Math.random()*40;
+    blocks.push({x: Math.random()*(canvas.width-bw), y:-20, w: bw, h:20, vy: 1+Math.random()*2});
+  }
+  let lastSpawn = 0;
+  function loop(t){
+    if(!alive) return;
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+    // input
+    if(left) player.x -= 4;
+    if(right) player.x += 4;
+    player.x = Math.max(0, Math.min(canvas.width-player.w, player.x));
+    // spawn
+    if(t - lastSpawn > 600) { spawnBlock(); lastSpawn=t; }
+    // update blocks
+    for(let i=blocks.length-1;i>=0;i--){
+      const b = blocks[i];
+      b.y += b.vy;
+      ctx.fillStyle='rgba(200,30,30,0.95)'; ctx.fillRect(b.x,b.y,b.w,b.h);
+      if(b.y>canvas.height){ blocks.splice(i,1); score++; scoreDisplay.textContent = score; }
+      // collision
+      if(!(player.x + player.w < b.x || player.x > b.x + b.w || player.y + player.h < b.y || player.y > b.y + b.h)){
+        alive=false;
+      }
+    }
+    // player
+    ctx.fillStyle='#3aa0ff'; ctx.fillRect(player.x, player.y, player.w, player.h);
+    // timer
+    const leftt = Math.max(0,(endTime-performance.now())/1000).toFixed(1);
+    ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.fillText('Time left: '+leftt+'s', 10, 16);
+    if(!alive){
+      ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle='white'; ctx.textAlign='center'; ctx.font='20px sans-serif';
+      ctx.fillText('Game over! Score: '+score, canvas.width/2, canvas.height/2);
+      scoreDisplay.textContent = score;
+      restartBtn.style.display='inline-block';
+      return;
+    }
+    if(performance.now() >= endTime){
+      alive=false;
+      ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle='white'; ctx.textAlign='center'; ctx.font='20px sans-serif';
+      ctx.fillText('You survived! Score: '+score, canvas.width/2, canvas.height/2);
+      scoreDisplay.textContent = score;
+      restartBtn.style.display='inline-block';
+      return;
+    }
+    requestAnimationFrame(loop);
+  }
+
+  window.addEventListener('keydown', kd); window.addEventListener('keyup', ku);
+  function kd(e){ if(e.key==='ArrowLeft') left=true; if(e.key==='ArrowRight') right=true; }
+  function ku(e){ if(e.key==='ArrowLeft') left=false; if(e.key==='ArrowRight') right=false; }
+  requestAnimationFrame(loop);
+
+  restartBtn.onclick = ()=>{
+    window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku);
+    game_avoid_init();
+  };
+}
+
+/* 9: Memory Pairs (simple) */
+function game_memory_init(){
+  clearArea();
+  setTitle('Memory Match','Flip cards to find matching pairs. 8 pairs total.');
+  const pairs = 8;
+  const values = [];
+  for(let i=0;i<pairs;i++){ values.push(i); values.push(i); }
+  // shuffle
+  for(let i=values.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [values[i],values[j]]=[values[j],values[i]]; }
+  const grid = document.createElement('div'); grid.style.display='grid'; grid.style.gridTemplateColumns='repeat(4,100px)'; grid.style.gap='10px'; grid.style.justifyContent='center';
+  const cards = [];
+  let revealed = [];
+  let matched = 0;
+  values.forEach((v,i)=>{
+    const c = document.createElement('div');
+    c.style.width='100px'; c.style.height='100px'; c.style.borderRadius='8px'; c.style.display='flex'; c.style.alignItems='center'; c.style.justifyContent='center'; c.style.cursor='pointer';
+    c.textContent='?'; c.style.fontSize='22px';
+    c.addEventListener('click', ()=>{
+      if(revealed.includes(i) || c.dataset.matched) return;
+      c.textContent = v;
+      revealed.push(i);
+      if(revealed.length===2){
+        const [a,b]=revealed;
+        if(values[a]===values[b]){
+          // match
+          cards[a].dataset.matched=true; cards[b].dataset.matched=true; matched++;
+          revealed=[];
+          if(matched===pairs){ scoreDisplay.textContent='Matched all!'; restartBtn.style.display='inline-block'; }
+        } else {
+          setTimeout(()=>{ if(!cards[a].dataset.matched) cards[a].textContent='?'; if(!cards[b].dataset.matched) cards[b].textContent='?'; revealed=[]; },700);
+        }
+      }
+    });
+    cards.push(c); grid.appendChild(c);
+  });
+  gameContent.appendChild(grid);
+  restartBtn.onclick = game_memory_init;
+}
+
+/* 10: Balloon Pop (click moving balloons) */
+function game_balloon_init(){
+  clearArea();
+  setTitle('Balloon Pop','Click popping balloons. 20 seconds.');
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.min(720, window.innerWidth-120);
+  canvas.height = 320;
+  gameContent.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  let balloons = [];
+  let running=true;
+  let score=0;
+  function spawn(){ balloons.push({x:Math.random()*canvas.width,y:canvas.height+20,vy: -1 - Math.random()*1.6, r: 12+Math.random()*16}); }
+  let last = 0;
+  function loop(t){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if(t - last > 500) { spawn(); last=t; }
+    for(let i=balloons.length-1;i>=0;i--){
+      const b = balloons[i];
+      b.y += b.vy;
+      ctx.beginPath(); ctx.ellipse(b.x,b.y,b.r,b.r*1.15,0,0,Math.PI*2); ctx.fillStyle='rgba(255,120,160,0.95)'; ctx.fill();
+      if(b.y + b.r < -20) balloons.splice(i,1);
+    }
+    if(running) requestAnimationFrame(loop);
+  }
+  canvas.addEventListener('click', (e)=>{
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    for(let i=balloons.length-1;i>=0;i--){
+      const b = balloons[i];
+      const dx = mx - b.x, dy = my - b.y;
+      if(dx*dx + dy*dy < b.r*b.r){
+        balloons.splice(i,1); score++; scoreDisplay.textContent = score; break;
+      }
+    }
+  });
+  const end = performance.now() + 20000;
+  const timer = setInterval(()=>{
+    const left=(end-performance.now())/1000;
+    if(left<=0){ running=false; clearInterval(timer); ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.fillStyle='white'; ctx.textAlign='center'; ctx.fillText('Time! Score: '+score, canvas.width/2, canvas.height/2); restartBtn.style.display='inline-block'; }
+  },100);
+  requestAnimationFrame(loop);
+  restartBtn.onclick = game_balloon_init;
+}
+
+/* Generic microgame generator templates (used for many slots) */
+const microTemplates = [
+  // Click target quickly
+  function simpleClickTarget(done){
+    const btn = document.createElement('button'); btn.textContent='Click me 10 times'; btn.style.padding='18px'; btn.style.fontSize='16px';
+    let c=0; btn.addEventListener('click', ()=>{
+      c++; btn.textContent = `Click me (${c}/10)`;
+      if(c>=10){ done(c); }
+    });
+    return btn;
+  },
+  // Hold button for N ms
+  function holdButton(done){
+    const btn = document.createElement('button'); btn.textContent='Hold me for 1.5s'; btn.style.padding='14px';
+    let downAt = 0;
+    btn.addEventListener('pointerdown', ()=> downAt = performance.now());
+    btn.addEventListener('pointerup', ()=>{
+      const dur = performance.now()-downAt;
+      if(dur > 1400){ done(Math.round(dur)); } else { btn.textContent = `Only ${Math.round(dur)}ms — try again`; setTimeout(()=>btn.textContent='Hold me for 1.5s',700); }
+    });
+    return btn;
+  },
+  // Press shown key
+  function pressKey(done){
+    const key = ['a','s','d','f','j','k','l',';'][Math.floor(Math.random()*8)];
+    const note = document.createElement('div'); note.textContent = `Press the "${key.toUpperCase()}" key`;
+    function handler(e){ if(e.key.toLowerCase() === key){ window.removeEventListener('keydown', handler); done(key); } }
+    window.addEventListener('keydown', handler);
+    return note;
+  },
+  // Quick math (one problem)
+  function quickMath(done){
+    const a = Math.floor(Math.random()*20)+1; const b = Math.floor(Math.random()*20)+1; const div = document.createElement('div');
+    div.innerHTML = `<div style="font-size:20px">${a} + ${b} = ?</div><input id="mm" style="margin-top:8px;padding:6px" />`;
+    div.querySelector('input').addEventListener('keydown', (e)=>{
+      if(e.key==='Enter' && Number(e.target.value)===a+b){ done(a+b); }
+    });
+    return div;
+  },
+  // Count tones (audio-less: quick count clicks)
+  function countClicks(done){
+    const btn = document.createElement('button'); btn.textContent='Click 7 times quickly';
+    let c=0; btn.addEventListener('click', ()=>{ c++; if(c===7) done(c); btn.textContent='Clicked '+c;});
+    return btn;
+  },
+  // Find the odd color
+  function oddColor(done){
+    const target = Math.random()<0.5? 'red':'blue';
+    const wrap = document.createElement('div'); wrap.style.display='flex'; wrap.style.gap='8px';
+    for(let i=0;i<6;i++){
+      const d = document.createElement('div'); d.style.width='48px'; d.style.height='48px'; d.style.borderRadius='6px';
+      const isTarget = (i===Math.floor(Math.random()*6));
+      d.style.background = isTarget ? target : (target==='red'?'rgb(250,80,100)':'rgb(80,120,240)');
+      d.addEventListener('click', ()=>{ if(isTarget) done('ok'); else d.style.opacity='0.2'; });
+      wrap.appendChild(d);
+    }
+    return wrap;
+  }
+];
+
+function makeMicroGame(container, templateIdx){
+  const t = microTemplates[templateIdx || Math.floor(Math.random()*microTemplates.length)];
+  const element = t(function(result){
+    scoreDisplay.textContent = typeof result === 'number' ? result : 'done';
+    restartBtn.style.display='inline-block';
+  });
+  container.appendChild(element);
+}
+
+/* Map of specific slot numbers to dedicated games (we'll provide distinct implementations for a few slots) */
+const specialGames = {
+  1: game_reaction_init,
+  2: game_clickspeed_init,
+  3: game_math_init,
+  4: game_guess_init,
+  5: game_ttt_init,
+  6: game_whack_init,
+  7: game_typing_init,
+  8: game_avoid_init,
+  9: game_memory_init,
+  10: game_balloon_init,
+  // 11..50 will be either microgames or repeats; but all playable
+};
+
+/* Build game metadata */
+const games = [];
+const titles = {
+  1:'Reaction',2:'Click Speed',3:'Math Blitz',4:'Guess Number',5:'Tic-Tac-Toe',6:'Whack-a-Mole',7:'Typing Practice',8:'Avoid Blocks',9:'Memory Match',10:'Balloon Pop'
+};
+for(let i=1;i<=50;i++){
+  if(titles[i]) games.push({id:i,title:titles[i],desc:'Play now',fn:specialGames[i]});
+  else {
+    // generated slot
+    const title = 'Microgame #' + i;
+    const desc = 'Quick micro-challenge';
+    games.push({id:i,title,desc,fn: null});
+  }
+}
+
+/* Render tiles */
+function renderTiles(){
+  gamesGrid.innerHTML='';
+  for(const g of games){
+    const t = makeTile(g.id, g.title, g.desc);
+    gamesGrid.appendChild(t);
+  }
+}
+renderTiles();
+
+/* Start game by id */
+function startGame(id){
+  currentGame = id;
+  clearArea();
+  const g = games.find(x=>x.id===id);
+  if(!g) return;
+  if(g.fn){
+    // dedicated game
+    g.fn();
+  } else {
+    setTitle(`${g.title}`, g.desc);
+    // Use micro game generator: pick a random template and create game content
+    const container = document.createElement('div');
+    container.style.display='flex'; container.style.flexDirection='column'; container.style.alignItems='center'; container.style.justifyContent='center';
+    const desc = document.createElement('div'); desc.className='small'; desc.style.marginBottom='8px';
+    desc.textContent = 'Complete the short challenge.';
+    container.appendChild(desc);
+    // use variety: choose 1 of templates
+    const idx = Math.floor(Math.random()*microTemplates.length);
+    makeMicroGame(container, idx);
+    gameContent.appendChild(container);
+    restartBtn.style.display='inline-block';
+    restartBtn.onclick = ()=> startGame(id);
+  }
+}
+
+/* Shuffle: randomize microgames positions (not the dedicated ones) */
+shuffleBtn.addEventListener('click', ()=>{
+  // shuffle the titles/ids of microgames (non-special)
+  const micro = games.filter(g=>!g.fn);
+  // randomize order of the microTemplates assignments by reassigning their titles
+  for(const mg of micro){
+    // optionally change the displayed title slightly
+    mg.title = 'Microgame #' + mg.id;
+  }
+  renderTiles();
 });
 
-appendOut('Tip: use the color picker bottom-right to change the accent color.');
+/* default behaviors */
+window.addEventListener('resize', ()=> {
+  // if a canvas exists, resize when switching games (simple approach: reload current game)
+});
+
+/* Pre-load: create tiles */
+renderTiles();
+
 </script>
 </body>
 </html>
