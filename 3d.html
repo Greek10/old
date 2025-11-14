@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>3D Environment Demo — Browser</title>
+  <style>
+    :root{--bg:#0b0f14;--panel:rgba(255,255,255,0.06);--accent:#7ce7ff}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#07111a, #0b0f14);font-family:Inter,system-ui,Arial}
+    canvas{display:block}
+    #overlay{position:fixed;left:0;top:0;pointer-events:none;z-index:10;display:flex;justify-content:flex-start;align-items:flex-start;padding:14px}
+    .panel{background:var(--panel);backdrop-filter:blur(4px);color:#e9f9ff;padding:10px 12px;border-radius:10px;pointer-events:auto}
+    #leftPanel{max-width:320px}
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="overlay">
+    <div id="leftPanel" class="panel">
+      <div style="font-weight:700;margin-bottom:6px">3D Environment Demo</div>
+      <div class="hint">Use <strong>W A S D</strong> to move relative to view, <strong>Space</strong> to jump, and <strong>O/L/I/P</strong> to look up/down/left/right.</div>
+      <div style="margin-top:8px"><button id="startBtn">Enter Environment</button></div>
+      <div style="margin-top:8px;font-size:13px;opacity:0.9">Pointer lock may be unavailable in sandboxed iframes. Mouse movement is always available.</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x071018);
+    scene.fog = new THREE.FogExp2(0x071018, 0.02);
+
+    const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 500);
+    camera.position.set(0,1.7,10);
+
+    const renderer = new THREE.WebGLRenderer({antialias:true});
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+    document.body.appendChild(renderer.domElement);
+
+    const hemi = new THREE.HemisphereLight(0xbde0ff, 0x081122, 0.6);
+    scene.add(hemi);
+    const dir = new THREE.DirectionalLight(0xffffff, 0.6);
+    dir.position.set(-10,20,10);
+    scene.add(dir);
+
+    const groundMat = new THREE.MeshStandardMaterial({color:0x1d2b36, roughness:1});
+    const groundGeo = new THREE.PlaneGeometry(200,200);
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI/2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    const structures = new THREE.Group();
+    const boxMat = new THREE.MeshStandardMaterial({color:0x4b6b7a});
+    for(let i=0;i<40;i++){
+      const w=1+Math.random()*4, h=1+Math.random()*6, d=1+Math.random()*4;
+      const geo = new THREE.BoxGeometry(w,h,d);
+      const m = new THREE.Mesh(geo, boxMat);
+      m.position.set((Math.random()-0.5)*100, h/2, (Math.random()-0.5)*100);
+      structures.add(m);
+    }
+    scene.add(structures);
+
+    // Platforms for jumping
+    const platformMat = new THREE.MeshStandardMaterial({color:0xffaa33});
+    const platforms = new THREE.Group();
+    const platformPositions = [
+      {x:0, y:3, z:0},
+      {x:5, y:6, z:-5},
+      {x:-7, y:9, z:7},
+      {x:10, y:12, z:5}
+    ];
+    platformPositions.forEach(pos => {
+      const geo = new THREE.BoxGeometry(4,0.5,4);
+      const plat = new THREE.Mesh(geo, platformMat);
+      plat.position.set(pos.x,pos.y,pos.z);
+      platforms.add(plat);
+    });
+    scene.add(platforms);
+
+    // Walls for wall-jumping (moved farther from platforms and taller)
+    const wallMat = new THREE.MeshStandardMaterial({color:0x3399ff});
+    const walls = new THREE.Group();
+    const wallPositions = [
+      {x:7, y:5, z:0, w:0.5, h:10, d:4},
+      {x:-9, y:6, z:-5, w:0.5, h:12, d:6}
+    ];
+    wallPositions.forEach(pos => {
+      const geo = new THREE.BoxGeometry(pos.w, pos.h, pos.d);
+      const wall = new THREE.Mesh(geo, wallMat);
+      wall.position.set(pos.x,pos.y,pos.z);
+      walls.add(wall);
+    });
+    scene.add(walls);
+
+    const sky = new THREE.Mesh(new THREE.SphereGeometry(150,32,16), new THREE.MeshBasicMaterial({color:0x071018, side:THREE.BackSide}));
+    scene.add(sky);
+
+    let lookState={pitch:0, yaw:0}, lookSensitivity=0.0025;
+    const velocity = new THREE.Vector3();
+    const move = {forward:false, back:false, left:false, right:false, jump:false};
+    let canJump = true;
+
+    function onKey(e){
+      const down = (e.type==='keydown');
+      if(e.code==='KeyW') move.forward = down;
+      if(e.code==='KeyS') move.back = down;
+      if(e.code==='KeyA') move.left = down;
+      if(e.code==='KeyD') move.right = down;
+      if(e.code==='Space') move.jump = down;
+
+      // Look controls: O = up, L = down, I = left, P = right
+      if(e.code==='KeyO') lookState.pitch -= 0.05;
+      if(e.code==='KeyL') lookState.pitch += 0.05;
+      if(e.code==='KeyI') lookState.yaw -= 0.05;
+      if(e.code==='KeyP') lookState.yaw += 0.05;
+    }
+    window.addEventListener('keydown',onKey);
+    window.addEventListener('keyup',onKey);
+
+    function onMouseMove(e){
+      const dx = e.movementX || 0;
+      const dy = e.movementY || 0;
+      lookState.yaw -= dx * lookSensitivity;
+      lookState.pitch -= dy * lookSensitivity;
+      lookState.pitch = Math.max(-Math.PI/2+0.05, Math.min(Math.PI/2-0.05, lookState.pitch));
+    }
+    window.addEventListener('mousemove',onMouseMove);
+
+    window.addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+
+    const clock = new THREE.Clock();
+
+    function animate(){
+      const dt = Math.min(clock.getDelta(), 0.05);
+
+      // Movement relative to camera orientation
+      const directionVector = new THREE.Vector3();
+      if(move.forward) directionVector.z -= 1;
+      if(move.back) directionVector.z += 1;
+      if(move.left) directionVector.x -= 1;
+      if(move.right) directionVector.x += 1;
+      directionVector.normalize();
+
+      const camQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, lookState.yaw, 0, 'YXZ'));
+      directionVector.applyQuaternion(camQuat);
+
+      const speed = 10;
+      velocity.x += (directionVector.x*speed - velocity.x) * 10 * dt;
+      velocity.z += (directionVector.z*speed - velocity.z) * 10 * dt;
+
+      // Jumping physics
+      velocity.y -= 9.8 * dt;
+      let isTouchingWall = false;
+
+      walls.children.forEach(wall => {
+        const dx = camera.position.x - wall.position.x;
+        const dz = camera.position.z - wall.position.z;
+        const halfW = wall.geometry.parameters.width/2;
+        const halfD = wall.geometry.parameters.depth/2;
+        if(Math.abs(dx) < halfW + 0.3 && Math.abs(dz) < halfD + 0.3 && velocity.y < 0){
+          isTouchingWall = true;
+        }
+      });
+
+      if(move.jump && canJump){
+        velocity.y = 5;
+        canJump = false;
+      } else if(move.jump && !canJump && isTouchingWall){
+        // Wall jump
+        velocity.y = 5;
+        canJump = true;
+      }
+
+      camera.position.addScaledVector(velocity, dt);
+      camera.quaternion.setFromEuler(new THREE.Euler(lookState.pitch, lookState.yaw, 0, 'YXZ'));
+
+      // Ground & platform collision
+      const playerY = camera.position.y;
+      let landed = false;
+      platforms.children.forEach(plat => {
+        const px = plat.position.x, pz = plat.position.z;
+        const halfSize = 2;
+        if(camera.position.x > px - halfSize && camera.position.x < px + halfSize && camera.position.z > pz - halfSize && camera.position.z < pz + halfSize && velocity.y <= 0){
+          if(playerY <= plat.position.y + 1.7){
+            camera.position.y = plat.position.y + 1.7;
+            velocity.y = 0;
+            canJump = true;
+            landed = true;
+          }
+        }
+      });
+
+      if(camera.position.y <= 1.7 && !landed){
+        camera.position.y = 1.7;
+        velocity.y = 0;
+        canJump = true;
+      }
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+
+    document.getElementById('startBtn').addEventListener('click',()=>{ animate(); });
+  </script>
+</body>
+</html>
