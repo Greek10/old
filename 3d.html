@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>3D Environment Demo — Browser</title>
+  <title>EcuadorSite82</title>
   <style>
     :root{--bg:#0b0f14;--panel:rgba(255,255,255,0.06);--accent:#7ce7ff}
     html,body{height:100%;margin:0;background:linear-gradient(180deg,#07111a, #0b0f14);font-family:Inter,system-ui,Arial}
@@ -16,7 +16,6 @@
     {
       "imports": {
         "three": "https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js",
-        "GLTFLoader": "https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/loaders/GLTFLoader.js",
         "BufferGeometryUtils": "https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/utils/BufferGeometryUtils.js"
       }
     }
@@ -26,7 +25,7 @@
   <div id="overlay">
     <div id="leftPanel" class="panel">
       <div style="font-weight:700;margin-bottom:6px">3D Environment Demo</div>
-      <div class="hint">Use <strong>W A S D</strong> to move relative to view, <strong>Space</strong> to jump, <strong>B</strong> to toggle heirloom, <strong>K</strong> to inspect, <strong>O/L/I/P</strong> to look up/down/left/right, <strong>Click</strong> to fire.</div>
+      <div class="hint">Use <strong>W A S D</strong> to move relative to view, <strong>Space</strong> to jump, <strong>O/L/I/P</strong> to look up/down/left/right, <strong>X</strong> to toggle this UI.</div>
       <div style="margin-top:8px"><button id="startBtn">Enter Environment</button></div>
       <div style="margin-top:8px;font-size:13px;opacity:0.9">Pointer lock will snap the mouse to the screen for FPS movement.</div>
     </div>
@@ -34,7 +33,6 @@
 
   <script type="module">
     import * as THREE from 'three';
-    import { GLTFLoader } from 'GLTFLoader';
     import { BufferGeometryUtils } from 'BufferGeometryUtils';
 
     const scene = new THREE.Scene();
@@ -88,36 +86,12 @@
     });
     scene.add(platforms);
 
-    // Butterfly knife heirloom
-    const knife = new THREE.Group();
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.02,0.005,0.25), new THREE.MeshStandardMaterial({color:0xAAAAAA, metalness:1, roughness:0.1}));
-    blade.position.set(0,0,0.125);
-    const handleGeo = new THREE.BoxGeometry(0.02,0.05,0.125);
-    const handleMat = new THREE.MeshStandardMaterial({color:0x333333, metalness:0.5, roughness:0.5});
-    const handleLeft = new THREE.Mesh(handleGeo, handleMat);
-    const handleRight = new THREE.Mesh(handleGeo, handleMat);
-    handleLeft.position.set(-0.015,0,0.0625);
-    handleRight.position.set(0.015,0,0.0625);
-    knife.add(blade, handleLeft, handleRight);
-    knife.position.set(0.3,-0.25,-0.5);
-    knife.rotation.set(-0.2,-0.5,-0.1);
-    knife.visible = false;
-    camera.add(knife);
-
-    // Gun stub
-    const gun = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.1,0.5), new THREE.MeshStandardMaterial({color:0x222222, metalness:0.8, roughness:0.3}));
-    gun.position.set(0.3,-0.2,-0.5);
-    gun.rotation.set(-0.2,-0.5,-0.1);
-    gun.visible = true;
-    camera.add(gun);
-
     const sky = new THREE.Mesh(new THREE.SphereGeometry(150,8,4), new THREE.MeshBasicMaterial({color:0x071018, side:THREE.BackSide}));
     scene.add(sky);
 
     let lookState={pitch:0,yaw:0}, lookSensitivity=0.0025;
     const velocity = new THREE.Vector3();
     const move={forward:false,back:false,left:false,right:false,jump:false};
-    let canJump=true,inspecting=false,inspectProgress=0;
 
     function onKey(e){
       const down = e.type==='keydown';
@@ -130,8 +104,10 @@
       if(e.code==='KeyL') lookState.pitch+=0.05;
       if(e.code==='KeyI') lookState.yaw-=0.05;
       if(e.code==='KeyP') lookState.yaw+=0.05;
-      if(e.code==='KeyB' && down) knife.visible=!knife.visible;
-      if(e.code==='KeyK' && down && knife.visible){inspecting=true;inspectProgress=0;}
+      if(e.code==='KeyX' && down) {
+        const panel = document.getElementById('leftPanel');
+        panel.style.display = (panel.style.display==='none') ? 'block' : 'none';
+      }
     }
     window.addEventListener('keydown',onKey);
     window.addEventListener('keyup',onKey);
@@ -164,7 +140,7 @@
         velocity.z += (directionVector.z*speed-velocity.z)*10*dt;
       }
       velocity.y -= 9.8*dt;
-      if(move.jump&&canJump){velocity.y=5;canJump=false;}
+      if(move.jump&&velocity.y<=0){velocity.y=5;}
       camera.position.addScaledVector(velocity,dt);
       camera.quaternion.setFromEuler(new THREE.Euler(lookState.pitch,lookState.yaw,0,'YXZ'));
 
@@ -172,36 +148,10 @@
       platforms.children.forEach(plat=>{
         const px=plat.position.x,pz=plat.position.z,half=2;
         if(camera.position.x>px-half&&camera.position.x<px+half && camera.position.z>pz-half&&camera.position.z<pz+half && velocity.y<=0){
-          if(playerY<=plat.position.y+1.7){camera.position.y=plat.position.y+1.7;velocity.y=0;canJump=true;landed=true;}
+          if(playerY<=plat.position.y+1.7){camera.position.y=plat.position.y+1.7;velocity.y=0;landed=true;}
         }
       });
-      if(camera.position.y<=1.7&&!landed){camera.position.y=1.7;velocity.y=0;canJump=true;}
-
-      // Knife animation
-      if(knife.visible){
-        if(inspecting){
-          inspectProgress+=dt;
-          const t=Math.min(inspectProgress/3,1);
-          knife.rotation.x=-0.2+Math.sin(inspectProgress*10)*0.5;
-          knife.rotation.y=-0.5+Math.sin(inspectProgress*8)*0.7;
-          knife.rotation.z=-0.1+Math.sin(inspectProgress*12)*0.5;
-          knife.position.x=0.3+Math.sin(inspectProgress*6)*0.03;
-          knife.position.y=-0.25+Math.cos(inspectProgress*6)*0.03;
-          knife.position.z=-0.5+Math.sin(inspectProgress*6)*0.03;
-          handleLeft.rotation.z=-Math.PI/4*t;
-          handleRight.rotation.z=Math.PI/4*t;
-          if(inspectProgress>3){inspecting=false;inspectProgress=0;}
-        } else {
-          knife.position.x+=(0.3-knife.position.x)*0.1;
-          knife.position.y+=(-0.25-knife.position.y)*0.1;
-          knife.position.z+=(-0.5-knife.position.z)*0.1;
-          knife.rotation.x+=(-0.2-knife.rotation.x)*0.1;
-          knife.rotation.y+=(-0.5-knife.rotation.y)*0.1;
-          knife.rotation.z+=(-0.1-knife.rotation.z)*0.1;
-          handleLeft.rotation.z+=(0-handleLeft.rotation.z)*0.1;
-          handleRight.rotation.z+=(0-handleRight.rotation.z)*0.1;
-        }
-      }
+      if(camera.position.y<=1.7&&!landed){camera.position.y=1.7;velocity.y=0;}
 
       renderer.render(scene,camera);
       requestAnimationFrame(animate);
@@ -209,4 +159,8 @@
 
     document.getElementById('startBtn').addEventListener('click',()=>{
       renderer.domElement.requestPointerLock();
-      animat
+      animate();
+    });
+  </script>
+</body>
+</html>
