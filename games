@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Reaction Test</title>
+<link rel="stylesheet" href="../style.css">
+<script src="../sound.js"></script>
+<script src="../webhook.js"></script>
+</head>
+
+<body style="text-align:center; padding-top:80px;">
+
+<h1>Reaction Test</h1>
+<p>Click as fast as you can when the screen turns GREEN.</p>
+
+<div id="box" style="
+    width:300px;height:300px;margin:40px auto;
+    background:red;border-radius:20px;">
+</div>
+
+<script>
+let startTime;
+let waiting = true;
+
+setTimeout(() => {
+    document.getElementById("box").style.background = "green";
+    startTime = Date.now();
+    waiting = false;
+}, Math.random()*3000 + 2000);
+
+document.getElementById("box").onclick = async () => {
+    if (waiting) return;
+
+    const reaction = Date.now() - startTime;
+    alert("Your time: " + reaction + "ms");
+
+    playSound("success");
+
+    await sendScore("Reaction Test", reaction);
+
+    window.location.href = "../index.html";
+};
+</script>
+
+</body>
+</html>
