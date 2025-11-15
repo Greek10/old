@@ -1,196 +1,273 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shape and Beats - Abilities</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Just Shapes & Beats – Mobile Version</title>
+
 <style>
-  body, html { margin:0; padding:0; overflow:hidden;
-    background: linear-gradient(135deg,#0a0a0a,#111);
-    font-family:sans-serif; color:white;
+  body,html{
+    margin:0; padding:0; overflow:hidden;
+    background:linear-gradient(135deg,#090909,#111); color:white;
+    font-family:Arial, sans-serif;
+    user-select:none;
+    touch-action:none;
   }
   canvas{ display:block; }
-  #controls{ position:absolute; top:10px; left:10px; display:flex; gap:10px; z-index:10; }
-  button{ padding:8px 12px; background:#222; border:1px solid #555; color:white; cursor:pointer;}
-  button:hover{ background:#444; }
-  #healthBar{position:absolute; top:10px; right:10px; width:200px; height:25px; background:#333; border:2px solid #555;}
-  #healthFill{width:100%; height:100%; background:#0f0;}
-  #abilityBar{position:absolute; bottom:10px; left:50%; transform:translateX(-50%); display:flex; gap:15px; z-index:10;}
-  .abilityBtn{padding:8px 12px; background:#222; border:1px solid #555; color:white; cursor:pointer; position:relative;}
-  .cooldownOverlay{position:absolute; top:0; left:0; height:100%; width:100%; background:rgba(0,0,0,0.6);}
+
+  /* Health bar */
+  #healthBar{
+    position:absolute; top:10px; left:50%; transform:translateX(-50%);
+    width:300px; height:25px; border-radius:8px;
+    background:#333; border:2px solid #666;
+  }
+  #healthFill{
+    width:100%; height:100%;
+    background:#0f0; border-radius:6px;
+  }
+
+  /* Ability buttons */
+  .abilityBtn{
+    position:absolute; bottom:20px;
+    width:70px; height:70px; border-radius:12px;
+    border:2px solid #777; background:#222; color:white;
+    font-size:14px;
+  }
+  #btn1{ right:20px; }
+  #btn2{ right:100px; }
+  #btn3{ right:180px; }
+
+  /* Joystick */
+  #joystickOuter{
+    position:absolute; bottom:20px; left:20px;
+    width:140px; height:140px; border-radius:50%;
+    background:rgba(255,255,255,0.05);
+    border:2px solid #555;
+    touch-action:none;
+  }
+  #joystickInner{
+    position:absolute; width:60px; height:60px; border-radius:50%;
+    background:#888; top:40px; left:40px;
+    touch-action:none;
+  }
 </style>
 </head>
 <body>
-<div id="controls">
-  <button id="startBtn">Start</button>
-  <button id="stopBtn">Stop</button>
-</div>
+
 <div id="healthBar"><div id="healthFill"></div></div>
-<div id="abilityBar">
-  <div class="abilityBtn" id="shieldBtn">Shield (1)<div class="cooldownOverlay" id="shieldCD"></div></div>
-  <div class="abilityBtn" id="clearBtn">Clear (2)<div class="cooldownOverlay" id="clearCD"></div></div>
-  <div class="abilityBtn" id="restoreBtn">Restore (3)<div class="cooldownOverlay" id="restoreCD"></div></div>
-</div>
-<canvas id="beatCanvas"></canvas>
+
+<!-- Mobile controls -->
+<div id="joystickOuter"><div id="joystickInner"></div></div>
+
+<button id="btn1" class="abilityBtn">Shield</button>
+<button id="btn2" class="abilityBtn">Clear</button>
+<button id="btn3" class="abilityBtn">Restore</button>
+
+<canvas id="game"></canvas>
 
 <script>
-const canvas=document.getElementById('beatCanvas');
-const ctx=canvas.getContext('2d');
-canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+canvas.width = innerWidth;
+canvas.height = innerHeight;
 
-let shapes=[], pellets=[], animationId, running=false;
-let bpm=120; let beatInterval=60000/bpm; let lastBeatTime=0;
-const keys={};
-
-// Player
-const player={
-  x:canvas.width/2, y:canvas.height/2,
-  size:40, color:'#00f',
-  speed:0.5, vx:0, vy:0, maxSpeed:6,
-  health:100, dashMultiplier:3, dashCooldown:0,
-  shieldActive:false, shieldTime:0
+/* -----------------------
+       PLAYER
+-------------------------*/
+let player = {
+  x: canvas.width/2,
+  y: canvas.height/2,
+  size: 40,
+  speed: 4,
+  vx: 0, vy: 0,
+  health: 100,
+  shieldActive: false
 };
 
-// Ability cooldowns (frames)
-let abilities={
-  shield:0, clear:0, restore:0
+/* -----------------------
+       ABILITY COOLDOWNS
+-------------------------*/
+let ability = {
+  shield: { cd: 45, timer: 0, duration: 5, active:false },
+  clear:  { cd:120, timer:0 },
+  restore:{ cd:90,  timer:0 }
 };
-const abilityDurations={
-  shield:5*60 // 5 seconds at 60fps
-};
 
-// Shape class
-class Shape{
-  constructor(x,y,size,type,color){
-    this.x=x; this.y=y;
-    this.size=size; this.type=type; this.color=color;
-    this.growth=Math.random()*2+1;
-    this.shootCooldown=Math.floor(Math.random()*60);
+function useShield(){
+  if(ability.shield.timer <= 0){
+    ability.shield.active = true;
+    player.shieldActive = true;
+    ability.shield.timer = ability.shield.cd;
+    setTimeout(()=>{ player.shieldActive=false }, ability.shield.duration*1000);
   }
-  draw(){
-    ctx.shadowBlur=20; ctx.shadowColor=this.color;
-    ctx.fillStyle=this.color;
-    ctx.beginPath();
-    if(this.type==="circle") ctx.arc(this.x,this.y,this.size,0,Math.PI*2);
-    else if(this.type==="square") ctx.rect(this.x-this.size/2,this.y-this.size/2,this.size,this.size);
-    else if(this.type==="triangle"){
-      ctx.moveTo(this.x,this.y-this.size);
-      ctx.lineTo(this.x-this.size,this.y+this.size);
-      ctx.lineTo(this.x+this.size,this.y+this.size);
-      ctx.closePath();
-    }
-    ctx.fill();
-    ctx.shadowBlur=0;
+}
+function useClear(){
+  if(ability.clear.timer <= 0){
+    objects = [];
+    ability.clear.timer = ability.clear.cd;
   }
-  update(){
-    this.size+=this.growth*0.2;
-    if(this.size>80 || this.size<15) this.growth*=-1;
-    this.draw();
-    if(this.type==="circle" || this.type==="explosive"){
-      this.shootCooldown--;
-      if(this.shootCooldown<=0){ this.shootAtPlayer(); this.shootCooldown=60; }
-    }
-  }
-  shootAtPlayer(){
-    const dx=player.x-this.x; const dy=player.y-this.y;
-    const dist=Math.sqrt(dx*dx+dy*dy);
-    const speed=3; const vx=dx/dist*speed; const vy=dy/dist*speed;
-    pellets.push(new Pellet(this.x,this.y,vx,vy,this.color));
+}
+function useRestore(){
+  if(ability.restore.timer <= 0){
+    player.health = Math.min(100, player.health + 50);
+    ability.restore.timer = ability.restore.cd;
   }
 }
 
-// Pellet class
-class Pellet{ constructor(x,y,vx,vy,color){ this.x=x; this.y=y; this.vx=vx; this.vy=vy; this.color=color; this.size=6; }
-  update(){ this.x+=this.vx; this.y+=this.vy; ctx.fillStyle=this.color; ctx.beginPath(); ctx.arc(this.x,this.y,this.size,0,Math.PI*2); ctx.fill(); } 
+document.getElementById("btn1").onclick = useShield;
+document.getElementById("btn2").onclick = useClear;
+document.getElementById("btn3").onclick = useRestore;
+
+/* -----------------------
+       MOBILE JOYSTICK
+-------------------------*/
+const joyOuter = document.getElementById("joystickOuter");
+const joyInner = document.getElementById("joystickInner");
+
+let joyActive = false, joyX = 0, joyY = 0;
+
+joyOuter.addEventListener("touchstart", e=>{
+  joyActive = true;
+});
+joyOuter.addEventListener("touchend", e=>{
+  joyActive = false;
+  joyInner.style.left = "40px";
+  joyInner.style.top = "40px";
+  player.vx = player.vy = 0;
+});
+joyOuter.addEventListener("touchmove", e=>{
+  let rect = joyOuter.getBoundingClientRect();
+  let touch = e.touches[0];
+
+  let dx = touch.clientX - (rect.left + rect.width/2);
+  let dy = touch.clientY - (rect.top + rect.height/2);
+
+  let dist = Math.sqrt(dx*dx + dy*dy);
+  let max = 50;
+
+  if(dist > max){
+    dx = dx/dist * max;
+    dy = dy/dist * max;
+  }
+
+  joyInner.style.left = (40 + dx) + "px";
+  joyInner.style.top  = (40 + dy) + "px";
+
+  player.vx = (dx/max) * player.speed;
+  player.vy = (dy/max) * player.speed;
+});
+
+/* -----------------------
+       OBJECTS (Enemies)
+-------------------------*/
+let objects = [];
+let spawnTimer = 0;
+
+function spawnObject(){
+  let type = Math.random() < 0.5 ? "circle" : "exploder";
+  objects.push({
+    x: Math.random()*canvas.width,
+    y: -40,
+    size: 30,
+    type: type,
+    cooldown: 0
+  });
 }
 
-// Utilities
-function randomColor(){ const r=Math.floor(Math.random()*255); const g=Math.floor(Math.random()*255); const b=Math.floor(Math.random()*255); return `rgb(${r},${g},${b})`; }
-function randomShapeType(){ const types=["circle","square","triangle","explosive"]; return types[Math.floor(Math.random()*types.length)]; }
-function spawnShape(){ const x=Math.random()*canvas.width; const y=Math.random()*canvas.height; const size=Math.random()*30+20; const type=randomShapeType(); const color=randomColor(); shapes.push(new Shape(x,y,size,type,color)); }
-
-// Player movement
-function movePlayer(){
-  let ax=0, ay=0;
-  if(keys['w']) ay-=player.speed; if(keys['s']) ay+=player.speed;
-  if(keys['a']) ax-=player.speed; if(keys['d']) ax+=player.speed;
-  if(keys['shift'] && player.dashCooldown<=0){ ax*=player.dashMultiplier; ay*=player.dashMultiplier; player.dashCooldown=20; }
-  player.vx+=ax; player.vy+=ay; player.vx*=0.85; player.vy*=0.85;
-  player.vx=Math.max(-player.maxSpeed, Math.min(player.vx,player.maxSpeed));
-  player.vy=Math.max(-player.maxSpeed, Math.min(player.vy,player.maxSpeed));
-  player.x+=player.vx; player.y+=player.vy;
-  if(player.x-player.size/2<0) player.x=player.size/2;
-  if(player.x+player.size/2>canvas.width) player.x=canvas.width-player.size/2;
-  if(player.y-player.size/2<0) player.y=player.size/2;
-  if(player.y+player.size/2>canvas.height) player.y=canvas.height-player.size/2;
-  if(player.dashCooldown>0) player.dashCooldown--;
-}
-
-// Collision detection
-function checkCollisionShapePlayer(shape){ 
-  const dx=shape.x-player.x; const dy=shape.y-player.y; const dist=Math.sqrt(dx*dx+dy*dy);
-  if(shape.type==="circle") return dist<shape.size+player.size/2;
-  else if(shape.type==="square") return Math.abs(shape.x-player.x)<shape.size/2+player.size/2 && Math.abs(shape.y-player.y)<shape.size/2+player.size/2;
-  else if(shape.type==="triangle" || shape.type==="explosive") return dist<shape.size+player.size/2;
-  return false;
-}
-function checkCollisionPelletPlayer(p){ const dx=p.x-player.x; const dy=p.y-player.y; return Math.sqrt(dx*dx+dy*dy)<p.size+player.size/2; }
-
-// Health bar
-function updateHealthBar(){ const fill=document.getElementById('healthFill'); fill.style.width=player.health+'%'; if(player.health>60) fill.style.background='#0f0'; else if(player.health>30) fill.style.background='#ff0'; else fill.style.background='#f00'; }
-
-// Abilities
-function useShield(){ if(abilities.shield<=0){ player.shieldActive=true; player.shieldTime=abilityDurations.shield; abilities.shield=45*60; updateCooldownOverlay('shieldCD',abilities.shield); } }
-function useClear(){ if(abilities.clear<=0){ shapes=[]; abilities.clear=120*60; updateCooldownOverlay('clearCD',abilities.clear); } }
-function useRestore(){ if(abilities.restore<=0){ player.health=Math.min(player.health+50,100); abilities.restore=90*60; updateCooldownOverlay('restoreCD',abilities.restore); } }
-
-function updateCooldownOverlay(id,frames){ const overlay=document.getElementById(id); overlay.style.width='100%'; }
-
-// Animate
-function animate(timestamp){
+/* -----------------------
+       GAME LOOP
+-------------------------*/
+function loop(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  const gradient=ctx.createRadialGradient(player.x,player.y,0,player.x,player.y,500);
-  gradient.addColorStop(0,'rgba(0,0,255,0.2)'); gradient.addColorStop(1,'rgba(0,0,0,0.1)'); ctx.fillStyle=gradient; ctx.fillRect(0,0,canvas.width,canvas.height);
-  if(!lastBeatTime || timestamp-lastBeatTime>beatInterval){ spawnShape(); lastBeatTime=timestamp; }
-  movePlayer();
 
-  // Draw player
-  ctx.shadowBlur=20; ctx.shadowColor=player.color;
-  ctx.fillStyle=player.color; ctx.fillRect(player.x-player.size/2,player.y-player.size/2,player.size,player.size);
-  ctx.shadowBlur=0;
+  /* Move player */
+  player.x += player.vx;
+  player.y += player.vy;
 
-  // Update shapes
-  shapes.forEach((shape,i)=>{ shape.update(); if(checkCollisionShapePlayer(shape)){ if(!player.shieldActive){ player.health-=1; } if(shape.type==="explosive"){} shapes.splice(i,1); } });
+  /* Boundaries */
+  player.x = Math.max(player.size, Math.min(canvas.width-player.size, player.x));
+  player.y = Math.max(player.size, Math.min(canvas.height-player.size, player.y));
 
-  // Update pellets
-  pellets.forEach((p,i)=>{ p.update(); if(checkCollisionPelletPlayer(p)){ if(!player.shieldActive){ player.health-=2; } pellets.splice(i,1); } if(p.x<0||p.x>canvas.width||p.y<0||p.y>canvas.height) pellets.splice(i,1); });
+  /* Draw player */
+  ctx.fillStyle = player.shieldActive ? "#0ff" : "#0af";
+  ctx.fillRect(player.x-player.size/2, player.y-player.size/2, player.size, player.size);
 
-  // Update shield
-  if(player.shieldActive){ player.shieldTime--; if(player.shieldTime<=0) player.shieldActive=false; }
+  /* Spawn objects */
+  spawnTimer++;
+  if(spawnTimer >= 50){
+    spawnObject();
+    spawnTimer = 0;
+  }
 
-  // Update ability cooldowns
-  for(let ab in abilities){ if(abilities[ab]>0){ abilities[ab]--; document.getElementById(ab+'CD').style.width=(abilities[ab]/getAbilityMaxFrames(ab)*100)+'%'; } }
+  /* Update objects */
+  objects.forEach((o, i)=>{
+    o.y += 2;
 
-  updateHealthBar();
-  if(player.health<=0){ running=false; alert("Game Over!"); }
+    if(o.type === "exploder"){
+      o.cooldown++;
+      if(o.cooldown > 120){
+        // explosion bullets
+        for(let k=0;k<8;k++){
+          bullets.push({
+            x:o.x, y:o.y,
+            vx:Math.cos(k*0.78)*3,
+            vy:Math.sin(k*0.78)*3,
+            size:10
+          });
+        }
+        objects.splice(i,1);
+      }
+    }
 
-  if(running) animationId=requestAnimationFrame(animate);
+    ctx.fillStyle = o.type === "exploder" ? "#f0f" : "#f33";
+    ctx.beginPath();
+    ctx.arc(o.x, o.y, o.size, 0, Math.PI*2);
+    ctx.fill();
+
+    // collision
+    let dx = player.x - o.x;
+    let dy = player.y - o.y;
+    if(Math.sqrt(dx*dx+dy*dy) < player.size){
+      if(!player.shieldActive){
+        player.health -= 0.2;
+      }
+    }
+  });
+
+  /* Bullets from enemies */
+  bullets.forEach((b,i)=>{
+    b.x += b.vx;
+    b.y += b.vy;
+
+    ctx.fillStyle="#fff";
+    ctx.beginPath();
+    ctx.arc(b.x,b.y,b.size,0,Math.PI*2);
+    ctx.fill();
+
+    let dx = player.x - b.x;
+    let dy = player.y - b.y;
+
+    if(Math.sqrt(dx*dx+dy*dy) < player.size){
+      if(!player.shieldActive){
+        player.health -= 0.3;
+      }
+    }
+  });
+
+  // Update health bar
+  document.getElementById("healthFill").style.width = player.health+"%";
+
+  /* Cooldowns */
+  if(ability.shield.timer > 0) ability.shield.timer -= 1/60;
+  if(ability.clear.timer > 0) ability.clear.timer -= 1/60;
+  if(ability.restore.timer > 0) ability.restore.timer -= 1/60;
+
+  requestAnimationFrame(loop);
 }
 
-function getAbilityMaxFrames(ab){ if(ab==='shield') return 45*60; if(ab==='clear') return 120*60; if(ab==='restore') return 90*60; return 60; }
-
-// Events
-document.addEventListener('keydown',e=>{ keys[e.key.toLowerCase()]=true; if(e.key==='1') useShield(); if(e.key==='2') useClear(); if(e.key==='3') useRestore(); });
-document.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
-
-document.getElementById('shieldBtn').addEventListener('click',useShield);
-document.getElementById('clearBtn').addEventListener('click',useClear);
-document.getElementById('restoreBtn').addEventListener('click',useRestore);
-
-document.getElementById('startBtn').addEventListener('click',()=>{ if(!running){ running=true; lastBeatTime=0; animate(performance.now()); } });
-document.getElementById('stopBtn').addEventListener('click',()=>{ running=false; cancelAnimationFrame(animationId); });
-
-window.addEventListener('resize',()=>{canvas.width=window.innerWidth; canvas.height=window.innerHeight;});
+let bullets = [];
+loop();
 </script>
+
 </body>
 </html>
