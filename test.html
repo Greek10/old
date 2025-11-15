@@ -115,7 +115,7 @@
     display: grid;
     gap: 10px;
   }
-  @media (min-width: 600px) {
+  @media (min-width: 700px) {
     #modeGrid {
       grid-template-columns: repeat(3, 1fr);
     }
@@ -241,23 +241,36 @@
     transition: width 0.15s ease-out, background 0.15s ease-out;
   }
 
-  /* Ability Bar */
-  #abilityBar {
+  /* Ability Bar - scrollable strip */
+  #abilityBarWrapper {
     position: absolute;
     bottom: 12px;
     left: 50%;
     transform: translateX(-50%);
-    display: flex;
-    gap: 10px;
+    max-width: 92vw;
+    padding: 4px 4px;
+    border-radius: 16px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.18);
+    box-shadow: 0 14px 32px rgba(0,0,0,0.75);
     z-index: 10;
   }
+  #abilityBar {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 4px 4px 2px;
+    scrollbar-width: none;
+  }
+  #abilityBar::-webkit-scrollbar { display:none; }
+
   .abilityBtn {
     position: relative;
-    min-width: 92px;
-    padding: 9px 10px 8px;
+    flex: 0 0 130px;
+    padding: 8px 10px 7px;
     font-size: 12px;
     border-radius: var(--radius-md);
-    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(0,0,0,0.7));
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(0,0,0,0.8));
     border: 1px solid rgba(255,255,255,0.3);
     cursor: pointer;
     text-align: left;
@@ -281,7 +294,7 @@
     left: 0;
     width: 0%;
     height: 100%;
-    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
     pointer-events: none;
     transition: width 0.1s linear;
   }
@@ -313,7 +326,7 @@
   }
 
   @media (hover: none) and (pointer: coarse) {
-    .abilityBtn { font-size: 11px; min-width: 86px; padding: 8px 8px; }
+    .abilityBtn { font-size: 11px; flex: 0 0 120px; padding: 8px 8px; }
     .abilityName { font-size: 10px; }
   }
 </style>
@@ -338,6 +351,18 @@
         <div class="mode-name">Chaos</div>
         <div class="mode-tag">Fast spawn, more beams, more damage.</div>
       </div>
+      <div class="mode-card" data-mode="bulletHell">
+        <div class="mode-name">Bullet Hell</div>
+        <div class="mode-tag">Tons of bullets, fewer shapes.</div>
+      </div>
+      <div class="mode-card" data-mode="sniper">
+        <div class="mode-name">Sniper</div>
+        <div class="mode-tag">Fast, precise pellets. Watch out.</div>
+      </div>
+      <div class="mode-card" data-mode="bossRush">
+        <div class="mode-name">Boss Rush</div>
+        <div class="mode-tag">Heavier hits, fewer but tougher waves.</div>
+      </div>
     </div>
     <div style="margin-top:12px; display:flex; gap:8px; justify-content:center;">
       <button class="glass-button" id="infoBtn">Info</button>
@@ -352,14 +377,25 @@
   <h2>Information</h2>
   <p>Controls:</p>
   <ul>
-    <li>Move: <b>WASD</b> or mobile joystick</li>
-    <li>Abilities: <b>1 = Shield</b>, <b>2 = Time Slow</b>, <b>3 = Shockwave</b></li>
+    <li>Move: <b>WASD</b> or mobile joystick (touch anywhere to spawn joystick).</li>
+    <li>Abilities:</li>
+    <ul>
+      <li><b>1</b> – Shield</li>
+      <li><b>2</b> – Time Slow</li>
+      <li><b>3</b> – Shockwave</li>
+      <li><b>4</b> – Freeze Field</li>
+      <li><b>5</b> – Clone Decoy</li>
+      <li><b>6</b> – Heal Over Time</li>
+    </ul>
   </ul>
   <p>Abilities:</p>
   <ul>
     <li><b>Shield:</b> Temporary invulnerability with a cyan aura.</li>
     <li><b>Time Slow:</b> Slows shapes and bullets for a few seconds.</li>
     <li><b>Shockwave:</b> Radial blast that clears nearby bullets and damages nearby shapes.</li>
+    <li><b>Freeze Field:</b> Freezes all enemy movement briefly.</li>
+    <li><b>Clone Decoy:</b> Spawns a glowing clone that attracts pellets and homing shapes.</li>
+    <li><b>Heal Over Time:</b> Regenerates HP slowly over time.</li>
   </ul>
 </div>
 
@@ -367,10 +403,10 @@
   <span class="closePanel" onclick="closePanel('updatesPanel')">✕</span>
   <h2>Updates</h2>
   <ul>
-    <li>Brand new glass UI + mode cards.</li>
-    <li>Floating mobile joystick restored and fixed.</li>
-    <li>Three unique abilities with cooldowns & VFX.</li>
-    <li>Three functional modes: Chill / Normal / Chaos.</li>
+    <li>Brand new glass UI + extended mode grid.</li>
+    <li>Scrollable ability card bar with six abilities.</li>
+    <li>New abilities: Freeze Field, Clone Decoy, Heal Over Time.</li>
+    <li>New modes: Bullet Hell, Sniper, Boss Rush.</li>
   </ul>
 </div>
 
@@ -386,22 +422,39 @@
   </div>
 </div>
 
-<!-- Ability Bar -->
-<div id="abilityBar">
-  <div class="abilityBtn" id="shieldBtn">
-    <span class="abilityName">Shield</span>
-    <span class="abilityHint">Key 1</span>
-    <div class="cooldownOverlay" id="shieldCD"></div>
-  </div>
-  <div class="abilityBtn" id="slowBtn">
-    <span class="abilityName">Time Slow</span>
-    <span class="abilityHint">Key 2</span>
-    <div class="cooldownOverlay" id="slowCD"></div>
-  </div>
-  <div class="abilityBtn" id="shockwaveBtn">
-    <span class="abilityName">Shockwave</span>
-    <span class="abilityHint">Key 3</span>
-    <div class="cooldownOverlay" id="shockwaveCD"></div>
+<!-- Ability Bar Wrapper + scroll area -->
+<div id="abilityBarWrapper">
+  <div id="abilityBar">
+    <div class="abilityBtn" id="shieldBtn">
+      <span class="abilityName">Shield</span>
+      <span class="abilityHint">Key 1</span>
+      <div class="cooldownOverlay" id="shieldCD"></div>
+    </div>
+    <div class="abilityBtn" id="slowBtn">
+      <span class="abilityName">Time Slow</span>
+      <span class="abilityHint">Key 2</span>
+      <div class="cooldownOverlay" id="slowCD"></div>
+    </div>
+    <div class="abilityBtn" id="shockwaveBtn">
+      <span class="abilityName">Shockwave</span>
+      <span class="abilityHint">Key 3</span>
+      <div class="cooldownOverlay" id="shockwaveCD"></div>
+    </div>
+    <div class="abilityBtn" id="freezeBtn">
+      <span class="abilityName">Freeze Field</span>
+      <span class="abilityHint">Key 4</span>
+      <div class="cooldownOverlay" id="freezeCD"></div>
+    </div>
+    <div class="abilityBtn" id="decoyBtn">
+      <span class="abilityName">Clone Decoy</span>
+      <span class="abilityHint">Key 5</span>
+      <div class="cooldownOverlay" id="decoyCD"></div>
+    </div>
+    <div class="abilityBtn" id="regenBtn">
+      <span class="abilityName">Heal Over Time</span>
+      <span class="abilityHint">Key 6</span>
+      <div class="cooldownOverlay" id="regenCD"></div>
+    </div>
   </div>
 </div>
 
@@ -433,7 +486,8 @@ const MODES = {
     pelletSpeed: 3,
     shapeSpeed: 1.0,
     damageMultiplier: 0.6,
-    beamChance: 0.03
+    beamChance: 0.03,
+    pelletChance: 0.25
   },
   normal: {
     name: 'NORMAL',
@@ -441,7 +495,8 @@ const MODES = {
     pelletSpeed: 3.8,
     shapeSpeed: 1.3,
     damageMultiplier: 1.0,
-    beamChance: 0.06
+    beamChance: 0.06,
+    pelletChance: 0.35
   },
   chaos: {
     name: 'CHAOS',
@@ -449,7 +504,35 @@ const MODES = {
     pelletSpeed: 4.8,
     shapeSpeed: 1.7,
     damageMultiplier: 1.4,
-    beamChance: 0.1
+    beamChance: 0.1,
+    pelletChance: 0.45
+  },
+  bulletHell: {
+    name: 'BULLET HELL',
+    spawnInterval: 60,
+    pelletSpeed: 5.5,
+    shapeSpeed: 1.2,
+    damageMultiplier: 1.2,
+    beamChance: 0.08,
+    pelletChance: 0.8
+  },
+  sniper: {
+    name: 'SNIPER',
+    spawnInterval: 70,
+    pelletSpeed: 7,
+    shapeSpeed: 1.0,
+    damageMultiplier: 1.5,
+    beamChance: 0.05,
+    pelletChance: 0.5
+  },
+  bossRush: {
+    name: 'BOSS RUSH',
+    spawnInterval: 110,
+    pelletSpeed: 4,
+    shapeSpeed: 1.1,
+    damageMultiplier: 1.7,
+    beamChance: 0.12,
+    pelletChance: 0.3
   }
 };
 
@@ -494,21 +577,35 @@ const player = {
   shieldActive: false,
   shieldTime: 0,
   slowTime: 0,
+  freezeTime: 0,
   shockwaveTime: 0,
   shockwaveRadius: 0,
-  restoreAlpha: 0
+  regenTime: 0
+};
+
+const decoy = {
+  active: false,
+  x: 0,
+  y: 0,
+  timer: 0
 };
 
 /* Ability states */
 const abilities = {
   shield: 0,
   slow: 0,
-  shockwave: 0
+  shockwave: 0,
+  freeze: 0,
+  decoy: 0,
+  regen: 0
 };
 const abilityMax = {
   shield: 45*60,      // 45 seconds
   slow: 35*60,        // 35 seconds
-  shockwave: 25*60    // 25 seconds
+  shockwave: 25*60,   // 25 seconds
+  freeze: 35*60,      // 35 seconds
+  decoy: 40*60,       // 40 seconds
+  regen: 30*60        // 30 seconds
 };
 
 /* --------- Entities --------- */
@@ -520,18 +617,18 @@ class Shape {
     this.kind = kind; // 'normal' | 'homing'
     this.color = color;
     this.angle = Math.random()*Math.PI*2;
-    this.orbitRadius = 30 + Math.random()*60;
   }
   update(speedScale){
     if (this.kind === 'homing'){
-      const dx = player.x - this.x;
-      const dy = player.y - this.y;
+      const targetX = decoy.active ? decoy.x : player.x;
+      const targetY = decoy.active ? decoy.y : player.y;
+      const dx = targetX - this.x;
+      const dy = targetY - this.y;
       const dist = Math.sqrt(dx*dx + dy*dy) || 1;
       const step = modeConfig.shapeSpeed * 1.2 * speedScale;
       this.x += dx/dist * step;
       this.y += dy/dist * step;
     } else {
-      // subtle orbit style drift
       this.angle += 0.02 * speedScale;
       this.x += Math.cos(this.angle)*0.6*speedScale;
       this.y += Math.sin(this.angle)*0.6*speedScale;
@@ -608,14 +705,21 @@ function spawnShape(){
   else if(edge === 2){ x = Math.random()*canvas.width; y = canvas.height+30; }
   else { x = -30; y = Math.random()*canvas.height; }
 
-  const size = 10 + Math.random()*18;
+  let size = 10 + Math.random()*18;
   const kind = Math.random()<0.35 ? 'homing' : 'normal';
+
+  // BossRush: occasionally bigger shapes
+  if(selectedMode === 'bossRush' && Math.random() < 0.3){
+    size *= 1.8;
+  }
+
   shapes.push(new Shape(x,y,size,kind,randomColor()));
 }
 
 function spawnPelletsFrom(shape){
-  const dx = player.x - shape.x;
-  const dy = player.y - shape.y;
+  const target = decoy.active ? decoy : player;
+  const dx = target.x - shape.x;
+  const dy = target.y - shape.y;
   const dist = Math.sqrt(dx*dx + dy*dy) || 1;
   const speed = modeConfig.pelletSpeed;
   const vx = dx/dist*speed;
@@ -646,8 +750,8 @@ function useShockwave(){
     abilities.shockwave = abilityMax.shockwave;
     document.getElementById('shockwaveCD').style.width = '100%';
 
-    // Immediate clear of bullets in radius
     const r = 140;
+    // Clear nearby bullets
     pellets = pellets.filter(p => {
       const dx = p.x - player.x;
       const dy = p.y - player.y;
@@ -657,10 +761,32 @@ function useShockwave(){
     shapes = shapes.filter(s => {
       const dx = s.x - player.x;
       const dy = s.y - player.y;
-      const dist2 = dx*dx + dy*dy;
-      if(dist2 < r*r) return false;
-      return true;
+      return dx*dx + dy*dy > r*r;
     });
+  }
+}
+function useFreeze(){
+  if(abilities.freeze <= 0){
+    player.freezeTime = 3*60; // 3 seconds
+    abilities.freeze = abilityMax.freeze;
+    document.getElementById('freezeCD').style.width = '100%';
+  }
+}
+function useDecoy(){
+  if(abilities.decoy <= 0){
+    decoy.active = true;
+    decoy.x = player.x;
+    decoy.y = player.y;
+    decoy.timer = 6*60;
+    abilities.decoy = abilityMax.decoy;
+    document.getElementById('decoyCD').style.width = '100%';
+  }
+}
+function useRegen(){
+  if(abilities.regen <= 0){
+    player.regenTime = 5*60; // 5 seconds regen
+    abilities.regen = abilityMax.regen;
+    document.getElementById('regenCD').style.width = '100%';
   }
 }
 
@@ -668,6 +794,9 @@ function useShockwave(){
 document.getElementById('shieldBtn').addEventListener('click',useShield);
 document.getElementById('slowBtn').addEventListener('click',useSlow);
 document.getElementById('shockwaveBtn').addEventListener('click',useShockwave);
+document.getElementById('freezeBtn').addEventListener('click',useFreeze);
+document.getElementById('decoyBtn').addEventListener('click',useDecoy);
+document.getElementById('regenBtn').addEventListener('click',useRegen);
 
 /* Keyboard abilities & movement */
 document.addEventListener('keydown', e => {
@@ -676,6 +805,9 @@ document.addEventListener('keydown', e => {
   if(k === '1') useShield();
   if(k === '2') useSlow();
   if(k === '3') useShockwave();
+  if(k === '4') useFreeze();
+  if(k === '5') useDecoy();
+  if(k === '6') useRegen();
 });
 document.addEventListener('keyup', e => {
   keys[e.key.toLowerCase()] = false;
@@ -788,7 +920,6 @@ function updateHealthBar(){
 function gameOver(){
   running = false;
   cancelAnimationFrame(animationId);
-  // simple overlay via alert (you can fancy this up later)
   setTimeout(() => {
     alert('Game Over! Click Restart to play again.');
   }, 50);
@@ -809,13 +940,18 @@ function resetGame(){
   player.health = 100;
   player.shieldActive = false;
   player.slowTime = 0;
+  player.freezeTime = 0;
   player.shockwaveTime = 0;
   player.shockwaveRadius = 0;
+  player.regenTime = 0;
+  decoy.active = false;
+  decoy.timer = 0;
   updateHealthBar();
   for(let k in abilities) abilities[k] = 0;
-  document.getElementById('shieldCD').style.width='0%';
-  document.getElementById('slowCD').style.width='0%';
-  document.getElementById('shockwaveCD').style.width='0%';
+  ['shield','slow','shockwave','freeze','decoy','regen'].forEach(id=>{
+    const el = document.getElementById(id+'CD');
+    if(el) el.style.width='0%';
+  });
   spawnTimer = 0;
 }
 
@@ -826,7 +962,8 @@ function getSpeedScale(){
 
 function animate(){
   if(!running) return;
-  const speedScale = getSpeedScale();
+  const baseSpeedScale = getSpeedScale();
+  const enemySpeedScale = player.freezeTime > 0 ? 0 : baseSpeedScale;
 
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
@@ -841,12 +978,10 @@ function animate(){
   spawnTimer--;
   if(spawnTimer <= 0){
     spawnShape();
-    // random chance for pellets from some shapes
-    if(Math.random()<0.35 && shapes.length>0){
+    if(Math.random() < modeConfig.pelletChance && shapes.length>0){
       const s = shapes[Math.floor(Math.random()*shapes.length)];
       spawnPelletsFrom(s);
     }
-    // spin beam chance depends on mode
     if(Math.random() < modeConfig.beamChance){
       spinBeams.push(new SpinBeam());
     }
@@ -856,7 +991,17 @@ function animate(){
   // shapes
   for(let i=shapes.length-1;i>=0;i--){
     const s = shapes[i];
-    s.update(speedScale);
+    s.update(enemySpeedScale);
+    // collision with decoy first
+    if(decoy.active){
+      const ddx = s.x - decoy.x;
+      const ddy = s.y - decoy.y;
+      const dDist = Math.sqrt(ddx*ddx + ddy*ddy);
+      if(dDist < s.size + player.size/2){
+        shapes.splice(i,1);
+        continue;
+      }
+    }
     // collision with player
     const dx = s.x - player.x;
     const dy = s.y - player.y;
@@ -875,7 +1020,18 @@ function animate(){
   // pellets
   for(let i=pellets.length-1;i>=0;i--){
     const p = pellets[i];
-    p.update(speedScale);
+    p.update(enemySpeedScale);
+
+    // hit decoy?
+    if(decoy.active){
+      const ddx = p.x - decoy.x;
+      const ddy = p.y - decoy.y;
+      if(ddx*ddx + ddy*ddy < Math.pow(p.size + player.size/2,2)){
+        pellets.splice(i,1);
+        continue;
+      }
+    }
+
     const dx = p.x - player.x;
     const dy = p.y - player.y;
     const dist = Math.sqrt(dx*dx + dy*dy);
@@ -892,7 +1048,7 @@ function animate(){
   // spin beams
   for(let i=spinBeams.length-1;i>=0;i--){
     const b = spinBeams[i];
-    b.update(speedScale);
+    b.update(enemySpeedScale);
     if(b.timer <= 0){
       spinBeams.splice(i,1);
       continue;
@@ -909,7 +1065,7 @@ function animate(){
     }
   }
 
-  // abilities timers
+  // ability timers
   if(player.shieldActive){
     player.shieldTime--;
     if(player.shieldTime <= 0) player.shieldActive = false;
@@ -917,15 +1073,38 @@ function animate(){
   if(player.slowTime > 0){
     player.slowTime--;
   }
+  if(player.freezeTime > 0){
+    player.freezeTime--;
+  }
   if(player.shockwaveTime > 0){
     player.shockwaveTime--;
     player.shockwaveRadius += 18;
-    // draw shockwave ring
     ctx.strokeStyle = `rgba(255,255,255,${player.shockwaveTime/20})`;
     ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.arc(player.x, player.y, player.shockwaveRadius, 0, Math.PI*2);
     ctx.stroke();
+  }
+  if(player.regenTime > 0){
+    player.regenTime--;
+    if(player.health < 100){
+      player.health += 0.25;
+      if(player.health > 100) player.health = 100;
+      updateHealthBar();
+    }
+  }
+
+  // decoy timer + draw
+  if(decoy.active){
+    decoy.timer--;
+    if(decoy.timer <= 0){
+      decoy.active = false;
+    } else {
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = 'rgba(160,160,255,0.7)';
+      ctx.fillRect(decoy.x - player.size/2, decoy.y - player.size/2, player.size, player.size);
+      ctx.globalAlpha = 1.0;
+    }
   }
 
   // cooldown overlays
