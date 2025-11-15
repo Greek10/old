@@ -5,43 +5,45 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Shape and Beats - Abilities + Mobile Joystick</title>
 <style>
-  body, html { margin:0; padding:0; overflow:hidden; font-family:sans-serif; background:#0a0a0a; color:white; }
-  canvas{ display:block; }
+body, html { margin:0; padding:0; overflow:hidden; font-family:sans-serif; background:#0a0a0a; color:white; }
+canvas{ display:block; }
 
-  /* Opening screen */
-  #openingScreen{
-    position:absolute; top:0; left:0; width:100%; height:100%; background:linear-gradient(135deg,#111,#000); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:1000;
-  }
-  .menuBtn{
-    padding:15px 30px; margin:10px; background:#222; border:1px solid #555; color:white; cursor:pointer; font-size:18px;
-  }
-  .menuBtn:hover{ background:#444; }
+/* Opening screen */
+#openingScreen{
+  position:absolute; top:0; left:0; width:100%; height:100%; background:linear-gradient(135deg,#111,#000);
+  display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:1000;
+}
+.menuBtn{
+  padding:15px 30px; margin:10px; background:#222; border:1px solid #555; color:white; cursor:pointer; font-size:18px;
+}
+.menuBtn:hover{ background:#444; }
 
-  /* Panels */
-  .panel{
-    position:absolute; top:10%; left:50%; transform:translateX(-50%); width:80%; max-width:600px; background:#111; border:2px solid #555; padding:20px; display:none; z-index:1100;
-  }
-  .closePanel{ position:absolute; top:5px; right:10px; cursor:pointer; color:#f00; font-weight:bold; font-size:18px; }
+/* Panels */
+.panel{
+  position:absolute; top:10%; left:50%; transform:translateX(-50%); width:80%; max-width:600px; background:#111;
+  border:2px solid #555; padding:20px; display:none; z-index:1100;
+}
+.closePanel{ position:absolute; top:5px; right:10px; cursor:pointer; color:#f00; font-weight:bold; font-size:18px; }
 
-  /* Controls and UI */
-  #controls{ position:absolute; top:10px; left:10px; display:flex; gap:10px; z-index:10; }
-  button{ padding:8px 12px; background:#222; border:1px solid #555; color:white; cursor:pointer;}
-  button:hover{ background:#444; }
-  #healthBar{position:absolute; top:10px; right:10px; width:200px; height:25px; background:#333; border:2px solid #555;}
-  #healthFill{width:100%; height:100%; background:#0f0;}
-  #abilityBar{position:absolute; bottom:10px; left:50%; transform:translateX(-50%); display:flex; gap:15px; z-index:10;}
-  .abilityBtn{padding:8px 12px; background:#222; border:1px solid #555; color:white; cursor:pointer; position:relative;}
-  .cooldownOverlay{position:absolute; top:0; left:0; height:100%; width:0%; background:rgba(0,0,0,0.6); transition:width 0.1s linear;}
+/* Controls and UI */
+#controls{ position:absolute; top:10px; left:10px; display:flex; gap:10px; z-index:10; }
+button{ padding:8px 12px; background:#222; border:1px solid #555; color:white; cursor:pointer;}
+button:hover{ background:#444; }
+#healthBar{position:absolute; top:10px; right:10px; width:200px; height:25px; background:#333; border:2px solid #555;}
+#healthFill{width:100%; height:100%; background:#0f0;}
+#abilityBar{position:absolute; bottom:10px; left:50%; transform:translateX(-50%); display:flex; gap:15px; z-index:10;}
+.abilityBtn{padding:8px 12px; background:#222; border:1px solid #555; color:white; cursor:pointer; position:relative;}
+.cooldownOverlay{position:absolute; top:0; left:0; height:100%; width:0%; background:rgba(0,0,0,0.6); transition:width 0.1s linear;}
 
-  /* Joystick (mobile) */
-  #joystickOuter{ position:absolute; width:140px; height:140px; border-radius:50%; background:rgba(255,255,255,0.03); border:2px solid #444; z-index:999; touch-action:none; display:none; pointer-events:none; }
-  #joystickInner{ position:absolute; width:56px; height:56px; border-radius:50%; background:linear-gradient(180deg,#bbb,#888); top:42px; left:42px; box-shadow:0 6px 16px rgba(0,0,0,0.6); touch-action:none; pointer-events:none; }
+/* Joystick (mobile) */
+#joystickOuter{ position:absolute; width:140px; height:140px; border-radius:50%; background:rgba(255,255,255,0.03); border:2px solid #444; z-index:999; touch-action:none; display:none; pointer-events:none; }
+#joystickInner{ position:absolute; width:56px; height:56px; border-radius:50%; background:linear-gradient(180deg,#bbb,#888); top:42px; left:42px; box-shadow:0 6px 16px rgba(0,0,0,0.6); touch-action:none; pointer-events:none; }
 
-  /* Small mobile hints */
-  @media (hover: none) and (pointer: coarse) {
-    button.abilityBtn { font-size:13px; width:84px; height:52px; }
-    #abilityBar { gap:10px; }
-  }
+/* Small mobile hints */
+@media (hover: none) and (pointer: coarse) {
+  button.abilityBtn { font-size:13px; width:84px; height:52px; }
+  #abilityBar { gap:10px; }
+}
 </style>
 </head>
 <body>
@@ -201,11 +203,13 @@ class Shape{
   }
 }
 
-class Pellet{ constructor(x,y,vx,vy,color){ this.x=x; this.y=y; this.vx=vx; this.vy=vy; this.color=color; this.size=6; } 
+class Pellet{ 
+  constructor(x,y,vx,vy,color){ this.x=x; this.y=y; this.vx=vx; this.vy=vy; this.color=color; this.size=6; } 
   update(){ this.x+=this.vx; this.y+=this.vy; ctx.fillStyle=this.color; ctx.beginPath(); ctx.arc(this.x,this.y,this.size,0,Math.PI*2); ctx.fill(); }
 }
 
-class SpinBeam{ constructor(){ this.angle=0; this.timer=5*60; this.color='cyan'; this.length=canvas.width; }
+class SpinBeam{ 
+  constructor(){ this.angle=0; this.timer=5*60; this.color='cyan'; this.length=canvas.width; }
   update(){
     ctx.save(); ctx.translate(canvas.width/2,canvas.height/2); ctx.rotate(this.angle);
     ctx.fillStyle=this.color; ctx.fillRect(-this.length/2,-5,this.length,10);
@@ -219,7 +223,15 @@ class SpinBeam{ constructor(){ this.angle=0; this.timer=5*60; this.color='cyan';
   }
 }
 
-function spawnShape(){ const x=Math.random()*canvas.width; const y=Math.random()*canvas.height; const size=Math.random()*30+20; const type=['circle','square','triangle'][Math.floor(Math.random()*3)]; const color=randomColor(); shapes.push(new Shape(x,y,size,type,color)); }
+function spawnShape(){ 
+  if(Math.random()<0.5){ // lower spawn rate
+    const x=Math.random()*canvas.width; const y=Math.random()*canvas.height; 
+    const size=Math.random()*30+20; 
+    const type=['circle','square','triangle'][Math.floor(Math.random()*3)]; 
+    const color=randomColor(); 
+    shapes.push(new Shape(x,y,size,type,color)); 
+  }
+}
 
 function randomColor(){ const r=Math.floor(Math.random()*255); const g=Math.floor(Math.random()*255); const b=Math.floor(Math.random()*255); return `rgb(${r},${g},${b})`; }
 
@@ -228,7 +240,7 @@ function movePlayer(){
   let ax=0,ay=0;
   if(keys['w']) ay-=player.speed; if(keys['s']) ay+=player.speed; if(keys['a']) ax-=player.speed; if(keys['d']) ax+=player.speed;
   if(keys['shift']&&player.dashCooldown<=0){ ax*=player.dashMultiplier; ay*=player.dashMultiplier; player.dashCooldown=20; }
-  player.vx+=ax; player.vy+=ay;
+  player.vx+=ax+joystickVX; player.vy+=ay+joystickVY;
   player.vx*=0.85; player.vy*=0.85;
   player.vx=Math.max(Math.min(player.vx,player.maxSpeed),-player.maxSpeed);
   player.vy=Math.max(Math.min(player.vy,player.maxSpeed),-player.maxSpeed);
@@ -249,26 +261,67 @@ function checkCollisionPelletPlayer(p){ const dx=p.x-player.x; const dy=p.y-play
 function updateHealthBar(){ const fill=document.getElementById('healthFill'); fill.style.width=Math.max(0,player.health)+'%'; if(player.health>60) fill.style.background='#0f0'; else if(player.health>30) fill.style.background='#ff0'; else fill.style.background='#f00'; }
 
 // Abilities
-function useShield(){ if(abilities.shield<=0){ player.shieldActive=true; player.shieldTime=abilityDurations.shield; abilities.shield=45*60; document.getElementById('shieldCD').style.width='100%'; } }
-function useClear(){ if(abilities.clear<=0){ shapes=[]; abilities.clear=120*60; document.getElementById('clearCD').style.width='100%'; } }
-function useRestore(){ if(abilities.restore<=0){ player.health=Math.min(player.health+50,100); abilities.restore=90*60; document.getElementById('restoreCD').style.width='100%'; } }
-
-document.getElementById('shieldBtn').addEventListener('click',useShield);
-document.getElementById('clearBtn').addEventListener('click',useClear);
-document.getElementById('restoreBtn').addEventListener('click',useRestore);
+document.getElementById('shieldBtn').addEventListener('click',()=>{ if(abilities.shield<=0){ player.shieldActive=true; player.shieldTime=abilityDurations.shield; abilities.shield=45*60; document.getElementById('shieldCD').style.width='100%'; } });
+document.getElementById('clearBtn').addEventListener('click',()=>{ if(abilities.clear<=0){ shapes=[]; abilities.clear=120*60; document.getElementById('clearCD').style.width='100%'; } });
+document.getElementById('restoreBtn').addEventListener('click',()=>{ if(abilities.restore<=0){ player.health=Math.min(player.health+50,100); abilities.restore=90*60; document.getElementById('restoreCD').style.width='100%'; } });
 
 // Joystick
-let joystickActive=false, joystickVX=0, joystickVY=0;
+let joystickVX=0, joystickVY=0, joystickActive=false;
 const joyOuter=document.getElementById('joystickOuter'), joyInner=document.getElementById('joystickInner');
 const JOY_MAX=56, JOY_FACTOR=0.14;
-let joyBaseX=0,joyBaseY=0;
+let joyBaseX=0, joyBaseY=0;
 
 canvas.addEventListener('touchstart',ev=>{ const t=ev.touches[0]; joyBaseX=t.clientX; joyBaseY=t.clientY; joyOuter.style.display='block'; joyOuter.style.left=(joyBaseX-joyOuter.offsetWidth/2)+'px'; joyOuter.style.top=(joyBaseY-joyOuter.offsetHeight/2)+'px'; joystickActive=true; joystickVX=0; joystickVY=0; });
 canvas.addEventListener('touchmove',ev=>{ if(!joystickActive) return; const t=ev.touches[0]; let dx=t.clientX-joyBaseX; let dy=t.clientY-joyBaseY; const dist=Math.sqrt(dx*dx+dy*dy); if(dist>JOY_MAX){ const a=Math.atan2(dy,dx); dx=Math.cos(a)*JOY_MAX; dy=Math.sin(a)*JOY_MAX; } joyInner.style.left=(joyOuter.offsetWidth/2-joyInner.offsetWidth/2+dx)+'px'; joyInner.style.top=(joyOuter.offsetHeight/2-joyInner.offsetHeight/2+dy)+'px'; joystickVX=dx/JOY_MAX*player.maxSpeed*JOY_FACTOR; joystickVY=dy/JOY_MAX*player.maxSpeed*JOY_FACTOR; });
 canvas.addEventListener('touchend',ev=>{ joystickActive=false; joystickVX=0; joystickVY=0; joyOuter.style.display='none'; joyInner.style.left=(joyOuter.offsetWidth/2-joyInner.offsetWidth/2)+'px'; joyInner.style.top=(joyOuter.offsetHeight/2-joyInner.offsetHeight/2)+'px'; });
 canvas.addEventListener('touchcancel',ev=>{ joystickActive=false; joystickVX=0; joystickVY=0; joyOuter.style.display='none'; });
 
-// Animate
+// Start/Stop buttons
+document.getElementById('startBtn').addEventListener('click',()=>{ if(!running){ running=true; lastBeatTime=0; animate(performance.now()); } });
+document.getElementById('stopBtn').addEventListener('click',()=>{ running=false; cancelAnimationFrame(animationId); });
+
+// Keys
+document.addEventListener('keydown',e=>{ keys[e.key.toLowerCase()]=true; });
+document.addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
+
+// Animate loop
 function animate(timestamp){
+  if(!running) return;
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle='rgba(0,0,0,0.05
+
+  // spawn shapes randomly
+  if(Math.random()<0.01) spawnShape(); // lower spawn rate
+
+  // update shapes
+  shapes.forEach((s,i)=>{ s.update(); if(checkCollision(s)){ if(!player.shieldActive) player.health-=1; if(s.split){ shapes.push(...s.splitShape()); } shapes.splice(i,1); } });
+
+  // update pellets
+  pellets.forEach((p,i)=>{ p.update(); if(checkCollisionPelletPlayer(p)){ if(!player.shieldActive) player.health-=5; pellets.splice(i,1); } });
+
+  // update spin beams
+  spinBeams.forEach(sb=>sb.update());
+
+  // random spin beam spawn
+  if(Math.random()<0.002) spinBeams.push(new SpinBeam());
+
+  // draw player
+  ctx.fillStyle=player.shieldActive?'rgba(0,255,255,0.7)':player.color;
+  ctx.beginPath(); ctx.arc(player.x,player.y,player.size,0,Math.PI*2); ctx.fill();
+
+  movePlayer();
+
+  // shield timer
+  if(player.shieldActive){ player.shieldTime--; if(player.shieldTime<=0) player.shieldActive=false; }
+
+  // update health
+  updateHealthBar();
+
+  // update abilities cooldown overlay
+  ['shield','clear','restore'].forEach(id=>{ const overlay=document.getElementById(id+'CD'); if(abilities[id]>0){ abilities[id]--; overlay.style.width=(abilities[id]/(60*60)*100)+'%'; } else overlay.style.width='0%'; });
+
+  animationId=requestAnimationFrame(animate);
+}
+
+</script>
+</body>
+</html>
