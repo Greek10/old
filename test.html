@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shape and Beats - Player & Health</title>
+<title>Shape and Beats - Advanced</title>
 <style>
   body, html {
     margin: 0;
@@ -67,36 +67,49 @@ let bpm = 120;
 let beatInterval = 60000 / bpm;
 let lastBeatTime = 0;
 
+const keys = {};
+
 // Player
 const player = {
-  x: canvas.width / 2,
-  y: canvas.height / 2,
-  size: 30,
+  x: canvas.width/2,
+  y: canvas.height/2,
+  size: 40,
   color: '#00f',
-  speed: 5,
-  health: 100
+  speed: 0.5,
+  vx: 0,
+  vy: 0,
+  maxSpeed: 6,
+  health: 100,
+  dashMultiplier: 3,
+  dashCooldown: 0
 };
-
-const keys = {};
 
 // Shape class
 class Shape {
-  constructor(x, y, size, color) {
+  constructor(x, y, size, type, color) {
     this.x = x;
     this.y = y;
     this.size = size;
+    this.type = type; // "circle", "triangle", "square"
     this.color = color;
     this.growth = Math.random() * 2 + 1;
   }
   draw() {
     ctx.fillStyle = this.color;
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    if(this.type === "circle") ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+    else if(this.type === "square") ctx.rect(this.x-this.size/2, this.y-this.size/2, this.size, this.size);
+    else if(this.type === "triangle") {
+      ctx.moveTo(this.x, this.y-this.size);
+      ctx.lineTo(this.x-this.size, this.y+this.size);
+      ctx.lineTo(this.x+this.size, this.y+this.size);
+      ctx.closePath();
+    }
     ctx.fill();
   }
   update() {
-    this.size += this.growth;
-    if (this.size > 100 || this.size < 10) this.growth *= -1;
+    this.size += this.growth * 0.2;
+    if(this.size > 80 || this.size < 15) this.growth *= -1;
     this.draw();
   }
 }
@@ -109,70 +122,114 @@ function randomColor() {
   return `rgb(${r},${g},${b})`;
 }
 
+function randomShapeType() {
+  const types = ["circle","square","triangle"];
+  return types[Math.floor(Math.random() * types.length)];
+}
+
 function spawnShape() {
   const x = Math.random() * canvas.width;
   const y = Math.random() * canvas.height;
   const size = Math.random() * 30 + 20;
+  const type = randomShapeType();
   const color = randomColor();
-  shapes.push(new Shape(x, y, size, color));
+  shapes.push(new Shape(x, y, size, type, color));
 }
 
-// Player movement
+// Player movement with smooth velocity
 function movePlayer() {
-  if (keys['w'] && player.y - player.size > 0) player.y -= player.speed;
-  if (keys['s'] && player.y + player.size < canvas.height) player.y += player.speed;
-  if (keys['a'] && player.x - player.size > 0) player.x -= player.speed;
-  if (keys['d'] && player.x + player.size < canvas.width) player.x += player.speed;
+  let ax=0, ay=0;
+  if(keys['w']) ay -= player.speed;
+  if(keys['s']) ay += player.speed;
+  if(keys['a']) ax -= player.speed;
+  if(keys['d']) ax += player.speed;
+  if(keys['shift'] && player.dashCooldown<=0) {
+    ax *= player.dashMultiplier;
+    ay *= player.dashMultiplier;
+    player.dashCooldown = 20; // frames
+  }
+
+  player.vx += ax;
+  player.vy += ay;
+
+  // friction
+  player.vx *= 0.85;
+  player.vy *= 0.85;
+
+  // max speed
+  if(player.vx > player.maxSpeed) player.vx = player.maxSpeed;
+  if(player.vx < -player.maxSpeed) player.vx = -player.maxSpeed;
+  if(player.vy > player.maxSpeed) player.vy = player.maxSpeed;
+  if(player.vy < -player.maxSpeed) player.vy = -player.maxSpeed;
+
+  player.x += player.vx;
+  player.y += player.vy;
+
+  if(player.x - player.size/2 < 0) player.x = player.size/2;
+  if(player.x + player.size/2 > canvas.width) player.x = canvas.width - player.size/2;
+  if(player.y - player.size/2 < 0) player.y = player.size/2;
+  if(player.y + player.size/2 > canvas.height) player.y = canvas.height - player.size/2;
+
+  if(player.dashCooldown>0) player.dashCooldown--;
 }
 
 // Collision detection
 function checkCollision(shape) {
   const dx = shape.x - player.x;
   const dy = shape.y - player.y;
-  const distance = Math.sqrt(dx * dx + dy * dy);
-  return distance < shape.size + player.size;
+  const distance = Math.sqrt(dx*dx + dy*dy);
+  if(shape.type==="circle") return distance < shape.size + player.size/2;
+  else if(shape.type==="square") {
+    return Math.abs(shape.x - player.x) < shape.size/2 + player.size/2 &&
+           Math.abs(shape.y - player.y) < shape.size/2 + player.size/2;
+  }
+  else if(shape.type==="triangle") {
+    // approximate with radius
+    return distance < shape.size + player.size/2;
+  }
+  return false;
 }
 
 // Update health bar
 function updateHealthBar() {
   const fill = document.getElementById('healthFill');
   fill.style.width = player.health + '%';
-  if (player.health > 60) fill.style.background = '#0f0';
-  else if (player.health > 30) fill.style.background = '#ff0';
-  else fill.style.background = '#f00';
+  if(player.health>60) fill.style.background='#0f0';
+  else if(player.health>30) fill.style.background='#ff0';
+  else fill.style.background='#f00';
 }
 
 // Animation loop
 function animate(timestamp) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  if (!lastBeatTime || timestamp - lastBeatTime > beatInterval) {
+  if(!lastBeatTime || timestamp - lastBeatTime > beatInterval){
     spawnShape();
     lastBeatTime = timestamp;
   }
 
   movePlayer();
-  ctx.fillStyle = player.color;
-  ctx.beginPath();
-  ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
-  ctx.fill();
 
-  shapes.forEach((shape, index) => {
+  // Draw player square
+  ctx.fillStyle = player.color;
+  ctx.fillRect(player.x - player.size/2, player.y - player.size/2, player.size, player.size);
+
+  shapes.forEach((shape, i) => {
     shape.update();
-    if (checkCollision(shape)) {
+    if(checkCollision(shape)){
       player.health -= 1;
-      shapes.splice(index, 1);
+      shapes.splice(i,1);
     }
   });
 
   updateHealthBar();
 
-  if (player.health <= 0) {
-    running = false;
+  if(player.health <= 0){
+    running=false;
     alert("Game Over!");
   }
 
-  if (running) animationId = requestAnimationFrame(animate);
+  if(running) animationId = requestAnimationFrame(animate);
 }
 
 // Event listeners
@@ -180,20 +237,20 @@ document.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
 document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
 document.getElementById('startBtn').addEventListener('click', () => {
-  if (!running) {
-    running = true;
-    lastBeatTime = 0;
+  if(!running){
+    running=true;
+    lastBeatTime=0;
     animate(performance.now());
   }
 });
-document.getElementById('stopBtn').addEventListener('click', () => {
-  running = false;
+document.getElementById('stopBtn').addEventListener('click', ()=>{
+  running=false;
   cancelAnimationFrame(animationId);
 });
 
-window.addEventListener('resize', () => {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+window.addEventListener('resize', ()=>{
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
 });
 </script>
 </body>
