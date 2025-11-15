@@ -3,89 +3,349 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shape and Beats - Abilities + Visual Effects</title>
+<title>Shape and Beats - Glass UI</title>
 <style>
-body, html { margin:0; padding:0; overflow:hidden; font-family:sans-serif; background:#0a0a0a; color:white; }
-canvas{ display:block; }
+  :root{
+    --glass-bg: rgba(15,15,25,0.7);
+    --glass-border: rgba(255,255,255,0.18);
+    --accent: #4f8cff;
+    --accent-soft: rgba(79,140,255,0.3);
+    --danger: #ff4f7b;
+    --text-main: #f7f7ff;
+    --text-muted: #a6accd;
+    --radius-lg: 18px;
+    --radius-md: 12px;
+  }
 
-/* Opening screen */
-#openingScreen{
-  position:absolute; top:0; left:0; width:100%; height:100%; background:linear-gradient(135deg,#111,#000);
-  display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:1000;
-}
-.menuBtn{ padding:15px 30px; margin:10px; background:#222; border:1px solid #555; color:white; cursor:pointer; font-size:18px; }
-.menuBtn:hover{ background:#444; }
+  *{box-sizing:border-box;}
 
-/* Panels */
-.panel{ position:absolute; top:10%; left:50%; transform:translateX(-50%); width:80%; max-width:600px; background:#111;
-border:2px solid #555; padding:20px; display:none; z-index:1100; }
-.closePanel{ position:absolute; top:5px; right:10px; cursor:pointer; color:#f00; font-weight:bold; font-size:18px; }
+  body, html {
+    margin:0;
+    padding:0;
+    overflow:hidden;
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background: radial-gradient(circle at top, #1b1b3a 0, #050509 55%, #000 100%);
+    color:var(--text-main);
+  }
 
-/* Controls and UI */
-#controls{ position:absolute; top:10px; left:10px; display:flex; gap:10px; z-index:10; }
-button{ padding:8px 12px; background:#222; border:1px solid #555; color:white; cursor:pointer;}
-button:hover{ background:#444; }
-#healthBar{position:absolute; top:10px; right:10px; width:200px; height:25px; background:#333; border:2px solid #555;}
-#healthFill{width:100%; height:100%; background:#0f0;}
-#abilityBar{position:absolute; bottom:10px; left:50%; transform:translateX(-50%); display:flex; gap:15px; z-index:10;}
-.abilityBtn{padding:8px 12px; background:#222; border:1px solid #555; color:white; cursor:pointer; position:relative;}
-.cooldownOverlay{position:absolute; top:0; left:0; height:100%; width:0%; background:rgba(0,0,0,0.6); transition:width 0.1s linear;}
+  canvas{ display:block; }
 
-/* Joystick */
-#joystickOuter{ position:absolute; width:140px; height:140px; border-radius:50%; background:rgba(255,255,255,0.03); border:2px solid #444; z-index:999; touch-action:none; display:none; pointer-events:none; }
-#joystickInner{ position:absolute; width:56px; height:56px; border-radius:50%; background:linear-gradient(180deg,#bbb,#888); top:42px; left:42px; box-shadow:0 6px 16px rgba(0,0,0,0.6); touch-action:none; pointer-events:none; }
+  /* Subtle animated background overlay */
+  body::before{
+    content:"";
+    position:fixed;
+    inset:-20%;
+    background:
+      radial-gradient(circle at 10% 20%, rgba(79,140,255,0.25) 0, transparent 55%),
+      radial-gradient(circle at 80% 80%, rgba(255,79,123,0.22) 0, transparent 55%);
+    opacity:0.7;
+    pointer-events:none;
+    filter:blur(10px);
+    z-index:-1;
+    animation: bgFloat 16s ease-in-out infinite alternate;
+  }
 
-@media (hover: none) and (pointer: coarse) {
-  button.abilityBtn { font-size:13px; width:84px; height:52px; }
-  #abilityBar { gap:10px; }
-}
+  @keyframes bgFloat{
+    0%{ transform:translate3d(0,0,0) scale(1); }
+    100%{ transform:translate3d(-20px,10px,0) scale(1.05); }
+  }
+
+  /* Glass panels / buttons shared */
+  .glass-panel{
+    background:var(--glass-bg);
+    border:1px solid var(--glass-border);
+    border-radius:var(--radius-lg);
+    box-shadow:0 18px 40px rgba(0,0,0,0.6);
+    backdrop-filter:blur(18px) saturate(180%);
+  }
+
+  .glass-button{
+    background:linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    border:1px solid rgba(255,255,255,0.22);
+    color:var(--text-main);
+    border-radius:999px;
+    padding:10px 22px;
+    font-size:15px;
+    letter-spacing:0.03em;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    box-shadow:0 8px 20px rgba(0,0,0,0.45);
+    transition:transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+  }
+  .glass-button:hover{
+    transform:translateY(-1px) scale(1.02);
+    box-shadow:0 14px 30px rgba(0,0,0,0.7);
+    background:linear-gradient(135deg, rgba(255,255,255,0.16), rgba(255,255,255,0.04));
+    border-color:rgba(255,255,255,0.4);
+  }
+  .glass-button:active{
+    transform:translateY(1px) scale(0.99);
+    box-shadow:0 6px 14px rgba(0,0,0,0.6);
+  }
+
+  /* Opening screen */
+  #openingScreen{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column;
+    justify-content:center; align-items:center;
+    gap:22px;
+    z-index:1000;
+  }
+
+  #openingInner{
+    padding:30px 26px 26px;
+    max-width:420px;
+    width:90%;
+  }
+
+  #openingTitle{
+    font-size:28px;
+    font-weight:700;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    text-align:center;
+    margin-bottom:6px;
+  }
+  #openingSubtitle{
+    font-size:12px;
+    text-align:center;
+    color:var(--text-muted);
+    margin-bottom:18px;
+  }
+
+  #openingButtons{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    margin-top:6px;
+  }
+  @media (min-width:600px){
+    #openingButtons{ flex-direction:row; justify-content:space-between; }
+    #openingButtons .glass-button{ flex:1; }
+  }
+
+  /* Panels */
+  .panel{
+    position:absolute;
+    top:12%;
+    left:50%;
+    transform:translateX(-50%);
+    width:90%;
+    max-width:520px;
+    padding:20px 18px 18px;
+    display:none;
+    z-index:1100;
+  }
+  .panel h2{
+    margin:0 0 8px;
+    font-size:18px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+  }
+  .panel p, .panel ul{
+    font-size:13px;
+    color:var(--text-muted);
+  }
+  .panel ul{ padding-left:18px; margin:6px 0 0; }
+
+  .closePanel{
+    position:absolute;
+    top:8px; right:10px;
+    cursor:pointer;
+    color:var(--text-muted);
+    font-weight:700;
+    font-size:16px;
+    transition:color 0.15s ease, transform 0.15s ease;
+  }
+  .closePanel:hover{
+    color:#fff;
+    transform:scale(1.08);
+  }
+
+  /* Select + start in game mode */
+  #modeSelect{
+    width:100%;
+    padding:10px 12px;
+    margin-top:10px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,0.3);
+    background:rgba(10,10,20,0.7);
+    color:var(--text-main);
+    font-size:14px;
+    outline:none;
+  }
+
+  /* Controls bar */
+  #controls{
+    position:absolute;
+    top:14px; left:50%;
+    transform:translateX(-50%);
+    display:flex;
+    gap:10px;
+    z-index:10;
+  }
+
+  /* Health bar - glass */
+  #healthBar{
+    position:absolute;
+    top:14px; right:14px;
+    width:220px; height:26px;
+    border-radius:999px;
+    padding:2px;
+    background:rgba(10,10,20,0.7);
+    border:1px solid rgba(255,255,255,0.22);
+    box-shadow:0 10px 26px rgba(0,0,0,0.6);
+    overflow:hidden;
+    z-index:10;
+  }
+  #healthInner{
+    width:100%; height:100%;
+    border-radius:999px;
+    background:linear-gradient(135deg, rgba(0,255,153,0.2), rgba(0,255,255,0.16));
+    position:relative;
+  }
+  #healthFill{
+    position:absolute;
+    inset:0;
+    border-radius:999px;
+    background:linear-gradient(90deg,#1fff8f,#a7ff4a);
+    width:100%;
+    transition:width 0.2s ease-out, background 0.2s ease-out;
+  }
+
+  /* Ability bar - glass */
+  #abilityBar{
+    position:absolute;
+    bottom:14px;
+    left:50%;
+    transform:translateX(-50%);
+    display:flex;
+    gap:12px;
+    z-index:10;
+  }
+  .abilityBtn{
+    position:relative;
+    min-width:90px;
+    padding:10px 14px;
+    border-radius:var(--radius-md);
+    background:linear-gradient(145deg, rgba(255,255,255,0.08), rgba(0,0,0,0.5));
+    border:1px solid rgba(255,255,255,0.25);
+    color:var(--text-main);
+    cursor:pointer;
+    font-size:13px;
+    text-align:center;
+    box-shadow:0 10px 26px rgba(0,0,0,0.6);
+    overflow:hidden;
+  }
+  .abilityBtn:hover{
+    border-color:rgba(255,255,255,0.5);
+    background:linear-gradient(145deg, rgba(255,255,255,0.16), rgba(0,0,0,0.6));
+  }
+  .cooldownOverlay{
+    position:absolute;
+    bottom:0; left:0;
+    height:100%;
+    width:0%;
+    background:linear-gradient(to top, rgba(0,0,0,0.75), transparent);
+    pointer-events:none;
+    transition:width 0.2s linear;
+  }
+
+  /* Joystick glass */
+  #joystickOuter{
+    position:absolute;
+    width:150px; height:150px;
+    border-radius:50%;
+    border:1px solid rgba(255,255,255,0.26);
+    background:radial-gradient(circle at 30% 30%,rgba(255,255,255,0.16),rgba(10,10,25,0.6));
+    box-shadow:0 16px 40px rgba(0,0,0,0.8);
+    backdrop-filter:blur(16px);
+    z-index:999;
+    touch-action:none;
+    display:none;
+    pointer-events:none;
+  }
+  #joystickInner{
+    position:absolute;
+    width:60px; height:60px;
+    border-radius:50%;
+    background:radial-gradient(circle at 30% 20%,#fff, #a9b7ff);
+    box-shadow:0 14px 28px rgba(0,0,0,0.85);
+    top:45px; left:45px;
+    touch-action:none;
+    pointer-events:none;
+  }
+
+  @media (hover: none) and (pointer: coarse){
+    #abilityBar{ gap:8px; }
+    .abilityBtn{ font-size:11px; min-width:80px; }
+  }
 </style>
 </head>
 <body>
 
+<!-- OPENING SCREEN -->
 <div id="openingScreen">
-  <h1>Shape and Beats</h1>
-  <button class="menuBtn" id="gameModeBtn">GameMode</button>
-  <button class="menuBtn" id="infoBtn">Information</button>
-  <button class="menuBtn" id="updatesBtn">Updates</button>
+  <div id="openingInner" class="glass-panel">
+    <div id="openingTitle">SHAPE &amp; BEATS</div>
+    <div id="openingSubtitle">Dodge, survive, and style it out. Abilities are your lifeline.</div>
+    <div id="openingButtons">
+      <button class="glass-button" id="gameModeBtn">GameMode</button>
+      <button class="glass-button" id="infoBtn">Information</button>
+      <button class="glass-button" id="updatesBtn">Updates</button>
+    </div>
+  </div>
 </div>
 
-<div class="panel" id="gameModePanel">
-  <span class="closePanel" onclick="closePanel('gameModePanel')">X</span>
-  <h2>Select Game Mode</h2>
-  <select id="modeSelect" style="width:100%; padding:10px; font-size:16px;">
+<!-- PANELS -->
+<div class="panel glass-panel" id="gameModePanel">
+  <span class="closePanel" onclick="closePanel('gameModePanel')">✕</span>
+  <h2>Game Mode</h2>
+  <p>Select how you want the chaos to feel.</p>
+  <select id="modeSelect">
     <option value="survival">Survival</option>
     <option value="challenge">Challenge</option>
     <option value="rhythm">Rhythm</option>
   </select>
-  <button style="margin-top:15px; width:100%;" onclick="startGame()">Start</button>
+  <button class="glass-button" style="margin-top:14px; width:100%;" onclick="startGame()">Enter Arena</button>
 </div>
 
-<div class="panel" id="infoPanel">
-  <span class="closePanel" onclick="closePanel('infoPanel')">X</span>
+<div class="panel glass-panel" id="infoPanel">
+  <span class="closePanel" onclick="closePanel('infoPanel')">✕</span>
   <h2>Information</h2>
-  <p>Abilities with effects:</p>
+  <p>Abilities:</p>
   <ul>
-    <li><b>Shield:</b> Pulsating cyan aura around player.</li>
-    <li><b>Clear:</b> Screen flash that fades.</li>
-    <li><b>Restore:</b> Green glow pulse around player.</li>
+    <li><b>Shield (1):</b> Pulsating cyan aura; blocks all damage for 5s.</li>
+    <li><b>Clear (2):</b> Wipes shapes with a white screen flash.</li>
+    <li><b>Restore (3):</b> Heals 50 health with a green glow pulse.</li>
   </ul>
+  <p>Player can never die – your health never goes below 1. Just see how long you can survive the patterns.</p>
 </div>
 
-<div class="panel" id="updatesPanel">
-  <span class="closePanel" onclick="closePanel('updatesPanel')">X</span>
+<div class="panel glass-panel" id="updatesPanel">
+  <span class="closePanel" onclick="closePanel('updatesPanel')">✕</span>
   <h2>Updates</h2>
   <ul>
-    <li>v1.5 - Player smaller & visual effects improved.</li>
+    <li>Glass UI overhaul (frosted panels, modern buttons).</li>
+    <li>Square player, homing & splitter shapes, spin beam attack.</li>
+    <li>Mobile joystick support + ability VFX.</li>
   </ul>
 </div>
 
+<!-- GAME UI -->
 <div id="controls">
-  <button id="startBtn">Start</button>
-  <button id="stopBtn">Stop</button>
+  <button class="glass-button" id="startBtn">Start</button>
+  <button class="glass-button" id="stopBtn">Stop</button>
 </div>
 
-<div id="healthBar"><div id="healthFill"></div></div>
+<div id="healthBar">
+  <div id="healthInner">
+    <div id="healthFill"></div>
+  </div>
+</div>
 
 <div id="abilityBar">
   <div class="abilityBtn" id="shieldBtn">Shield (1)<div class="cooldownOverlay" id="shieldCD"></div></div>
@@ -93,94 +353,475 @@ button:hover{ background:#444; }
   <div class="abilityBtn" id="restoreBtn">Restore (3)<div class="cooldownOverlay" id="restoreCD"></div></div>
 </div>
 
+<!-- MOBILE JOYSTICK -->
 <div id="joystickOuter"><div id="joystickInner"></div></div>
+
 <canvas id="beatCanvas"></canvas>
 
 <script>
-const openingScreen=document.getElementById('openingScreen');
-const gameModeBtn=document.getElementById('gameModeBtn');
-const infoBtn=document.getElementById('infoBtn');
-const updatesBtn=document.getElementById('updatesBtn');
-gameModeBtn.addEventListener('click',()=>{document.getElementById('gameModePanel').style.display='block';});
-infoBtn.addEventListener('click',()=>{document.getElementById('infoPanel').style.display='block';});
-updatesBtn.addEventListener('click',()=>{document.getElementById('updatesPanel').style.display='block';});
-function closePanel(id){document.getElementById(id).style.display='none';}
+/* ---------- OPENING SCREEN & PANELS ---------- */
+const openingScreen = document.getElementById('openingScreen');
+const gameModeBtn = document.getElementById('gameModeBtn');
+const infoBtn = document.getElementById('infoBtn');
+const updatesBtn = document.getElementById('updatesBtn');
 
-let selectedMode='survival';
-function startGame(){selectedMode=document.getElementById('modeSelect').value; openingScreen.style.display='none'; running=true; lastBeatTime=0; animate(performance.now());}
+gameModeBtn.addEventListener('click', ()=> { document.getElementById('gameModePanel').style.display='block'; });
+infoBtn.addEventListener('click', ()=> { document.getElementById('infoPanel').style.display='block'; });
+updatesBtn.addEventListener('click', ()=> { document.getElementById('updatesPanel').style.display='block'; });
 
-const canvas=document.getElementById('beatCanvas');
-const ctx=canvas.getContext('2d');
-canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+function closePanel(id){ document.getElementById(id).style.display='none'; }
 
-let shapes=[], pellets=[], spinBeams=[], animationId, running=false;
-let bpm=120, beatInterval=60000/bpm, lastBeatTime=0;
-const keys={};
+let selectedMode = 'survival';
+function startGame(){
+  const select = document.getElementById('modeSelect');
+  selectedMode = select.value; // not used yet, but ready for later
+  openingScreen.style.display = 'none';
+  if (!running){
+    running = true;
+    lastBeatTime = 0;
+    animate(performance.now());
+  }
+}
 
-const player={x:canvas.width/2, y:canvas.height/2, size:50, color:'#00f', speed:0.5, vx:0, vy:0, maxSpeed:6, dashMultiplier:3, dashCooldown:0, shieldActive:false, shieldTime:0, effectAlpha:0, restoreAlpha:0};
+/* ---------- CANVAS & GAME STATE ---------- */
+const canvas = document.getElementById('beatCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-let abilities={shield:0, clear:0, restore:0};
-const abilityDurations={shield:5*60};
+let shapes = [];
+let pellets = [];
+let spinBeams = [];
+let animationId;
+let running = false;
 
-class Shape{constructor(x,y,size,type,color){this.x=x;this.y=y;this.size=size;this.type=type;this.color=color;this.growth=Math.random()*2+1;this.shootCooldown=Math.floor(Math.random()*60);this.homing=Math.random()<0.2;this.split=Math.random()<0.2;}
-draw(){ctx.shadowBlur=20; ctx.shadowColor=this.color; ctx.fillStyle=this.color; ctx.beginPath(); if(this.type==='circle'||this.type==='explosive') ctx.arc(this.x,this.y,this.size,0,Math.PI*2); else ctx.fillRect(this.x-this.size/2,this.y-this.size/2,this.size,this.size); ctx.fill(); ctx.shadowBlur=0;}
-update(){if(this.homing){let dx=player.x-this.x, dy=player.y-this.y, dist=Math.sqrt(dx*dx+dy*dy)||1; this.x+=dx/dist*1.2; this.y+=dy/dist*1.2;}else{this.size+=this.growth*0.2;if(this.size>80||this.size<15)this.growth*=-1;} this.draw(); if((this.type==='circle'||this.type==='explosive')&&(this.shootCooldown--<=0)){this.shootAtPlayer(); this.shootCooldown=60;}}
-shootAtPlayer(){const dx=player.x-this.x, dy=player.y-this.y, dist=Math.sqrt(dx*dx+dy*dy)||1; pellets.push(new Pellet(this.x,this.y,dx/dist*3,dy/dist*3,this.color));}
-splitShape(){if(!this.split) return []; const newShapes=[];for(let i=0;i<2;i++){newShapes.push(new Shape(this.x,this.y,this.size/2,this.type,this.color));}return newShapes;}}
+let bpm = 120;
+let beatInterval = 60000 / bpm;
+let lastBeatTime = 0;
 
-class Pellet{constructor(x,y,vx,vy,color){this.x=x; this.y=y; this.vx=vx; this.vy=vy; this.color=color; this.size=6;}
-update(){this.x+=this.vx; this.y+=this.vy; ctx.fillStyle=this.color; ctx.beginPath(); ctx.arc(this.x,this.y,this.size,0,Math.PI*2); ctx.fill();}}
+const keys = {};
 
-class SpinBeam{constructor(){this.angle=0; this.timer=5*60; this.color='cyan'; this.length=canvas.width;}
-update(){ctx.save(); ctx.translate(canvas.width/2,canvas.height/2); ctx.rotate(this.angle); ctx.fillStyle=this.color; ctx.fillRect(-this.length/2,-5,this.length,10); ctx.restore(); this.angle+=0.03; this.timer--; if(this.timer<=0) spinBeams.splice(spinBeams.indexOf(this),1);}}
+// player is a smaller square, cannot die
+const player = {
+  x: canvas.width/2,
+  y: canvas.height/2,
+  size: 50,
+  color: '#4f8cff',
+  speed: 0.5,
+  vx: 0,
+  vy: 0,
+  maxSpeed: 6,
+  dashMultiplier: 3,
+  dashCooldown: 0,
+  shieldActive: false,
+  shieldTime: 0,
+  restoreAlpha: 0
+};
 
-document.getElementById('shieldBtn').addEventListener('click',()=>{if(abilities.shield<=0){player.shieldActive=true;player.shieldTime=abilityDurations.shield;abilities.shield=45*60;document.getElementById('shieldCD').style.width='100%';}});
-document.getElementById('clearBtn').addEventListener('click',()=>{if(abilities.clear<=0){shapes=[];abilities.clear=120*60;flashScreen();}});
-document.getElementById('restoreBtn').addEventListener('click',()=>{if(abilities.restore<=0){abilities.restore=90*60;player.restoreAlpha=1;}});
+// abilities data
+let abilities = {
+  shield: 0,
+  clear: 0,
+  restore: 0
+};
+const abilityMaxFrames = {
+  shield: 45*60,
+  clear: 120*60,
+  restore: 90*60
+};
+const abilityDurations = {
+  shield: 5*60
+};
 
-function flashScreen(){ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.fillRect(0,0,canvas.width,canvas.height);}
-function drawPlayerEffect(){if(player.shieldActive){player.effectAlpha=Math.abs(Math.sin(performance.now()/200))*0.5+0.2; ctx.strokeStyle=`rgba(0,255,255,${player.effectAlpha})`; ctx.lineWidth=12; ctx.strokeRect(player.x-player.size/2-6,player.y-player.size/2-6,player.size+12,player.size+12);}
-if(player.restoreAlpha>0){ctx.strokeStyle=`rgba(0,255,0,${player.restoreAlpha})`; ctx.lineWidth=8; ctx.strokeRect(player.x-player.size/2-4,player.y-player.size/2-4,player.size+8,player.size+8); player.restoreAlpha-=0.02;}}
+// clear flash effect
+let flashAlpha = 0;
 
-let joystickVX=0, joystickVY=0, joystickActive=false;
-const joyOuter=document.getElementById('joystickOuter'), joyInner=document.getElementById('joystickInner'); const JOY_MAX=56, JOY_FACTOR=0.14; let joyBaseX=0, joyBaseY=0;
-canvas.addEventListener('touchstart',ev=>{const t=ev.touches[0];joyBaseX=t.clientX;joyBaseY=t.clientY;joyOuter.style.display='block';joyOuter.style.left=(joyBaseX-joyOuter.offsetWidth/2)+'px';joyOuter.style.top=(joyBaseY-joyOuter.offsetHeight/2)+'px'; joystickActive=true; joystickVX=0; joystickVY=0;});
-canvas.addEventListener('touchmove',ev=>{if(!joystickActive) return; const t=ev.touches[0]; let dx=t.clientX-joyBaseX; let dy=t.clientY-joyBaseY; const dist=Math.sqrt(dx*dx+dy*dy); if(dist>JOY_MAX){const a=Math.atan2(dy,dx); dx=Math.cos(a)*JOY_MAX; dy=Math.sin(a)*JOY_MAX;} joyInner.style.left=(joyOuter.offsetWidth/2-joyInner.offsetWidth/2+dx)+'px'; joyInner.style.top=(joyOuter.offsetHeight/2-joyInner.offsetHeight/2+dy)+'px'; joystickVX=dx/JOY_MAX*player.maxSpeed*JOY_FACTOR; joystickVY=dy/JOY_MAX*player.maxSpeed*JOY_FACTOR;});
-canvas.addEventListener('touchend',ev=>{joystickActive=false;joystickVX=0;joystickVY=0;joyOuter.style.display='none';});
-canvas.addEventListener('touchcancel',ev=>{joystickActive=false;joystickVX=0;joystickVY=0;joyOuter.style.display='none';});
+/* ---------- CLASSES ---------- */
+class Shape{
+  constructor(x,y,size,type,color){
+    this.x = x;
+    this.y = y;
+    this.size = size;
+    this.type = type;
+    this.color = color;
+    this.growth = Math.random()*2 + 1;
+    this.shootCooldown = Math.floor(Math.random()*60);
+    this.homing = Math.random() < 0.2;
+    this.split = Math.random() < 0.2;
+  }
+  draw(){
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = this.color;
+    ctx.fillStyle = this.color;
+    if (this.type === 'circle' || this.type === 'explosive'){
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+      ctx.fill();
+    } else {
+      ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
+    }
+    ctx.shadowBlur = 0;
+  }
+  update(){
+    if (this.homing){
+      const dx = player.x - this.x;
+      const dy = player.y - this.y;
+      const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+      this.x += dx/dist * 1.2;
+      this.y += dy/dist * 1.2;
+    } else {
+      this.size += this.growth * 0.2;
+      if (this.size > 80 || this.size < 15) this.growth *= -1;
+    }
+    this.draw();
+    if ((this.type === 'circle' || this.type === 'explosive') && this.shootCooldown-- <= 0){
+      this.shootAtPlayer();
+      this.shootCooldown = 60;
+    }
+  }
+  shootAtPlayer(){
+    const dx = player.x - this.x;
+    const dy = player.y - this.y;
+    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+    pellets.push(new Pellet(this.x, this.y, dx/dist*3, dy/dist*3, this.color));
+  }
+  splitShape(){
+    if (!this.split) return [];
+    const newShapes = [];
+    for (let i=0;i<2;i++){
+      newShapes.push(new Shape(this.x, this.y, this.size/2, this.type, this.color));
+    }
+    return newShapes;
+  }
+}
 
-document.getElementById('startBtn').addEventListener('click',()=>{if(!running){running=true;lastBeatTime=0;animate(performance.now());}});
-document.getElementById('stopBtn').addEventListener('click',()=>{running=false; cancelAnimationFrame(animationId);});
+class Pellet{
+  constructor(x,y,vx,vy,color){
+    this.x = x; this.y = y;
+    this.vx = vx; this.vy = vy;
+    this.color = color;
+    this.size = 6;
+  }
+  update(){
+    this.x += this.vx;
+    this.y += this.vy;
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
 
-document.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;});
-document.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
+class SpinBeam{
+  constructor(){
+    this.angle = 0;
+    this.timer = 5*60;
+    this.color = 'rgba(79,140,255,0.9)';
+    this.length = Math.max(canvas.width, canvas.height)*1.2;
+  }
+  update(){
+    ctx.save();
+    ctx.translate(canvas.width/2, canvas.height/2);
+    ctx.rotate(this.angle);
+    const grad = ctx.createLinearGradient(-this.length/2,0,this.length/2,0);
+    grad.addColorStop(0,'rgba(79,140,255,0)');
+    grad.addColorStop(0.5,this.color);
+    grad.addColorStop(1,'rgba(79,140,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(-this.length/2, -6, this.length, 12);
+    ctx.restore();
+    this.angle += 0.03;
+    this.timer--;
+    if (this.timer <= 0){
+      spinBeams.splice(spinBeams.indexOf(this),1);
+    }
+  }
+}
 
-function movePlayer(){let ax=0,ay=0;if(keys['w']) ay-=player.speed;if(keys['s']) ay+=player.speed;if(keys['a']) ax-=player.speed;if(keys['d']) ax+=player.speed;if(keys['shift']&&player.dashCooldown<=0){ax*=player.dashMultiplier;ay*=player.dashMultiplier;player.dashCooldown=20;} player.vx+=ax+joystickVX; player.vy+=ay+joystickVY; player.vx*=0.85; player.vy*=0.85; player.vx=Math.max(Math.min(player.vx,player.maxSpeed),-player.maxSpeed); player.vy=Math.max(Math.min(player.vy,player.maxSpeed),-player.maxSpeed); player.x+=player.vx; player.y+=player.vy;if(player.x-player.size/2<0)player.x=player.size/2;if(player.x+player.size/2>canvas.width)player.x=canvas.width-player.size/2;if(player.y-player.size/2<0)player.y=player.size/2;if(player.y+player.size/2>canvas.height)player.y=canvas.height-player.size/2;if(player.dashCooldown>0)player.dashCooldown--;}
+/* ---------- ABILITY HANDLERS ---------- */
+function useShield(){
+  if (abilities.shield <= 0){
+    player.shieldActive = true;
+    player.shieldTime = abilityDurations.shield;
+    abilities.shield = abilityMaxFrames.shield;
+    document.getElementById('shieldCD').style.width = '100%';
+  }
+}
+function useClear(){
+  if (abilities.clear <= 0){
+    shapes = [];
+    abilities.clear = abilityMaxFrames.clear;
+    document.getElementById('clearCD').style.width = '100%';
+    flashAlpha = 0.55; // big white flash
+  }
+}
+function useRestore(){
+  if (abilities.restore <= 0){
+    // health up, but not used for death anyway; still keep the mechanic
+    // player.health = Math.min(player.health + 50, 100); // if you later track health
+    abilities.restore = abilityMaxFrames.restore;
+    document.getElementById('restoreCD').style.width = '100%';
+    player.restoreAlpha = 1;
+  }
+}
 
-function updateHealthBar(){ const fill=document.getElementById('healthFill'); fill.style.width=Math.max(1,player.health)+'%'; if(player.health>60) fill.style.background='#0f0'; else if(player.health>30) fill.style.background='#ff0'; else fill.style.background='#f00'; }
+document.getElementById('shieldBtn').addEventListener('click',useShield);
+document.getElementById('clearBtn').addEventListener('click',useClear);
+document.getElementById('restoreBtn').addEventListener('click',useRestore);
 
-function spawnShape(){ if(Math.random()<0.02){ const x=Math.random()*canvas.width; const y=Math.random()*canvas.height; const size=Math.random()*20+15; const type=['circle','square','triangle'][Math.floor(Math.random()*3)]; const color=`rgb(${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)})`; shapes.push(new Shape(x,y,size,type,color));} }
+/* ---------- JOYSTICK ---------- */
+let joystickVX = 0, joystickVY = 0, joystickActive = false;
+const joyOuter = document.getElementById('joystickOuter');
+const joyInner = document.getElementById('joystickInner');
+const JOY_MAX = 56, JOY_FACTOR = 0.14;
+let joyBaseX = 0, joyBaseY = 0;
 
-function animate(timestamp){if(!running) return; ctx.clearRect(0,0,canvas.width,canvas.height);
+canvas.addEventListener('touchstart',ev=>{
+  const t = ev.touches[0];
+  joyBaseX = t.clientX;
+  joyBaseY = t.clientY;
+  joyOuter.style.display = 'block';
+  joyOuter.style.left = (joyBaseX - joyOuter.offsetWidth/2)+'px';
+  joyOuter.style.top  = (joyBaseY - joyOuter.offsetHeight/2)+'px';
+  joystickActive = true;
+  joystickVX = 0; joystickVY = 0;
+});
+canvas.addEventListener('touchmove',ev=>{
+  if(!joystickActive) return;
+  const t = ev.touches[0];
+  let dx = t.clientX - joyBaseX;
+  let dy = t.clientY - joyBaseY;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  if (dist > JOY_MAX){
+    const a = Math.atan2(dy,dx);
+    dx = Math.cos(a)*JOY_MAX;
+    dy = Math.sin(a)*JOY_MAX;
+  }
+  joyInner.style.left = (joyOuter.offsetWidth/2 - joyInner.offsetWidth/2 + dx)+'px';
+  joyInner.style.top  = (joyOuter.offsetHeight/2 - joyInner.offsetHeight/2 + dy)+'px';
+  joystickVX = dx / JOY_MAX * player.maxSpeed * JOY_FACTOR;
+  joystickVY = dy / JOY_MAX * player.maxSpeed * JOY_FACTOR;
+});
+function endJoystick(){
+  joystickActive = false;
+  joystickVX = 0; joystickVY = 0;
+  joyOuter.style.display = 'none';
+}
+canvas.addEventListener('touchend',()=>endJoystick());
+canvas.addEventListener('touchcancel',()=>endJoystick());
 
-shapes.forEach((s,i)=>{ s.update(); if(Math.abs(s.x-player.x)<player.size/2+s.size && Math.abs(s.y-player.y)<player.size/2+s.size){ if(!player.shieldActive) player.health=Math.max(1,player.health-1); if(s.split) shapes.push(...s.splitShape()); shapes.splice(i,1); }});
-pellets.forEach((p,i)=>{p.update(); if(Math.abs(p.x-player.x)<player.size/2+p.size && Math.abs(p.y-player.y)<player.size/2+p.size){ if(!player.shieldActive) player.health=Math.max(1,player.health-2); pellets.splice(i,1);}});
-spinBeams.forEach(sb=>sb.update());
+/* ---------- INPUT ---------- */
+document.addEventListener('keydown',e=>{
+  const k = e.key.toLowerCase();
+  keys[k] = true;
+  if (k === '1') useShield();
+  if (k === '2') useClear();
+  if (k === '3') useRestore();
+});
+document.addEventListener('keyup',e=>{
+  keys[e.key.toLowerCase()] = false;
+});
 
-if(Math.random()<0.002) spinBeams.push(new SpinBeam());
+/* ---------- START/STOP BUTTONS ---------- */
+document.getElementById('startBtn').addEventListener('click',()=>{
+  if(!running){
+    running = true;
+    lastBeatTime = 0;
+    animate(performance.now());
+  }
+});
+document.getElementById('stopBtn').addEventListener('click',()=>{
+  running = false;
+  cancelAnimationFrame(animationId);
+});
 
-drawPlayerEffect();
-ctx.fillStyle=player.color; ctx.fillRect(player.x-player.size/2,player.y-player.size/2,player.size,player.size);
+/* ---------- MOVEMENT & HEALTH ---------- */
+function movePlayer(){
+  let ax=0, ay=0;
+  if (keys['w']) ay -= player.speed;
+  if (keys['s']) ay += player.speed;
+  if (keys['a']) ax -= player.speed;
+  if (keys['d']) ax += player.speed;
+  if (keys['shift'] && player.dashCooldown<=0){
+    ax *= player.dashMultiplier;
+    ay *= player.dashMultiplier;
+    player.dashCooldown = 20;
+  }
+  player.vx += ax + joystickVX;
+  player.vy += ay + joystickVY;
+  player.vx *= 0.85;
+  player.vy *= 0.85;
+  player.vx = Math.max(Math.min(player.vx,player.maxSpeed),-player.maxSpeed);
+  player.vy = Math.max(Math.min(player.vy,player.maxSpeed),-player.maxSpeed);
+  player.x += player.vx;
+  player.y += player.vy;
+  if (player.x - player.size/2 < 0) player.x = player.size/2;
+  if (player.x + player.size/2 > canvas.width) player.x = canvas.width - player.size/2;
+  if (player.y - player.size/2 < 0) player.y = player.size/2;
+  if (player.y + player.size/2 > canvas.height) player.y = canvas.height - player.size/2;
+  if (player.dashCooldown>0) player.dashCooldown--;
+}
 
-movePlayer();
-if(player.shieldActive){player.shieldTime--; if(player.shieldTime<=0)player.shieldActive=false;}
-updateHealthBar();
+// you can later track "health" if you add it back; for now just keep the bar filled:
+let fakeHealth = 100;
+function damagePlayer(amount){
+  fakeHealth = Math.max(1, fakeHealth - amount); // never below 1
+}
 
-['shield','clear','restore'].forEach(id=>{ const overlay=document.getElementById(id+'CD'); if(abilities[id]>0){ abilities[id]--; overlay.style.width=(abilities[id]/(60*60)*100)+'%'; } else overlay.style.width='0%'; });
+function updateHealthBar(){
+  const fill = document.getElementById('healthFill');
+  fill.style.width = Math.max(1,fakeHealth) + '%';
+  if (fakeHealth > 60) fill.style.background = 'linear-gradient(90deg,#1fff8f,#a7ff4a)';
+  else if (fakeHealth > 30) fill.style.background = 'linear-gradient(90deg,#ffe35a,#ffb84a)';
+  else fill.style.background = 'linear-gradient(90deg,#ff4f7b,#ff9966)';
+}
 
-animationId=requestAnimationFrame(animate);}
+/* ---------- EFFECTS ---------- */
+function drawPlayerEffects(){
+  // shield aura
+  if (player.shieldActive){
+    const t = performance.now()/250;
+    const pulse = (Math.sin(t)+1)/2; // 0..1
+    const alpha = 0.25 + pulse*0.35;
+    ctx.strokeStyle = `rgba(79,180,255,${alpha})`;
+    ctx.lineWidth = 12;
+    ctx.strokeRect(
+      player.x - player.size/2 - 8,
+      player.y - player.size/2 - 8,
+      player.size + 16,
+      player.size + 16
+    );
+  }
+  // restore pulse
+  if (player.restoreAlpha > 0){
+    ctx.strokeStyle = `rgba(0,255,140,${player.restoreAlpha})`;
+    ctx.lineWidth = 8;
+    ctx.strokeRect(
+      player.x - player.size/2 - 5,
+      player.y - player.size/2 - 5,
+      player.size + 10,
+      player.size + 10
+    );
+    player.restoreAlpha -= 0.02;
+    if (player.restoreAlpha < 0) player.restoreAlpha = 0;
+  }
 
-window.addEventListener('resize',()=>{ canvas.width=window.innerWidth; canvas.height=window.innerHeight; });
+  // clear flash overlay
+  if (flashAlpha > 0){
+    ctx.fillStyle = `rgba(255,255,255,${flashAlpha})`;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    flashAlpha -= 0.02;
+    if (flashAlpha < 0) flashAlpha = 0;
+  }
+}
+
+/* ---------- SPAWNING ---------- */
+function spawnShape(){
+  if (Math.random() < 0.02){ // reduced spawn
+    const x = Math.random()*canvas.width;
+    const y = Math.random()*canvas.height;
+    const size = Math.random()*25 + 18;
+    const type = ['circle','square','triangle'][Math.floor(Math.random()*3)];
+    const color = `rgb(${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)})`;
+    shapes.push(new Shape(x,y,size,type,color));
+  }
+}
+
+/* ---------- ANIMATION LOOP ---------- */
+function animate(timestamp){
+  if (!running) return;
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // subtle background radial glow around player
+  const bgGrad = ctx.createRadialGradient(player.x,player.y,0,player.x,player.y,400);
+  bgGrad.addColorStop(0,'rgba(79,140,255,0.18)');
+  bgGrad.addColorStop(1,'rgba(0,0,0,0.04)');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // beat-based spawning
+  if (!lastBeatTime || timestamp - lastBeatTime > beatInterval){
+    spawnShape();
+    if (Math.random() < 0.2) spinBeams.push(new SpinBeam());
+    lastBeatTime = timestamp;
+  }
+
+  // shapes
+  shapes.forEach((s, i)=>{
+    s.update();
+    const dx = s.x - player.x;
+    const dy = s.y - player.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    let hit = false;
+    if (s.type === 'circle' || s.type === 'triangle'){
+      hit = dist < s.size + player.size/2;
+    } else {
+      hit = Math.abs(s.x - player.x) < s.size/2 + player.size/2 &&
+            Math.abs(s.y - player.y) < s.size/2 + player.size/2;
+    }
+    if (hit){
+      if (!player.shieldActive) damagePlayer(1);
+      if (s.split) shapes.push(...s.splitShape());
+      shapes.splice(i,1);
+    }
+  });
+
+  // pellets
+  pellets.forEach((p,i)=>{
+    p.update();
+    const dx = p.x - player.x;
+    const dy = p.y - player.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < p.size + player.size/2){
+      if (!player.shieldActive) damagePlayer(2);
+      pellets.splice(i,1);
+    } else if (p.x<0 || p.x>canvas.width || p.y<0 || p.y>canvas.height){
+      pellets.splice(i,1);
+    }
+  });
+
+  // spin beams
+  spinBeams.forEach(sb=>sb.update());
+
+  // player visuals
+  drawPlayerEffects();
+  ctx.fillStyle = player.color;
+  ctx.fillRect(player.x - player.size/2, player.y - player.size/2, player.size, player.size);
+
+  movePlayer();
+
+  // shield timer
+  if (player.shieldActive){
+    player.shieldTime--;
+    if (player.shieldTime <= 0) player.shieldActive = false;
+  }
+
+  // update health bar
+  updateHealthBar();
+
+  // cooldown overlays
+  for (let ab in abilities){
+    const cd = abilities[ab];
+    const max = abilityMaxFrames[ab];
+    const overlay = document.getElementById(ab+'CD');
+    if (cd > 0){
+      abilities[ab]--;
+      const perc = (abilities[ab]/max)*100;
+      overlay.style.width = `${perc}%`;
+    } else {
+      overlay.style.width = '0%';
+    }
+  }
+
+  animationId = requestAnimationFrame(animate);
+}
+
+/* ---------- RESIZE ---------- */
+window.addEventListener('resize',()=>{
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
 </script>
 </body>
 </html>
