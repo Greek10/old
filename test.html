@@ -66,7 +66,6 @@ function init(){
 
   createWeaponModel();
 
-  // Spawn some enemies and pickups
   for(let i=0;i<8;i++) spawnEnemy({x:(Math.random()-0.5)*120,y:1,z:(Math.random()-0.5)*120-40});
   for(let i=0;i<6;i++) spawnPickup({x:(Math.random()-0.5)*120,y:0.5,z:(Math.random()-0.5)*120});
 
@@ -99,6 +98,15 @@ function spawnEnemy(pos){
   enemies.push({mesh:m,hp:100});
 }
 
+function spawnPickup(pos){
+  const geom=new THREE.BoxGeometry(0.7,0.7,0.7);
+  const mat=new THREE.MeshStandardMaterial({color:Math.random()>0.5?0x66ff88:0x88ccff});
+  const m=new THREE.Mesh(geom,mat);
+  m.position.set(pos.x,pos.y,pos.z);
+  scene.add(m);
+  pickups.push({mesh:m,type:Math.random()>0.5?'health':'ammo'});
+}
+
 function onKeyDown(e){
   if(e.code==='KeyW') move.f=1;
   if(e.code==='KeyS') move.b=1;
@@ -113,18 +121,21 @@ function onKeyUp(e){if(e.code==='KeyW') move.f=0;if(e.code==='KeyS') move.b=0;if
 function doShoot(){if(weapon.reloading) return; const now=performance.now()/1000; if(now-weapon.lastShot<weapon.fireRate) return; if(weapon.mag<=0){weapon.lastShot=now;return;} weapon.mag--; weapon.lastShot=now; document.getElementById('ammo').innerText='Ammo: '+weapon.mag+' / '+weapon.reserve;}
 function doReload(){if(weapon.reloading||weapon.reserve<=0||weapon.mag>=30) return; weapon.reloading=true; const gunDiv=document.getElementById('weapon'); gunDiv.style.transform='translateX(50%) translateY(20px)'; setTimeout(()=>{ const need=30-weapon.mag; const take=Math.min(need,weapon.reserve); weapon.mag+=take; weapon.reserve-=take; weapon.reloading=false; gunDiv.style.transform='translateX(50%) translateY(0)'; document.getElementById('ammo').innerText='Ammo: '+weapon.mag+' / '+weapon.reserve; },weapon.reloadTime*1000);}
 
-function spawnPickup(pos){
-  const geom=new THREE.BoxGeometry(0.7,0.7,0.7);
-  const mat=new THREE.MeshStandardMaterial({color:Math.random()>0.5?0x66ff88:0x88ccff});
-  const m=new THREE.Mesh(geom,mat);
-  m.position.set(pos.x,pos.y,pos.z);
-  scene.add(m);
-  pickups.push({mesh:m,type:Math.random()>0.5?'health':'ammo'});
-}
-
 function resetLevel(){ player.pos={x:0,y:0,z:8}; player.velocity={x:0,y:0,z:0}; player.hp=100; player.score=0; player.recoil=0; player.onGround=true; player.coyote=0; weapon.mag=30; weapon.reserve=60; weapon.reloading=false; weapon.lastShot=-10; document.getElementById('hp').innerText='HP: '+player.hp; document.getElementById('ammo').innerText='Ammo: '+weapon.mag+' / '+weapon.reserve; document.getElementById('score').innerText='Score: '+player.score;}
 
-function simulate(dt){ const input=new THREE.Vector3(move.r-move.l,0,move.b-move.f); let moveDir=new THREE.Vector3(); if(input.x!==0||input.z!==0){ const forward=new THREE.Vector3(Math.cos(yaw),0,Math.sin(yaw)); const right=new THREE.Vector3(Math.cos(yaw+Math.PI/2),0,Math.sin(yaw+Math.PI/2)); moveDir.add(forward.clone().multiplyScalar(-input.z)); moveDir.add(right.clone().multiplyScalar(input.x)); moveDir.normalize(); } const speedNow=player.speed*(move.sprint?player.sprintMult:1); player.velocity.x=moveDir.x*speedNow; player.velocity.z=moveDir.z*speedNow; player.velocity.y+=world.gravity*dt; player.pos.x+=player.velocity.x*dt; player.pos.y+=player.velocity.y*dt; player.pos.z+=player.velocity.z*dt; if(player.pos.y<=world.groundY){player.pos.y=world.groundY; player.velocity.y=0; player.onGround=true;player.coyote=0.12;} else{player.onGround=false;player.coyote-=dt;}
+function simulate(dt){
+  const forward=new THREE.Vector3(Math.sin(yaw),0,-Math.cos(yaw));
+  const right=new THREE.Vector3(Math.sin(yaw+Math.PI/2),0,-Math.cos(yaw+Math.PI/2));
+  const moveDir=forward.clone().multiplyScalar(move.f-move.b).add(right.clone().multiplyScalar(move.r-move.l));
+  if(moveDir.lengthSq()>0) moveDir.normalize();
+  const speedNow=player.speed*(move.sprint?player.sprintMult:1);
+  player.velocity.x=moveDir.x*speedNow;
+  player.velocity.z=moveDir.z*speedNow;
+  player.velocity.y+=world.gravity*dt;
+  player.pos.x+=player.velocity.x*dt;
+  player.pos.y+=player.velocity.y*dt;
+  player.pos.z+=player.velocity.z*dt;
+  if(player.pos.y<=world.groundY){player.pos.y=world.groundY; player.velocity.y=0; player.onGround=true; player.coyote=0.12;} else{player.onGround=false; player.coyote-=dt;}
 }
 
 function animate(){ requestAnimationFrame(animate); const dt=Math.min(clock.getDelta(),0.06); if(pointerLocked) simulate(dt); camera.position.set(player.pos.x,player.pos.y+player.height,player.pos.z); camera.rotation.set(pitch,yaw,0); renderer.render(scene,camera);}
