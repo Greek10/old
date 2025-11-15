@@ -3,443 +3,342 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shape and Beats - Abilities + Mobile Joystick</title>
+<title>Just Shapes & Beats — Web Version</title>
+
 <style>
-  body, html { margin:0; padding:0; overflow:hidden;
-    background: linear-gradient(135deg,#0a0a0a,#111);
-    font-family:sans-serif; color:white;
-  }
-  canvas{ display:block; }
+    body, html {
+        margin:0; padding:0;
+        overflow:hidden;
+        background: #0d0d0f;
+        color:white;
+        font-family:Arial, sans-serif;
+        user-select:none;
+        touch-action:none;
+    }
+    canvas {
+        display:block;
+    }
+    #healthBar {
+        position:absolute; top:10px; left:50%;
+        transform:translateX(-50%);
+        width:300px; height:25px;
+        background:#333; border:2px solid #777;
+    }
+    #healthFill {
+        width:100%; height:100%;
+        background:#0f0;
+    }
 
-  /* Controls and UI */
-  #controls{ position:absolute; top:10px; left:10px; display:flex; gap:10px; z-index:10; }
-  button{ padding:8px 12px; background:#222; border:1px solid #555; color:white; cursor:pointer;}
-  button:hover{ background:#444; }
-  #healthBar{position:absolute; top:10px; right:10px; width:200px; height:25px; background:#333; border:2px solid #555;}
-  #healthFill{width:100%; height:100%; background:#0f0;}
-  #abilityBar{position:absolute; bottom:10px; left:50%; transform:translateX(-50%); display:flex; gap:15px; z-index:10;}
-  .abilityBtn{padding:8px 12px; background:#222; border:1px solid #555; color:white; cursor:pointer; position:relative;}
-  .cooldownOverlay{position:absolute; top:0; left:0; height:100%; width:0%; background:rgba(0,0,0,0.6); transition:width 0.1s linear;}
-
-  /* Joystick (mobile) */
-  #joystickOuter{
-    position:absolute; bottom:18px; left:18px; width:140px; height:140px;
-    border-radius:50%; background:rgba(255,255,255,0.03); border:2px solid #444; z-index:12;
-    touch-action:none;
-  }
-  #joystickInner{
-    position:absolute; width:56px; height:56px; border-radius:50%;
-    background:linear-gradient(180deg,#bbb,#888); top:42px; left:42px;
-    box-shadow:0 6px 16px rgba(0,0,0,0.6); touch-action:none;
-  }
-
-  /* Small mobile hints (optional) */
-  @media (hover: none) and (pointer: coarse) {
-    button.abilityBtn { font-size:13px; width:84px; height:52px; }
-    #abilityBar { gap:10px; }
-  }
+    /* Ability buttons (mobile compatible) */
+    .abilityBtn {
+        position:absolute;
+        bottom:20px;
+        width:70px; height:70px;
+        border-radius:50%;
+        background:#222;
+        border:2px solid #666;
+        color:white;
+        display:flex; align-items:center; justify-content:center;
+        font-size:20px; font-weight:bold;
+    }
+    #btnShield { left:20px; }
+    #btnClear { left:110px; }
+    #btnRestore { left:200px; }
 </style>
 </head>
 <body>
-  <div id="controls">
-    <button id="startBtn">Start</button>
-    <button id="stopBtn">Stop</button>
-  </div>
 
-  <div id="healthBar"><div id="healthFill"></div></div>
+<div id="healthBar"><div id="healthFill"></div></div>
 
-  <div id="abilityBar">
-    <div class="abilityBtn" id="shieldBtn">Shield (1)<div class="cooldownOverlay" id="shieldCD"></div></div>
-    <div class="abilityBtn" id="clearBtn">Clear (2)<div class="cooldownOverlay" id="clearCD"></div></div>
-    <div class="abilityBtn" id="restoreBtn">Restore (3)<div class="cooldownOverlay" id="restoreCD"></div></div>
-  </div>
+<!-- Mobile ability buttons -->
+<div id="btnShield" class="abilityBtn">1</div>
+<div id="btnClear" class="abilityBtn">2</div>
+<div id="btnRestore" class="abilityBtn">3</div>
 
-  <!-- MOBILE JOYSTICK (added only) -->
-  <div id="joystickOuter" aria-hidden="true"><div id="joystickInner"></div></div>
-
-  <canvas id="beatCanvas"></canvas>
+<canvas id="game"></canvas>
 
 <script>
-/* ---------------------------
-   Original game code preserved
-   (I only appended joystick logic)
-   --------------------------- */
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-const canvas=document.getElementById('beatCanvas');
-const ctx=canvas.getContext('2d');
-canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+canvas.width = innerWidth;
+canvas.height = innerHeight;
 
-let shapes=[]; let pellets=[]; let animationId; let running=false;
-let bpm=120; let beatInterval=60000/bpm; let lastBeatTime=0;
+let shapes = [];
+let particles = [];
+let lastSpawn = 0;
+
+const player = {
+    x: canvas.width/2,
+    y: canvas.height/2,
+    size: 40,
+    vx: 0,
+    vy: 0,
+    speed: 0.7,
+    maxSpeed: 6,
+    dashing: false,
+    dashTime: 0,
+    dashCooldown: 0,
+    dashLength: 200,
+    health: 100,
+    shield: false,
+    shieldTime: 0,
+};
+
+const abilities = {
+    shield: { cd: 45, timer:0 },
+    clear: { cd:120, timer:0 },
+    restore:{ cd:90, timer:0 }
+};
+
+document.addEventListener("keydown", e => {
+    if (e.key === "Shift") tryDash();
+    if (e.key === "1") useShield();
+    if (e.key === "2") useClear();
+    if (e.key === "3") useRestore();
+});
+
+document.getElementById("btnShield").onclick = useShield;
+document.getElementById("btnClear").onclick = useClear;
+document.getElementById("btnRestore").onclick = useRestore;
+
+// =========================
+//   ENEMY SHAPES (AUTO SHOOT)
+// =========================
+class Shape {
+    constructor(x,y,size,type,color){
+        this.x=x; this.y=y;
+        this.size=size;
+        this.type=type;
+        this.color=color;
+        this.hp=3;
+        this.shootCooldown=0;
+    }
+    update(){
+        this.shootCooldown -= 1;
+        if (this.shootCooldown <= 0) {
+            this.shoot();
+            this.shootCooldown = 120;
+        }
+    }
+    shoot(){
+        const count = 8;
+        for(let i=0;i<count;i++){
+            const angle = (Math.PI*2/count)*i;
+            pellets.push(new Pellet(this.x,this.y,Math.cos(angle)*4,Math.sin(angle)*4));
+        }
+    }
+    draw(){
+        ctx.fillStyle = this.color;
+        if(this.type === "circle"){
+            ctx.beginPath();
+            ctx.arc(this.x,this.y,this.size,0,Math.PI*2);
+            ctx.fill();
+        } else {
+            ctx.fillRect(this.x-this.size,this.y-this.size,this.size*2,this.size*2);
+        }
+    }
+}
+
+class Pellet {
+    constructor(x,y,vx,vy){
+        this.x=x; this.y=y;
+        this.vx=vx; this.vy=vy;
+        this.size=6;
+    }
+    update(){ this.x+=this.vx; this.y+=this.vy; }
+    draw(){
+        ctx.fillStyle="#ff4d4d";
+        ctx.beginPath();
+        ctx.arc(this.x,this.y,this.size,0,Math.PI*2);
+        ctx.fill();
+    }
+}
+
+let pellets = [];
+
+// =========================
+// PLAYER MOVEMENT (DESKTOP)
+// =========================
 const keys={};
+document.addEventListener("keydown", e => keys[e.key]=true);
+document.addEventListener("keyup", e => keys[e.key]=false);
 
-// Player (unchanged)
-const player={
-  x:canvas.width/2,
-  y:canvas.height/2,
-  size:40,
-  color:'#00f',
-  speed:0.5,
-  vx:0,
-  vy:0,
-  maxSpeed:6,
-  health:100,
-  dashMultiplier:3,
-  dashCooldown:0,
-  shieldActive:false,
-  shieldTime:0
-};
+// ==========================
+// MOBILE JOYSTICK (NEW)
+// ==========================
+let joyActive=false;
+let joyStartX=0, joyStartY=0;
+let joyStickX=0, joyStickY=0;
+let joyRadius=70;
 
-// Ability cooldowns in frames
-let abilities={
-  shield:0, clear:0, restore:0
-};
-const abilityDurations={ shield:5*60 }; // shield duration frames
+canvas.addEventListener("touchstart", e=>{
+    const t=e.touches[0];
+    joyActive=true;
 
-// Shape class (unchanged)
-class Shape{
-  constructor(x,y,size,type,color){
-    this.x=x; this.y=y; this.size=size; this.type=type; this.color=color;
-    this.growth=Math.random()*2+1;
-    this.shootCooldown=Math.floor(Math.random()*60);
-  }
-  draw(){
-    ctx.shadowBlur=20; ctx.shadowColor=this.color;
-    ctx.fillStyle=this.color;
+    joyStartX=t.clientX;
+    joyStartY=t.clientY;
+
+    joyStickX=joyStartX;
+    joyStickY=joyStartY;
+});
+
+canvas.addEventListener("touchmove", e=>{
+    if(!joyActive) return;
+    const t=e.touches[0];
+
+    let dx=t.clientX-joyStartX;
+    let dy=t.clientY-joyStartY;
+    const dist=Math.sqrt(dx*dx + dy*dy);
+
+    if(dist > joyRadius){
+        const a=Math.atan2(dy,dx);
+        dx=Math.cos(a)*joyRadius;
+        dy=Math.sin(a)*joyRadius;
+    }
+
+    joyStickX = joyStartX + dx;
+    joyStickY = joyStartY + dy;
+
+    player.vx = dx / joyRadius;
+    player.vy = dy / joyRadius;
+});
+
+canvas.addEventListener("touchend", ()=>{
+    joyActive=false;
+    player.vx=0;
+    player.vy=0;
+});
+
+function drawJoystick(){
+    if(!joyActive) return;
+
     ctx.beginPath();
-    if(this.type==="circle" || this.type==="explosive") ctx.arc(this.x,this.y,this.size,0,Math.PI*2);
-    else if(this.type==="square") ctx.rect(this.x-this.size/2,this.y-this.size/2,this.size,this.size);
-    else if(this.type==="triangle"){
-      ctx.moveTo(this.x,this.y-this.size);
-      ctx.lineTo(this.x-this.size,this.y+this.size);
-      ctx.lineTo(this.x+this.size,this.y+this.size);
-      ctx.closePath();
-    }
+    ctx.arc(joyStartX, joyStartY, joyRadius, 0, Math.PI*2);
+    ctx.strokeStyle="rgba(255,255,255,0.3)";
+    ctx.lineWidth=4;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(joyStickX, joyStickY, 30, 0, Math.PI*2);
+    ctx.fillStyle="rgba(255,255,255,0.5)";
     ctx.fill();
-    ctx.shadowBlur=0;
-  }
-  update(){
-    this.size += this.growth*0.2;
-    if(this.size>80 || this.size<15) this.growth *= -1;
-    this.draw();
+}
 
-    // automatic shooting for certain types
-    if(this.type==="circle" || this.type==="explosive"){
-      this.shootCooldown--;
-      if(this.shootCooldown<=0){
-        this.shootAtPlayer();
-        this.shootCooldown = 60; // frames
-      }
+// =============================
+//   ABILITIES
+// =============================
+function useShield(){
+    if(abilities.shield.timer<=0){
+        player.shield=true;
+        player.shieldTime=300; // 5 sec
+        abilities.shield.timer=abilities.shield.cd;
     }
-  }
-  shootAtPlayer(){
-    const dx = player.x - this.x;
-    const dy = player.y - this.y;
-    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-    const speed = 3;
-    const vx = dx/dist * speed;
-    const vy = dy/dist * speed;
-    pellets.push(new Pellet(this.x, this.y, vx, vy, this.color));
-  }
 }
 
-// Pellet class (unchanged)
-class Pellet{
-  constructor(x,y,vx,vy,color){ this.x=x; this.y=y; this.vx=vx; this.vy=vy; this.color=color; this.size=6; }
-  update(){ this.x+=this.vx; this.y+=this.vy; ctx.fillStyle=this.color; ctx.beginPath(); ctx.arc(this.x,this.y,this.size,0,Math.PI*2); ctx.fill(); }
-}
-
-// Utilities (unchanged)
-function randomColor(){ const r=Math.floor(Math.random()*255); const g=Math.floor(Math.random()*255); const b=Math.floor(Math.random()*255); return `rgb(${r},${g},${b})`; }
-function randomShapeType(){ const types=["circle","square","triangle","explosive"]; return types[Math.floor(Math.random()*types.length)]; }
-function spawnShape(){ const x=Math.random()*canvas.width; const y=Math.random()*canvas.height; const size=Math.random()*30+20; const type=randomShapeType(); const color=randomColor(); shapes.push(new Shape(x,y,size,type,color)); }
-
-// Movement (almost unchanged — I only let joystick add velocities separately)
-function movePlayer(){
-  let ax=0, ay=0;
-  if(keys['w']) ay -= player.speed;
-  if(keys['s']) ay += player.speed;
-  if(keys['a']) ax -= player.speed;
-  if(keys['d']) ax += player.speed;
-  if(keys['shift'] && player.dashCooldown<=0){
-    ax *= player.dashMultiplier;
-    ay *= player.dashMultiplier;
-    player.dashCooldown = 20; // frames
-  }
-
-  player.vx += ax;
-  player.vy += ay;
-
-  // friction
-  player.vx *= 0.85;
-  player.vy *= 0.85;
-
-  // max speed clamp
-  if(player.vx > player.maxSpeed) player.vx = player.maxSpeed;
-  if(player.vx < -player.maxSpeed) player.vx = -player.maxSpeed;
-  if(player.vy > player.maxSpeed) player.vy = player.maxSpeed;
-  if(player.vy < -player.maxSpeed) player.vy = -player.maxSpeed;
-
-  player.x += player.vx;
-  player.y += player.vy;
-
-  // bounds
-  if(player.x - player.size/2 < 0) player.x = player.size/2;
-  if(player.x + player.size/2 > canvas.width) player.x = canvas.width - player.size/2;
-  if(player.y - player.size/2 < 0) player.y = player.size/2;
-  if(player.y + player.size/2 > canvas.height) player.y = canvas.height - player.size/2;
-
-  if(player.dashCooldown>0) player.dashCooldown--;
-}
-
-// Collision detection (unchanged)
-function checkCollision(shape){
-  const dx = shape.x - player.x;
-  const dy = shape.y - player.y;
-  const distance = Math.sqrt(dx*dx + dy*dy);
-  if(shape.type==="circle") return distance < shape.size + player.size/2;
-  else if(shape.type==="square") {
-    return Math.abs(shape.x - player.x) < shape.size/2 + player.size/2 &&
-           Math.abs(shape.y - player.y) < shape.size/2 + player.size/2;
-  }
-  else if(shape.type==="triangle" || shape.type==="explosive") {
-    return distance < shape.size + player.size/2;
-  }
-  return false;
-}
-function checkCollisionPelletPlayer(p){
-  const dx = p.x - player.x;
-  const dy = p.y - player.y;
-  return Math.sqrt(dx*dx + dy*dy) < p.size + player.size/2;
-}
-
-// Health bar update (unchanged)
-function updateHealthBar(){
-  const fill = document.getElementById('healthFill');
-  fill.style.width = Math.max(0, player.health) + '%';
-  if(player.health > 60) fill.style.background = '#0f0';
-  else if(player.health > 30) fill.style.background = '#ff0';
-  else fill.style.background = '#f00';
-}
-
-/* -----------------------
-   Abilities (unchanged logic)
-   shield: 45s cooldown 5s duration
-   clear: 120s cooldown
-   restore: 90s cooldown
--------------------------*/
-function useShield(){ if(abilities.shield<=0){ player.shieldActive = true; player.shieldTime = abilityDurations.shield; abilities.shield = 45*60; document.getElementById('shieldCD').style.width='100%'; } }
-function useClear(){ if(abilities.clear<=0){ shapes = []; abilities.clear = 120*60; document.getElementById('clearCD').style.width='100%'; } }
-function useRestore(){ if(abilities.restore<=0){ player.health = Math.min(player.health + 50, 100); abilities.restore = 90*60; document.getElementById('restoreCD').style.width='100%'; } }
-
-document.getElementById('shieldBtn').addEventListener('click', useShield);
-document.getElementById('clearBtn').addEventListener('click', useClear);
-document.getElementById('restoreBtn').addEventListener('click', useRestore);
-
-/* -----------------------
-   Animation loop (unchanged except joystick application)
--------------------------*/
-
-// JOYSTICK variables we add (only these lines are new)
-let joystickActive = false;
-let joystickVX = 0;
-let joystickVY = 0;
-
-// The main animate function (keeps original logic)
-function animate(timestamp){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  // background glow
-  const gradient = ctx.createRadialGradient(player.x,player.y,0,player.x,player.y,500);
-  gradient.addColorStop(0,'rgba(0,0,255,0.12)');
-  gradient.addColorStop(1,'rgba(0,0,0,0.05)');
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-
-  if(!lastBeatTime || timestamp - lastBeatTime > beatInterval){
-    spawnShape();
-    lastBeatTime = timestamp;
-  }
-
-  // Apply joystick influence (if active) BEFORE calling movePlayer so velocities blend smoothly.
-  if(joystickActive){
-    // Add joystick velocity (small factor so it feels consistent with acceleration)
-    player.vx += joystickVX;
-    player.vy += joystickVY;
-    // Optional: slight damping of joystick influence each frame handled by friction in movePlayer
-  }
-
-  movePlayer();
-
-  // draw player square with glow
-  ctx.shadowBlur = 20; ctx.shadowColor = player.color;
-  ctx.fillStyle = player.color;
-  ctx.fillRect(player.x - player.size/2, player.y - player.size/2, player.size, player.size);
-  ctx.shadowBlur = 0;
-
-  // Update shapes
-  shapes.forEach((shape, i) => {
-    shape.update();
-    if(checkCollision(shape)){
-      if(!player.shieldActive) player.health -= 1;
-      if(shape.type==="explosive"){ /* explosion handled on pellet firing by type */ }
-      shapes.splice(i,1);
+function useClear(){
+    if(abilities.clear.timer<=0){
+        shapes = [];
+        pellets = [];
+        abilities.clear.timer = abilities.clear.cd;
     }
-  });
+}
 
-  // Update pellets
-  pellets.forEach((p,i) => {
-    p.update();
-    if(checkCollisionPelletPlayer(p)){
-      if(!player.shieldActive) player.health -= 2;
-      pellets.splice(i,1);
+function useRestore(){
+    if(abilities.restore.timer<=0){
+        player.health = Math.min(100, player.health + 50);
+        abilities.restore.timer = abilities.restore.cd;
     }
-    if(p.x<0 || p.x>canvas.width || p.y<0 || p.y>canvas.height) pellets.splice(i,1);
-  });
+}
 
-  // Update shield
-  if(player.shieldActive){
-    player.shieldTime--;
-    if(player.shieldTime <= 0) player.shieldActive = false;
-  }
-
-  // Update ability cooldown counters and overlay widths
-  for(let ab in abilities){
-    if(abilities[ab] > 0){
-      abilities[ab]--;
-      // update overlays: percentage of remaining
-      let maxFrames = getAbilityMaxFrames(ab);
-      let perc = (abilities[ab] / maxFrames) * 100;
-      document.getElementById(ab + 'CD').style.width = perc + '%';
+function tryDash(){
+    if(player.dashCooldown<=0){
+        player.dashing=true;
+        player.dashTime = 20;
+        player.dashCooldown = 60;
     }
-  }
-
-  updateHealthBar();
-
-  if(player.health <= 0){
-    running = false;
-    alert("Game Over!");
-  }
-
-  if(running) animationId = requestAnimationFrame(animate);
 }
 
-function getAbilityMaxFrames(ab){
-  if(ab==='shield') return 45*60;
-  if(ab==='clear') return 120*60;
-  if(ab==='restore') return 90*60;
-  return 60;
+// =============================
+// GAME LOOP
+// =============================
+function update(){
+    // timers
+    for(const a in abilities){
+        if(abilities[a].timer>0) abilities[a].timer -= 1/60;
+    }
+
+    if(player.shield){
+        player.shieldTime--;
+        if(player.shieldTime<=0) player.shield=false;
+    }
+
+    if(player.dashing){
+        player.x += player.vx*player.maxSpeed*3;
+        player.y += player.vy*player.maxSpeed*3;
+        player.dashTime--;
+        if(player.dashTime<=0) player.dashing=false;
+    } else {
+        if(keys["w"]||keys["ArrowUp"]) player.vy -= player.speed;
+        if(keys["s"]||keys["ArrowDown"]) player.vy += player.speed;
+        if(keys["a"]||keys["ArrowLeft"]) player.vx -= player.speed;
+        if(keys["d"]||keys["ArrowRight"]) player.vx += player.speed;
+
+        player.vx *= 0.8;
+        player.vy *= 0.8;
+
+        player.x += player.vx*player.maxSpeed;
+        player.y += player.vy*player.maxSpeed;
+    }
+
+    // spawn enemies
+    if(Date.now()-lastSpawn>1200){
+        lastSpawn=Date.now();
+        shapes.push(new Shape(
+            Math.random()*canvas.width,
+            Math.random()*canvas.height,
+            25,
+            Math.random()>0.5?"circle":"square",
+            ["#ff3b3b","#ff6b00","#ff00ff"][Math.floor(Math.random()*3)]
+        ));
+    }
+
+    shapes.forEach(s=>s.update());
+    pellets.forEach(p=>p.update());
+
+    // collisions
+    if(!player.shield){
+        pellets.forEach(p=>{
+            if(Math.hypot(p.x-player.x,p.y-player.y) < player.size){
+                player.health -= 1;
+            }
+        });
+    }
+
+    document.getElementById("healthFill").style.width = player.health+"%";
 }
 
-/* -----------------------
-   Input handlers (unchanged desktop)
--------------------------*/
-document.addEventListener('keydown', e => {
-  keys[e.key.toLowerCase()] = true;
-  if(e.key === '1') useShield();
-  if(e.key === '2') useClear();
-  if(e.key === '3') useRestore();
-});
-document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
 
-/* Start/Stop buttons (unchanged) */
-document.getElementById('startBtn').addEventListener('click', () => {
-  if(!running){ running = true; lastBeatTime = 0; animate(performance.now()); }
-});
-document.getElementById('stopBtn').addEventListener('click', () => {
-  running = false; cancelAnimationFrame(animationId);
-});
+    // player
+    ctx.fillStyle = player.shield ? "#44f" : "#00f";
+    ctx.fillRect(player.x-player.size/2,player.y-player.size/2,player.size,player.size);
 
-/* Resize handling (unchanged) */
-window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+    // shapes
+    shapes.forEach(s=>s.draw());
+    pellets.forEach(p=>p.draw());
 
-/* -----------------------
-   Joystick implementation (ADDED)
-   - Keeps the rest of the code intact.
-   - Works on touch devices.
-   - Produces smooth analog movement by adding small velocities (joystickVX/VY).
--------------------------*/
-const joyOuter = document.getElementById('joystickOuter');
-const joyInner = document.getElementById('joystickInner');
-
-let joyRect = joyOuter.getBoundingClientRect();
-const JOY_MAX = 40; // maximum inner offset in px
-const JOY_FACTOR = 0.12; // scales joystick push to velocity per frame (tweak for feel)
-
-// Update rect on resize/orientation change
-function refreshJoyRect(){ joyRect = joyOuter.getBoundingClientRect(); }
-window.addEventListener('resize', refreshJoyRect);
-window.addEventListener('orientationchange', refreshJoyRect);
-
-function setInnerPos(x, y){
-  // clamp to circle
-  const cx = joyRect.width/2;
-  const cy = joyRect.height/2;
-  let dx = x - cx;
-  let dy = y - cy;
-  let dist = Math.sqrt(dx*dx + dy*dy);
-  if(dist > JOY_MAX){
-    dx = dx / dist * JOY_MAX;
-    dy = dy / dist * JOY_MAX;
-    dist = JOY_MAX;
-  }
-  joyInner.style.left = (cx - joyInner.offsetWidth/2 + dx) + 'px';
-  joyInner.style.top  = (cy - joyInner.offsetHeight/2 + dy) + 'px';
-  // normalized vector
-  const nx = dx / JOY_MAX;
-  const ny = dy / JOY_MAX;
-  // set joystick velocity to be applied each frame
-  joystickVX = nx * player.maxSpeed * JOY_FACTOR;
-  joystickVY = ny * player.maxSpeed * JOY_FACTOR;
+    drawJoystick();
 }
 
-function resetInner(){
-  // center it
-  joyInner.style.left = (joyRect.width/2 - joyInner.offsetWidth/2) + 'px';
-  joyInner.style.top  = (joyRect.height/2 - joyInner.offsetHeight/2) + 'px';
-  joystickVX = 0; joystickVY = 0;
+function loop(){
+    update();
+    draw();
+    requestAnimationFrame(loop);
 }
 
-// Touch handlers
-joyOuter.addEventListener('touchstart', ev => {
-  ev.preventDefault();
-  refreshJoyRect();
-  joystickActive = true;
-  const t = ev.touches[0];
-  const localX = t.clientX - joyRect.left;
-  const localY = t.clientY - joyRect.top;
-  setInnerPos(localX, localY);
-});
-
-joyOuter.addEventListener('touchmove', ev => {
-  ev.preventDefault();
-  const t = ev.touches[0];
-  const localX = t.clientX - joyRect.left;
-  const localY = t.clientY - joyRect.top;
-  setInnerPos(localX, localY);
-});
-
-joyOuter.addEventListener('touchend', ev => {
-  ev.preventDefault();
-  joystickActive = false;
-  resetInner();
-});
-
-// initialize inner center
-refreshJoyRect();
-resetInner();
-
-/* -----------------------
-   Spawn loop to ensure objects spawn (kept same)
--------------------------*/
-function spawnPeriodic(){
-  // keep spawning occasionally so the rest of code works the same
-  spawnShape();
-  setTimeout(spawnPeriodic, 1200); // spawns independent of frame loop too
-}
-spawnPeriodic();
-
-/* Start paused until user presses Start */
+loop();
 </script>
 </body>
 </html>
