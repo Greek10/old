@@ -402,6 +402,55 @@
     transition: width 0.15s ease-out, background 0.15s ease-out;
   }
 
+  #resonanceMeter {
+    position: absolute;
+    top: 52px;
+    right: 12px;
+    width: 220px;
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    background: rgba(5,8,20,0.75);
+    border: 1px solid rgba(255,255,255,0.22);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.65);
+    font-size: 12px;
+    z-index: 10;
+  }
+  #resonanceMeter.charged {
+    border-color: rgba(79,140,255,0.7);
+    box-shadow: 0 0 18px rgba(79,140,255,0.4);
+  }
+  #resonanceHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  #resonanceTrack {
+    position: relative;
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    overflow: hidden;
+  }
+  #resonanceFill {
+    position: absolute;
+    inset: 0;
+    width: 0%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, rgba(79,140,255,0.3), rgba(120,240,255,0.9));
+    box-shadow: 0 0 12px rgba(79,140,255,0.4);
+    transition: width 0.2s ease-out;
+  }
+  #resonanceText {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
   /* Ability Bar with 4 slots */
   #abilityBarWrapper {
     position: absolute;
@@ -557,6 +606,12 @@
     <li>Barrier – Reduces damage taken for a short time.</li>
     <li>Speed Boost – Temporary movement speed increase.</li>
     <li>Cleanse – Clears all bullets on screen.</li>
+    <li>Phase Blink – Instant short-range teleport.</li>
+    <li>Guardian Turret – Deploy an auto-firing helper.</li>
+    <li>Orbitals – Spinning shards block shots.</li>
+    <li>Gravity Well – Pulls and slows anything caught inside.</li>
+    <li>Arc Storm – Expanding lightning ring that erases hazards.</li>
+    <li>Nano Swarm – Lingering field that dissolves enemies.</li>
   </ul>
 </div>
 
@@ -566,8 +621,9 @@
   <h2>Updates</h2>
   <ul>
     <li>Ability loadouts: pick 4 abilities before each run.</li>
-    <li>New enemies: circle dash trap, multi-pellet node, dash blocker, beam object, <b>saw orbs</b>, and <b>laser grids</b>.</li>
+    <li>New enemies: dash traps, pellet nodes, saw orbs, laser grids, meteor shards, blade runners, emitter pods, seeker swarms, vortex eyes, and pulse mines.</li>
     <li>Dash is now a core move (B / dash button) with no cooldown and a revamped trail effect.</li>
+    <li>Resonance mechanic: fill the meter by surviving & dashing to auto-trigger an Echo Burst that slows the arena.</li>
     <li>2X Speed mode: faster player & faster game.</li>
     <li>Spin lasers nerfed: slower sweep.</li>
   </ul>
@@ -596,6 +652,17 @@
   <div id="healthTrack">
     <div id="healthFill"></div>
   </div>
+</div>
+
+<div id="resonanceMeter">
+  <div id="resonanceHeader">
+    <span>Resonance</span>
+    <span id="resonancePercent">0%</span>
+  </div>
+  <div id="resonanceTrack">
+    <div id="resonanceFill"></div>
+  </div>
+  <div id="resonanceText">Survive and dash to build Echo energy.</div>
 </div>
 
 <!-- Ability Bar with 4 slots -->
@@ -679,6 +746,10 @@ const summaryBadge = document.getElementById('summaryBadge');
 const summaryTip = document.getElementById('summaryTip');
 const playAgainBtn = document.getElementById('playAgainBtn');
 const closeSummaryBtn = document.getElementById('closeSummaryBtn');
+const resonanceMeter = document.getElementById('resonanceMeter');
+const resonanceFill = document.getElementById('resonanceFill');
+const resonanceText = document.getElementById('resonanceText');
+const resonancePercent = document.getElementById('resonancePercent');
 
 infoBtn.addEventListener('click', () => {
   document.getElementById('infoPanel').style.display = 'block';
@@ -825,6 +896,47 @@ let modeConfig = MODES.normal;
 
 refreshBestCallout();
 
+/* --------- Resonance mechanic --------- */
+const RESONANCE_MAX = 100;
+let resonance = 0;
+let resonanceBurstTime = 0;
+let resonancePulseTime = 0;
+
+function updateResonanceBar(){
+  if(!resonanceFill) return;
+  const pct = Math.min(resonance / RESONANCE_MAX, 1);
+  resonanceFill.style.width = (pct*100) + '%';
+  if(resonancePercent){
+    resonancePercent.textContent = Math.round(pct*100) + '%';
+  }
+  if(resonanceMeter){
+    const charged = resonanceBurstTime > 0 || pct >= 0.95;
+    resonanceMeter.classList.toggle('charged', charged);
+  }
+}
+
+function gainResonance(amount){
+  if(resonanceBurstTime > 0) return;
+  resonance = Math.min(RESONANCE_MAX, resonance + amount);
+  updateResonanceBar();
+  if(resonance >= RESONANCE_MAX){
+    triggerResonanceBurst();
+  }
+}
+
+function triggerResonanceBurst(){
+  resonance = 0;
+  resonanceBurstTime = 5*60;
+  resonancePulseTime = 36;
+  if(resonanceText) resonanceText.textContent = 'Echo Burst active!';
+  player.barrierTime = Math.max(player.barrierTime, 4*60);
+  player.speedBoostTime = Math.max(player.speedBoostTime, 4*60);
+  pellets = pellets.filter((_, idx) => idx % 2 === 0);
+  updateResonanceBar();
+}
+
+updateResonanceBar();
+
 /* --------- Ability definitions & loadout --------- */
 const ALL_ABILITIES = {
   shield:   { name:'Shield',      desc:'Temporary invulnerability.' },
@@ -836,12 +948,19 @@ const ALL_ABILITIES = {
   megaHeal: { name:'Mega Heal',   desc:'Instantly restore a chunk of HP.' },
   barrier:  { name:'Barrier',     desc:'Temporary damage reduction.' },
   speed:    { name:'Speed Boost', desc:'Move faster for a bit.' },
-  cleanse:  { name:'Cleanse',     desc:'Clears all bullets on screen.' }
+  cleanse:  { name:'Cleanse',     desc:'Clears all bullets on screen.' },
+  blink:    { name:'Phase Blink', desc:'Instant directional teleport.' },
+  turret:   { name:'Guardian Turret', desc:'Deploys an auto turret that snipes threats.' },
+  orbitals: { name:'Orbitals',    desc:'Spinning shards block and shred nearby hazards.' },
+  gravity:  { name:'Gravity Well',desc:'Anchors a singularity that drags enemies inward.' },
+  arc:      { name:'Arc Storm',   desc:'Fires an expanding lightning ring.' },
+  nano:     { name:'Nano Swarm',  desc:'Lingering nanites erode anything inside.' }
 };
 
 const abilities = {
   shield:0, slow:0, shockwave:0, freeze:0, decoy:0, regen:0,
-  megaHeal:0, barrier:0, speed:0, cleanse:0
+  megaHeal:0, barrier:0, speed:0, cleanse:0,
+  blink:0, turret:0, orbitals:0, gravity:0, arc:0, nano:0
 };
 const abilityMax = {
   shield:   45*60,
@@ -853,7 +972,13 @@ const abilityMax = {
   megaHeal: 25*60,
   barrier:  25*60,
   speed:    18*60,
-  cleanse:  20*60
+  cleanse:  20*60,
+  blink:    20*60,
+  turret:   35*60,
+  orbitals: 30*60,
+  gravity:  32*60,
+  arc:      25*60,
+  nano:     30*60
 };
 
 let selectedAbilityIds = [];
@@ -954,6 +1079,18 @@ let beamObjects = [];
 let sawOrbs = [];
 let laserGrids = [];
 let dashTrails = [];
+let meteorShards = [];
+let pulseMines = [];
+let bladeRunners = [];
+let emitterPods = [];
+let seekerMinis = [];
+let vortexEyes = [];
+let turrets = [];
+let guardianShots = [];
+let orbitals = [];
+let gravityWells = [];
+let arcBursts = [];
+let nanoFields = [];
 let spawnTimer = 0;
 let animationId = null;
 
@@ -1001,6 +1138,7 @@ let dashFlashTime = 0;
 let megaHealFlashTime = 0;
 let cleanseWaveTime = 0;
 let cleanseWaveRadius = 0;
+let blinkFlashTime = 0;
 
 /* dash lock from dash blocker */
 let dashDisabledTime = 0;
@@ -1275,6 +1413,220 @@ class LaserGrid {
   }
 }
 
+class MeteorShard {
+  constructor(){
+    const edge = Math.floor(Math.random()*4);
+    if(edge === 0){ this.x = Math.random()*canvas.width; this.y = -80; }
+    else if(edge === 1){ this.x = canvas.width + 80; this.y = Math.random()*canvas.height; }
+    else if(edge === 2){ this.x = Math.random()*canvas.width; this.y = canvas.height + 80; }
+    else { this.x = -80; this.y = Math.random()*canvas.height; }
+    const tx = player.x + (Math.random()*200 - 100);
+    const ty = player.y + (Math.random()*200 - 100);
+    const dx = tx - this.x;
+    const dy = ty - this.y;
+    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+    const speed = 6 + Math.random()*2.5;
+    this.vx = dx/dist * speed;
+    this.vy = dy/dist * speed;
+    this.life = 7*60;
+    this.size = 12;
+  }
+  update(scale){
+    this.x += this.vx * scale * 1.2;
+    this.y += this.vy * scale * 1.2;
+    this.life--;
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    const angle = Math.atan2(this.vy, this.vx);
+    ctx.rotate(angle);
+    const grad = ctx.createLinearGradient(-30,0,10,0);
+    grad.addColorStop(0,'rgba(255,120,80,0)');
+    grad.addColorStop(1,'rgba(255,200,160,0.9)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(-30,-6);
+    ctx.lineTo(10,0);
+    ctx.lineTo(-30,6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+class PulseMine {
+  constructor(x,y){
+    this.x = x;
+    this.y = y;
+    this.timer = 90 + Math.random()*60;
+    this.radius = 0;
+    this.exploding = false;
+    this.life = 28;
+  }
+  update(){
+    if(!this.exploding){
+      this.timer--;
+      ctx.strokeStyle = 'rgba(255,200,120,0.7)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8,8]);
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, 18 + (this.timer % 12), 0, Math.PI*2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(255,160,80,0.3)';
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, 10, 0, Math.PI*2);
+      ctx.fill();
+      if(this.timer <= 0){
+        this.exploding = true;
+        this.radius = 20;
+      }
+      return true;
+    }
+    this.radius += 12;
+    this.life--;
+    ctx.strokeStyle = 'rgba(255,220,150,0.85)';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
+    ctx.stroke();
+    return this.life > 0;
+  }
+}
+
+class BladeRunner {
+  constructor(){
+    const edge = Math.floor(Math.random()*4);
+    if(edge === 0){ this.x = Math.random()*canvas.width; this.y = -60; }
+    else if(edge === 1){ this.x = canvas.width + 60; this.y = Math.random()*canvas.height; }
+    else if(edge === 2){ this.x = Math.random()*canvas.width; this.y = canvas.height + 60; }
+    else { this.x = -60; this.y = Math.random()*canvas.height; }
+    this.state = 'aim';
+    this.aimTime = 45;
+    this.dashTime = 22;
+    this.cooldown = 30;
+    this.vx = 0;
+    this.vy = 0;
+    this.angle = 0;
+  }
+  update(scale){
+    if(this.state === 'aim'){
+      this.angle = Math.atan2(player.y - this.y, player.x - this.x);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,100,120,0.5)';
+      ctx.setLineDash([12,8]);
+      ctx.beginPath();
+      ctx.moveTo(this.x, this.y);
+      ctx.lineTo(this.x + Math.cos(this.angle)*260, this.y + Math.sin(this.angle)*260);
+      ctx.stroke();
+      ctx.restore();
+      this.aimTime--;
+      if(this.aimTime <= 0){
+        this.state = 'dash';
+        this.vx = Math.cos(this.angle) * 9;
+        this.vy = Math.sin(this.angle) * 9;
+      }
+    } else if(this.state === 'dash'){
+      this.x += this.vx * scale * 1.6;
+      this.y += this.vy * scale * 1.6;
+      this.dashTime--;
+      ctx.fillStyle = 'rgba(255,80,120,0.8)';
+      ctx.fillRect(this.x-10,this.y-10,20,20);
+      if(this.dashTime <= 0){
+        this.state = 'cooldown';
+        this.cooldown = 35;
+        this.aimTime = 40;
+      }
+    } else {
+      ctx.fillStyle = 'rgba(255,80,120,0.6)';
+      ctx.fillRect(this.x-8,this.y-8,16,16);
+      this.cooldown--;
+      if(this.cooldown <= 0){
+        this.state = 'aim';
+      }
+    }
+  }
+}
+
+class EmitterPod {
+  constructor(x,y){
+    this.x = x;
+    this.y = y;
+    this.timer = 8*60;
+    this.burst = 40;
+  }
+  update(){
+    this.timer--;
+    this.burst--;
+    ctx.fillStyle = 'rgba(120,180,255,0.8)';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, 14, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.setLineDash([4,4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if(this.burst <= 0){
+      this.burst = 50;
+      const speed = modeConfig.pelletSpeed * 0.9;
+      for(let i=0;i<8;i++){
+        const a = (Math.PI*2*i)/8;
+        pellets.push(new Pellet(this.x, this.y, Math.cos(a)*speed, Math.sin(a)*speed, 'rgba(180,220,255,0.9)'));
+      }
+    }
+    return this.timer > 0;
+  }
+}
+
+class SeekerMini {
+  constructor(x,y){
+    this.x = x;
+    this.y = y;
+    this.speed = 2.8 + Math.random()*0.8;
+    this.life = 6*60;
+    this.size = 6;
+  }
+  update(scale){
+    this.life--;
+    const target = decoy.active ? decoy : player;
+    const dx = target.x - this.x;
+    const dy = target.y - this.y;
+    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+    this.x += (dx/dist) * this.speed * scale * 1.3;
+    this.y += (dy/dist) * this.speed * scale * 1.3;
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+class VortexEye {
+  constructor(){
+    this.x = Math.random()*canvas.width;
+    this.y = Math.random()*canvas.height;
+    this.radius = 160;
+    this.timer = 7*60;
+    this.angle = 0;
+  }
+  update(scale){
+    this.timer--;
+    this.angle += 0.04 * scale;
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.angle);
+    ctx.strokeStyle = 'rgba(160,120,255,0.4)';
+    ctx.beginPath();
+    ctx.arc(0,0,this.radius,0,Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = 'rgba(140,100,255,0.5)';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, 18, 0, Math.PI*2);
+    ctx.fill();
+    return this.timer > 0;
+  }
+}
+
 /* --------- Spawn functions --------- */
 function randomColor(){
   const r = Math.floor(Math.random()*200+55);
@@ -1351,6 +1703,37 @@ function spawnLaserGrid(){
   laserGrids.push(new LaserGrid());
 }
 
+function spawnMeteorShard(){
+  meteorShards.push(new MeteorShard());
+}
+function spawnPulseMine(){
+  const x = Math.random()*canvas.width;
+  const y = Math.random()*canvas.height;
+  pulseMines.push(new PulseMine(x,y));
+}
+function spawnBladeRunner(){
+  bladeRunners.push(new BladeRunner());
+}
+function spawnEmitterPod(){
+  const x = Math.random()*canvas.width;
+  const y = Math.random()*canvas.height;
+  emitterPods.push(new EmitterPod(x,y));
+}
+function spawnSeekerSwarm(){
+  const edge = Math.floor(Math.random()*4);
+  let baseX, baseY;
+  if(edge === 0){ baseX = Math.random()*canvas.width; baseY = -30; }
+  else if(edge === 1){ baseX = canvas.width + 30; baseY = Math.random()*canvas.height; }
+  else if(edge === 2){ baseX = Math.random()*canvas.width; baseY = canvas.height + 30; }
+  else { baseX = -30; baseY = Math.random()*canvas.height; }
+  for(let i=0;i<5;i++){
+    seekerMinis.push(new SeekerMini(baseX + Math.random()*20-10, baseY + Math.random()*20-10));
+  }
+}
+function spawnVortexEye(){
+  vortexEyes.push(new VortexEye());
+}
+
 /* --------- Abilities logic ---------- */
 function useShield(){
   if(abilities.shield > 0) return;
@@ -1423,6 +1806,54 @@ function useCleanse(){
   cleanseWaveRadius = 30;
   abilities.cleanse = abilityMax.cleanse;
 }
+function useBlink(){
+  if(abilities.blink > 0) return;
+  const dashDist = 220;
+  let nx = lastMoveDirX;
+  let ny = lastMoveDirY;
+  const mag = Math.sqrt(nx*nx + ny*ny);
+  if(mag <= 0.01) return;
+  nx /= mag; ny /= mag;
+  player.x += nx * dashDist;
+  player.y += ny * dashDist;
+  player.x = Math.max(player.size/2, Math.min(canvas.width - player.size/2, player.x));
+  player.y = Math.max(player.size/2, Math.min(canvas.height - player.size/2, player.y));
+  blinkFlashTime = 18;
+  abilities.blink = abilityMax.blink;
+  gainResonance(4);
+}
+function useTurret(){
+  if(abilities.turret > 0) return;
+  turrets.push({ x: player.x, y: player.y, life: 9*60, fire: 0 });
+  abilities.turret = abilityMax.turret;
+  gainResonance(3);
+}
+function useOrbitals(){
+  if(abilities.orbitals > 0) return;
+  for(let i=0;i<4;i++){
+    orbitals.push({ angle: (Math.PI*2/4)*i, life: 11*60, distance: 60, speed: 0.08 + i*0.01 });
+  }
+  abilities.orbitals = abilityMax.orbitals;
+  gainResonance(2.5);
+}
+function useGravityWell(){
+  if(abilities.gravity > 0) return;
+  gravityWells.push({ x: player.x, y: player.y, radius: 240, life: 7*60, strength: 1.6 });
+  abilities.gravity = abilityMax.gravity;
+  gainResonance(2.5);
+}
+function useArcStorm(){
+  if(abilities.arc > 0) return;
+  arcBursts.push({ radius: 20, life: 80, x: player.x, y: player.y });
+  abilities.arc = abilityMax.arc;
+  gainResonance(3);
+}
+function useNanoSwarm(){
+  if(abilities.nano > 0) return;
+  nanoFields.push({ x: player.x, y: player.y, radius: 220, life: 9*60 });
+  abilities.nano = abilityMax.nano;
+  gainResonance(3);
+}
 
 function activateAbility(id){
   if(!id) return;
@@ -1438,7 +1869,59 @@ function activateAbility(id){
     case 'barrier':   useBarrier(); break;
     case 'speed':     useSpeedBoost(); break;
     case 'cleanse':   useCleanse(); break;
+    case 'blink':     useBlink(); break;
+    case 'turret':    useTurret(); break;
+    case 'orbitals':  useOrbitals(); break;
+    case 'gravity':   useGravityWell(); break;
+    case 'arc':       useArcStorm(); break;
+    case 'nano':      useNanoSwarm(); break;
   }
+}
+
+function findClosestThreat(x,y){
+  let best = null;
+  let bestDist = Infinity;
+  const consider = (list, radiusGetter) => {
+    for(let i=0;i<list.length;i++){
+      const obj = list[i];
+      const dx = obj.x - x;
+      const dy = obj.y - y;
+      const dist = dx*dx + dy*dy;
+      if(dist < bestDist){
+        bestDist = dist;
+        best = { x: obj.x, y: obj.y, radius: typeof radiusGetter === 'function' ? radiusGetter(obj) : radiusGetter };
+      }
+    }
+  };
+  consider(shapes, s => s.size);
+  consider(sawOrbs, o => o.size);
+  consider(meteorShards, () => 10);
+  consider(seekerMinis, s => s.size);
+  consider(pellets, p => p.size);
+  return best;
+}
+
+function destroyClosestThreat(x,y,radius){
+  const arrays = [
+    { list: shapes, size: s => s.size },
+    { list: sawOrbs, size: s => s.size },
+    { list: meteorShards, size: () => 10 },
+    { list: seekerMinis, size: s => s.size },
+    { list: pellets, size: p => p.size }
+  ];
+  for(const set of arrays){
+    for(let i=set.list.length-1;i>=0;i--){
+      const obj = set.list[i];
+      const size = set.size(obj) || 6;
+      const dx = obj.x - x;
+      const dy = obj.y - y;
+      if(dx*dx + dy*dy <= Math.pow(size + radius,2)){
+        set.list.splice(i,1);
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 /* UI clicks for slots */
@@ -1558,6 +2041,7 @@ function tryDash(){
   if(player.y + player.size/2 > canvas.height) player.y = canvas.height - player.size/2;
 
   dashFlashTime = 12;
+  gainResonance(3);
 }
 
 /* --------- Movement & health --------- */
@@ -1607,6 +2091,11 @@ function applyDamage(base){
   if(player.shieldActive) return;
   let dmg = base * modeConfig.damageMultiplier;
   if(player.barrierTime > 0) dmg *= 0.5;
+  resonance = 0;
+  resonanceBurstTime = 0;
+  resonancePulseTime = 0;
+  if(resonanceText) resonanceText.textContent = 'Interrupted! Build it back up.';
+  updateResonanceBar();
   player.health -= dmg;
   if(player.health <= 0){
     player.health = 0;
@@ -1670,6 +2159,18 @@ function resetGame(){
   sawOrbs = [];
   laserGrids = [];
   dashTrails = [];
+  meteorShards = [];
+  pulseMines = [];
+  bladeRunners = [];
+  emitterPods = [];
+  seekerMinis = [];
+  vortexEyes = [];
+  turrets = [];
+  guardianShots = [];
+  orbitals = [];
+  gravityWells = [];
+  arcBursts = [];
+  nanoFields = [];
   player.x = canvas.width/2;
   player.y = canvas.height/2;
   player.vx = player.vy = 0;
@@ -1689,6 +2190,11 @@ function resetGame(){
   cleanseWaveTime = 0;
   cleanseWaveRadius = 0;
   dashDisabledTime = 0;
+  resonance = 0;
+  resonanceBurstTime = 0;
+  resonancePulseTime = 0;
+  if(resonanceText) resonanceText.textContent = 'Survive and dash to build Echo energy.';
+  updateResonanceBar();
   elapsedMs = 0;
   lastFrameTime = null;
   updateTimerLabel();
@@ -1719,8 +2225,23 @@ function animate(){
   elapsedMs += dt;
   updateTimerLabel();
 
+  if(resonanceBurstTime > 0){
+    resonanceBurstTime--;
+    if(resonanceText){
+      const secondsLeft = Math.max(1, Math.ceil(resonanceBurstTime/60));
+      resonanceText.textContent = `Echo Burst active – ${secondsLeft}s of slow time.`;
+    }
+    if(resonanceBurstTime <= 0 && resonanceText){
+      resonanceText.textContent = 'Survive and dash to build Echo energy.';
+    }
+  } else {
+    gainResonance(0.08);
+  }
+  if(resonancePulseTime > 0) resonancePulseTime--;
+
   const baseSpeedScale = getSpeedScale();
-  const enemySpeedScale = player.freezeTime > 0 ? 0 : baseSpeedScale;
+  const resonanceSlow = resonanceBurstTime > 0 ? 0.7 : 1;
+  const enemySpeedScale = player.freezeTime > 0 ? 0 : baseSpeedScale * resonanceSlow;
 
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
@@ -1736,6 +2257,10 @@ function animate(){
   }
   if(player.freezeTime > 0){
     ctx.fillStyle = 'rgba(120,200,255,0.18)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
+  if(resonanceBurstTime > 0){
+    ctx.fillStyle = 'rgba(90,140,255,0.12)';
     ctx.fillRect(0,0,canvas.width,canvas.height);
   }
 
@@ -1761,6 +2286,12 @@ function animate(){
     if(Math.random() < 0.04) spawnBeamObject();
     if(Math.random() < 0.05) spawnSawOrb();
     if(Math.random() < 0.025) spawnLaserGrid();
+    if(Math.random() < 0.06) spawnMeteorShard();
+    if(Math.random() < 0.04) spawnPulseMine();
+    if(Math.random() < 0.035) spawnBladeRunner();
+    if(Math.random() < 0.05) spawnEmitterPod();
+    if(Math.random() < 0.05) spawnSeekerSwarm();
+    if(Math.random() < 0.03) spawnVortexEye();
     spawnTimer = modeConfig.spawnInterval;
   }
 
@@ -1875,6 +2406,107 @@ function animate(){
     }
   }
 
+  // meteor shards
+  for(let i=meteorShards.length-1;i>=0;i--){
+    const shard = meteorShards[i];
+    shard.update(enemySpeedScale);
+    if(shard.life <= 0 || shard.x < -200 || shard.x > canvas.width+200 || shard.y < -200 || shard.y > canvas.height+200){
+      meteorShards.splice(i,1);
+      continue;
+    }
+    const dx = shard.x - player.x;
+    const dy = shard.y - player.y;
+    if(dx*dx + dy*dy < Math.pow(player.size/2 + shard.size,2)){
+      applyDamage(7);
+      meteorShards.splice(i,1);
+    }
+  }
+
+  // pulse mines
+  for(let i=pulseMines.length-1;i>=0;i--){
+    const mine = pulseMines[i];
+    const alive = mine.update();
+    if(mine.exploding && mine.radius > 0){
+      const dx = player.x - mine.x;
+      const dy = player.y - mine.y;
+      if(dx*dx + dy*dy < Math.pow(player.size/2 + mine.radius,2)){
+        applyDamage(10);
+      }
+    }
+    if(!alive){
+      pulseMines.splice(i,1);
+    }
+  }
+
+  // blade runners
+  for(let i=bladeRunners.length-1;i>=0;i--){
+    const runner = bladeRunners[i];
+    runner.update(enemySpeedScale);
+    if(runner.state === 'dash'){
+      const dx = runner.x - player.x;
+      const dy = runner.y - player.y;
+      if(dx*dx + dy*dy < Math.pow(player.size/2 + 16,2)){
+        applyDamage(9);
+        runner.state = 'cooldown';
+        runner.cooldown = 50;
+      }
+    }
+    if(runner.x < -300 || runner.x > canvas.width+300 || runner.y < -300 || runner.y > canvas.height+300){
+      bladeRunners.splice(i,1);
+    }
+  }
+
+  // emitter pods
+  for(let i=emitterPods.length-1;i>=0;i--){
+    const pod = emitterPods[i];
+    const alive = pod.update();
+    if(!alive){
+      emitterPods.splice(i,1);
+      continue;
+    }
+    const dx = pod.x - player.x;
+    const dy = pod.y - player.y;
+    if(dx*dx + dy*dy < Math.pow(player.size/2 + 16,2)){
+      applyDamage(5);
+    }
+  }
+
+  // seeker minis
+  for(let i=seekerMinis.length-1;i>=0;i--){
+    const mini = seekerMinis[i];
+    mini.update(enemySpeedScale);
+    if(mini.life <= 0){
+      seekerMinis.splice(i,1);
+      continue;
+    }
+    const dx = mini.x - player.x;
+    const dy = mini.y - player.y;
+    if(dx*dx + dy*dy < Math.pow(player.size/2 + mini.size,2)){
+      applyDamage(4);
+      seekerMinis.splice(i,1);
+    }
+  }
+
+  // vortex eyes
+  for(let i=vortexEyes.length-1;i>=0;i--){
+    const eye = vortexEyes[i];
+    const alive = eye.update(enemySpeedScale);
+    const dx = player.x - eye.x;
+    const dy = player.y - eye.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if(dist < eye.radius){
+      const safe = dist || 1;
+      player.vx += (dx/safe) * 0.1;
+      player.vy += (dy/safe) * 0.1;
+      if(dist < 40){
+        applyDamage(3);
+      }
+    }
+    if(!alive){
+      vortexEyes.splice(i,1);
+    }
+  }
+
   // shapes
   for(let i=shapes.length-1;i>=0;i--){
     const s = shapes[i];
@@ -1933,6 +2565,159 @@ function animate(){
     }
     if(p.x<-40||p.x>canvas.width+40||p.y<-40||p.y>canvas.height+40){
       pellets.splice(i,1);
+    }
+  }
+
+  // turrets & guardian shots
+  for(let i=turrets.length-1;i>=0;i--){
+    const turret = turrets[i];
+    turret.life--;
+    turret.fire--;
+    ctx.save();
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = 'rgba(80,140,255,0.8)';
+    ctx.fillStyle = 'rgba(60,120,255,0.9)';
+    ctx.beginPath();
+    ctx.arc(turret.x, turret.y, 12, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+    if(turret.fire <= 0){
+      const target = findClosestThreat(turret.x, turret.y);
+      if(target){
+        const angle = Math.atan2(target.y - turret.y, target.x - turret.x);
+        guardianShots.push({ x: turret.x, y: turret.y, vx: Math.cos(angle)*11, vy: Math.sin(angle)*11, life: 70 });
+        turret.fire = 20;
+      }
+    }
+    if(turret.life <= 0) turrets.splice(i,1);
+  }
+  for(let i=guardianShots.length-1;i>=0;i--){
+    const shot = guardianShots[i];
+    shot.x += shot.vx;
+    shot.y += shot.vy;
+    shot.life--;
+    ctx.strokeStyle = 'rgba(140,220,255,0.9)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(shot.x - shot.vx*0.4, shot.y - shot.vy*0.4);
+    ctx.lineTo(shot.x, shot.y);
+    ctx.stroke();
+    if(destroyClosestThreat(shot.x, shot.y, 6)){
+      guardianShots.splice(i,1);
+      continue;
+    }
+    if(shot.life <= 0 || shot.x<-100 || shot.x>canvas.width+100 || shot.y<-100 || shot.y>canvas.height+100){
+      guardianShots.splice(i,1);
+    }
+  }
+
+  // orbitals
+  for(let i=orbitals.length-1;i>=0;i--){
+    const orb = orbitals[i];
+    orb.life--;
+    orb.angle += orb.speed;
+    const ox = player.x + Math.cos(orb.angle)*orb.distance;
+    const oy = player.y + Math.sin(orb.angle)*orb.distance;
+    ctx.fillStyle = 'rgba(200,240,255,0.9)';
+    ctx.beginPath();
+    ctx.arc(ox, oy, 8, 0, Math.PI*2);
+    ctx.fill();
+    destroyClosestThreat(ox, oy, 10);
+    if(orb.life <= 0) orbitals.splice(i,1);
+  }
+
+  // gravity wells
+  for(let i=gravityWells.length-1;i>=0;i--){
+    const well = gravityWells[i];
+    well.life--;
+    if(well.radius > 120) well.radius -= 0.3;
+    ctx.strokeStyle = 'rgba(100,140,255,0.4)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(well.x, well.y, well.radius, 0, Math.PI*2);
+    ctx.stroke();
+    const pull = (obj, amount) => {
+      const dx = well.x - obj.x;
+      const dy = well.y - obj.y;
+      const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+      if(dist < well.radius){
+        const strength = well.strength * (1 - dist/well.radius);
+        obj.x += (dx/dist) * strength * amount;
+        obj.y += (dy/dist) * strength * amount;
+      }
+      if(dist < 16){
+        return true;
+      }
+      return false;
+    };
+    shapes = shapes.filter(s => !pull(s, 0.4));
+    pellets = pellets.filter(p => !pull(p, 0.2));
+    meteorShards = meteorShards.filter(m => !pull(m, 0.3));
+    seekerMinis = seekerMinis.filter(m => !pull(m, 0.5));
+    if(well.life <= 0){
+      gravityWells.splice(i,1);
+    }
+  }
+
+  // arc bursts
+  for(let i=arcBursts.length-1;i>=0;i--){
+    const burst = arcBursts[i];
+    burst.life--;
+    burst.radius += 16;
+    ctx.strokeStyle = 'rgba(160,220,255,0.8)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(burst.x, burst.y, burst.radius, 0, Math.PI*2);
+    ctx.stroke();
+    const clearList = (list, sizeGetter) => {
+      for(let j=list.length-1;j>=0;j--){
+        const obj = list[j];
+        const size = sizeGetter(obj);
+        const dx = obj.x - burst.x;
+        const dy = obj.y - burst.y;
+        if(Math.sqrt(dx*dx + dy*dy) < burst.radius + size){
+          list.splice(j,1);
+        }
+      }
+    };
+    clearList(shapes, s => s.size);
+    clearList(pellets, p => p.size);
+    clearList(sawOrbs, s => s.size);
+    clearList(seekerMinis, s => s.size);
+    if(burst.life <= 0 || burst.radius > Math.max(canvas.width, canvas.height)){
+      arcBursts.splice(i,1);
+    }
+  }
+
+  // nano fields
+  for(let i=nanoFields.length-1;i>=0;i--){
+    const field = nanoFields[i];
+    field.life--;
+    field.radius = Math.max(40, field.radius - 0.4);
+    ctx.fillStyle = 'rgba(120,255,200,0.06)';
+    ctx.beginPath();
+    ctx.arc(field.x, field.y, field.radius, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(120,255,200,0.4)';
+    ctx.stroke();
+    const vaporize = (list, sizeGetter) => {
+      for(let j=list.length-1;j>=0;j--){
+        const obj = list[j];
+        const size = sizeGetter(obj);
+        const dx = obj.x - field.x;
+        const dy = obj.y - field.y;
+        if(dx*dx + dy*dy < Math.pow(field.radius + size,2)){
+          list.splice(j,1);
+        }
+      }
+    };
+    vaporize(shapes, s => s.size);
+    vaporize(pellets, p => p.size);
+    vaporize(sawOrbs, s => s.size);
+    vaporize(meteorShards, () => 10);
+    vaporize(seekerMinis, s => s.size);
+    if(field.life <= 0){
+      nanoFields.splice(i,1);
     }
   }
 
@@ -2032,6 +2817,21 @@ function animate(){
     ctx.fillRect(player.x - player.size, player.y - player.size, player.size*2, player.size*2);
     ctx.globalAlpha = 1;
   }
+  if(blinkFlashTime > 0){
+    blinkFlashTime--;
+    ctx.save();
+    ctx.globalAlpha = blinkFlashTime/18;
+    ctx.strokeStyle = 'rgba(120,220,255,0.8)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.size*1.8, 0, Math.PI*2);
+    ctx.moveTo(player.x - player.size*2, player.y);
+    ctx.lineTo(player.x + player.size*2, player.y);
+    ctx.moveTo(player.x, player.y - player.size*2);
+    ctx.lineTo(player.x, player.y + player.size*2);
+    ctx.stroke();
+    ctx.restore();
+  }
 
   if(megaHealFlashTime > 0){
     megaHealFlashTime--;
@@ -2047,6 +2847,14 @@ function animate(){
     ctx.lineWidth = 5;
     ctx.beginPath();
     ctx.arc(player.x, player.y, cleanseWaveRadius,0,Math.PI*2);
+    ctx.stroke();
+  }
+  if(resonancePulseTime > 0){
+    ctx.strokeStyle = `rgba(120,220,255,${resonancePulseTime/36})`;
+    ctx.lineWidth = 6;
+    const ring = player.size*2 + (36 - resonancePulseTime)*10;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, ring, 0, Math.PI*2);
     ctx.stroke();
   }
 
