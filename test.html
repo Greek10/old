@@ -330,17 +330,9 @@
     overflow: hidden;
     box-shadow: 0 10px 24px rgba(0,0,0,0.75);
   }
-  .abilityBtn span {
-    display: block;
-  }
-  .abilityName {
-    font-weight: 600;
-    font-size: 11px;
-  }
-  .abilityHint {
-    font-size: 10px;
-    color: var(--text-muted);
-  }
+  .abilityBtn span { display: block; }
+  .abilityName { font-weight: 600; font-size: 11px; }
+  .abilityHint { font-size: 10px; color: var(--text-muted); }
   .cooldownOverlay {
     position: absolute;
     bottom: 0;
@@ -352,24 +344,14 @@
     transition: width 0.1s linear;
   }
 
-  /* Dash button */
+  /* Dash button (for mobile but usable on desktop too) */
   #dashButton {
     position: absolute;
-    bottom: 90px;
-    right: 16px;
-    padding: 8px 18px;
+    right: 12px;
+    bottom: 80px;
+    z-index: 10;
+    padding: 8px 16px;
     font-size: 12px;
-    border-radius: 999px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.16), rgba(0,0,0,0.8));
-    border: 1px solid rgba(255,255,255,0.3);
-    box-shadow: 0 10px 26px rgba(0,0,0,0.8);
-    cursor: pointer;
-    z-index: 11;
-  }
-  #dashButtonLocked {
-    font-size: 10px;
-    color: #ff9cae;
-    margin-left: 6px;
   }
 
   /* Joystick */
@@ -434,11 +416,11 @@
       </div>
       <div class="mode-card" data-mode="bossRush">
         <div class="mode-name">Boss Rush</div>
-        <div class="mode-tag">Heavier hits, fewer but tougher waves.</div>
+        <div class="mode-tag">Heavier hits, tougher waves.</div>
       </div>
       <div class="mode-card" data-mode="doubleSpeed">
-        <div class="mode-name">2X Game</div>
-        <div class="mode-tag">Everything is faster &amp; deadlier.</div>
+        <div class="mode-name">2X Speed</div>
+        <div class="mode-tag">Everything is faster. Including you.</div>
       </div>
     </div>
     <div style="margin-top:12px; display:flex; gap:8px; justify-content:center;">
@@ -454,9 +436,9 @@
   <h2>Information</h2>
   <p>Controls:</p>
   <ul>
-    <li>Move: <b>WASD</b> or mobile joystick (touch anywhere to spawn joystick).</li>
-    <li>Dash: press <b>B</b> on keyboard or tap the Dash button.</li>
-    <li>Abilities: choose 4 in the loadout screen, then press <b>1–4</b> in game.</li>
+    <li>Move: <b>WASD</b> / <b>Arrow Keys</b> or mobile joystick (touch anywhere).</li>
+    <li>Dash: <b>B</b> on keyboard or Dash button on mobile.</li>
+    <li>Abilities: choose 4 in the loadout, then press <b>1–4</b> in game.</li>
   </ul>
   <p>Abilities pool (you pick 4):</p>
   <ul>
@@ -471,12 +453,6 @@
     <li>Speed Boost – Temporary movement speed increase.</li>
     <li>Cleanse – Clears all bullets on screen.</li>
   </ul>
-  <p>Special enemies:</p>
-  <ul>
-    <li>Spin Beam – Rotating center beam that hurts on contact.</li>
-    <li>Dash Blocker – Explodes; disables dash if you’re inside its radius.</li>
-    <li>Beam Core – Fires beams of pellets then explodes into a pellet burst.</li>
-  </ul>
 </div>
 
 <!-- Updates Panel -->
@@ -484,10 +460,11 @@
   <span class="closePanel" onclick="closePanel('updatesPanel')">✕</span>
   <h2>Updates</h2>
   <ul>
-    <li>Dash is now a core mechanic (key B / button), not a loadout ability.</li>
-    <li>New enemies: Dash Blocker and Beam Core.</li>
-    <li>New 2X Game mode – everything runs at double intensity.</li>
-    <li>Improved dash visuals with smear trail and flash.</li>
+    <li>Ability loadouts: pick 4 abilities before each run.</li>
+    <li>New enemies: circle dash trap, multi-pellet node, dash blocker, beam object.</li>
+    <li>Dash is now a core move (B / dash button) with no cooldown.</li>
+    <li>2X Speed mode: faster player & faster game.</li>
+    <li>Spin lasers nerfed: slower sweep.</li>
   </ul>
 </div>
 
@@ -542,11 +519,8 @@
   </div>
 </div>
 
-<!-- Dash Button -->
-<div id="dashButton">
-  Dash (B)
-  <span id="dashButtonLocked"></span>
-</div>
+<!-- Dash button -->
+<button class="glass-button" id="dashButton">Dash (B)</button>
 
 <!-- Joystick -->
 <div id="joystickOuter"><div id="joystickInner"></div></div>
@@ -566,7 +540,6 @@ const loadoutGrid = document.getElementById('loadoutGrid');
 const loadoutStatus = document.getElementById('loadoutStatus');
 const confirmLoadoutBtn = document.getElementById('confirmLoadoutBtn');
 const dashButton = document.getElementById('dashButton');
-const dashButtonLockedText = document.getElementById('dashButtonLocked');
 
 infoBtn.addEventListener('click', () => {
   document.getElementById('infoPanel').style.display = 'block';
@@ -584,7 +557,8 @@ const MODES = {
     shapeSpeed: 1.0,
     damageMultiplier: 0.6,
     beamChance: 0.03,
-    pelletChance: 0.25
+    pelletChance: 0.25,
+    playerSpeedMult: 1
   },
   normal: {
     name: 'NORMAL',
@@ -593,7 +567,8 @@ const MODES = {
     shapeSpeed: 1.3,
     damageMultiplier: 1.0,
     beamChance: 0.06,
-    pelletChance: 0.35
+    pelletChance: 0.35,
+    playerSpeedMult: 1
   },
   chaos: {
     name: 'CHAOS',
@@ -602,7 +577,8 @@ const MODES = {
     shapeSpeed: 1.7,
     damageMultiplier: 1.4,
     beamChance: 0.1,
-    pelletChance: 0.45
+    pelletChance: 0.45,
+    playerSpeedMult: 1.1
   },
   bulletHell: {
     name: 'BULLET HELL',
@@ -611,7 +587,8 @@ const MODES = {
     shapeSpeed: 1.2,
     damageMultiplier: 1.2,
     beamChance: 0.08,
-    pelletChance: 0.8
+    pelletChance: 0.8,
+    playerSpeedMult: 1
   },
   sniper: {
     name: 'SNIPER',
@@ -620,7 +597,8 @@ const MODES = {
     shapeSpeed: 1.0,
     damageMultiplier: 1.5,
     beamChance: 0.05,
-    pelletChance: 0.5
+    pelletChance: 0.5,
+    playerSpeedMult: 1
   },
   bossRush: {
     name: 'BOSS RUSH',
@@ -629,16 +607,18 @@ const MODES = {
     shapeSpeed: 1.1,
     damageMultiplier: 1.7,
     beamChance: 0.12,
-    pelletChance: 0.3
+    pelletChance: 0.3,
+    playerSpeedMult: 1
   },
   doubleSpeed: {
-    name: '2X GAME',
-    spawnInterval: 28,
-    pelletSpeed: 7.6,
-    shapeSpeed: 2.6,
-    damageMultiplier: 2.0,
-    beamChance: 0.12,
-    pelletChance: 0.7
+    name: '2X SPEED',
+    spawnInterval: 30,
+    pelletSpeed: 7.5,
+    shapeSpeed: 2.2,
+    damageMultiplier: 1.2,
+    beamChance: 0.10,
+    pelletChance: 0.55,
+    playerSpeedMult: 2
   }
 };
 
@@ -758,6 +738,8 @@ let running = false;
 let shapes = [];
 let pellets = [];
 let spinBeams = [];
+let circleTraps = [];
+let multiNodes = [];
 let dashBlockers = [];
 let beamObjects = [];
 let spawnTimer = 0;
@@ -765,14 +747,17 @@ let animationId = null;
 
 const keys = {};
 
+const BASE_PLAYER_SPEED = 0.5;
+const BASE_MAX_SPEED = 6;
+
 const player = {
   x: canvas.width/2,
   y: canvas.height/2,
   size: 40,
   color: '#4f8cff',
   vx: 0, vy: 0,
-  speed: 0.5,
-  maxSpeed: 6,
+  speed: BASE_PLAYER_SPEED,
+  maxSpeed: BASE_MAX_SPEED,
   health: 100,
   shieldActive: false,
   shieldTime: 0,
@@ -795,19 +780,18 @@ const decoy = {
 let lastMoveDirX = 1;
 let lastMoveDirY = 0;
 
-/* dash state */
-let dashCooldownFrames = 0;
-let dashLockTime = 0;
-let dashFlashTime = 0;
-
 /* timer state */
 let elapsedMs = 0;
 let lastFrameTime = null;
 
 /* extra FX timers */
+let dashFlashTime = 0;
 let megaHealFlashTime = 0;
 let cleanseWaveTime = 0;
 let cleanseWaveRadius = 0;
+
+/* dash lock from dash blocker */
+let dashDisabledTime = 0;
 
 /* --------- Entities --------- */
 class Shape {
@@ -869,7 +853,7 @@ class Pellet {
 class SpinBeam {
   constructor(){
     this.angle = Math.random()*Math.PI*2;
-    this.timer = 4*60; // frames
+    this.timer = 3*60; // nerfed duration
     this.length = Math.max(canvas.width, canvas.height)*1.4;
   }
   update(speedScale){
@@ -884,127 +868,100 @@ class SpinBeam {
     ctx.fillRect(-this.length/2, -7, this.length, 14);
     ctx.restore();
 
-    this.angle += 0.02 * speedScale; /* nerfed rotation speed */
+    this.angle += 0.02 * speedScale; // slower
     this.timer--;
   }
 }
 
-class DashBlocker {
+/* Circle Dash trap: ring around player */
+class CircleTrap {
   constructor(x,y){
     this.x = x;
     this.y = y;
-    this.radius = 22;
-    this.timer = 90;
-    this.exploded = false;
-    this.explodeRadius = 180;
-    this.life = 0;
+    this.radius = 140;
+    this.timer = 120; // frames before it collapses
   }
   update(){
-    if(!this.exploded){
-      this.timer--;
-      const t = performance.now()/260;
-      const pulse = 2 + Math.sin(t*3)*3;
-      const r = this.radius + pulse;
-      ctx.strokeStyle = 'rgba(190,120,255,0.95)';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, r, 0, Math.PI*2);
-      ctx.stroke();
-      ctx.fillStyle = 'rgba(120,80,200,0.2)';
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.radius*0.7, 0, Math.PI*2);
-      ctx.fill();
-      if(this.timer <= 0){
-        this.exploded = true;
-        this.life = 18;
-        const dx = player.x - this.x;
-        const dy = player.y - this.y;
-        if(dx*dx + dy*dy < this.explodeRadius*this.explodeRadius){
-          dashLockTime = 10*60;
-        }
-      }
-    } else {
-      this.life--;
-      const progress = 1 - this.life/18;
-      const r = this.explodeRadius*progress;
-      ctx.strokeStyle = `rgba(190,120,255,${this.life/18})`;
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, r, 0, Math.PI*2);
-      ctx.stroke();
-    }
-  }
-  isDone(){
-    return this.exploded && this.life <= 0;
+    this.timer--;
+    // draw hollow circle
+    ctx.strokeStyle = 'rgba(255,190,80,0.8)';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([10,8]);
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
 }
 
-class BeamObject {
-  constructor(x,y){
+/* Multi pellets node */
+class MultiNode {
+  constructor(x,y,color){
     this.x = x;
     this.y = y;
-    this.timer = 7*60;
-    this.fireCooldown = 0;
+    this.color = color;
+    this.timer = 5*60; // 5 seconds
+  }
+  update(){
+    this.timer--;
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, 10, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+/* Dash blocker */
+class DashBlocker {
+  constructor(x,y,color){
+    this.x = x;
+    this.y = y;
+    this.color = color;
+    this.timer = 3*60;
     this.exploded = false;
-    this.explosionLife = 0;
-    this.color = 'rgba(255,120,120,1)';
+  }
+  update(){
+    this.timer--;
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, 12, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+/* Beam object */
+class BeamObject {
+  constructor(x,y,color){
+    this.x = x;
+    this.y = y;
+    this.color = color;
+    this.timer = 7*60;
+    this.angle = 0;
   }
   update(speedScale){
-    if(!this.exploded){
-      this.timer--;
-      const t = performance.now()/300;
-      const pulse = 4 + Math.sin(t*4)*3;
-      ctx.save();
-      ctx.translate(this.x,this.y);
-      ctx.rotate(t*0.9);
-      ctx.fillStyle = 'rgba(40,10,10,0.8)';
-      ctx.beginPath();
-      ctx.arc(0,0,18,0,Math.PI*2);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(255,120,120,0.9)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(0,0,18+pulse,0,Math.PI*2);
-      ctx.stroke();
-      ctx.restore();
-
-      this.fireCooldown--;
-      if(this.fireCooldown <= 0){
-        const beams = 6;
-        const baseSpeed = modeConfig.pelletSpeed * 2.4;
-        for(let i=0;i<beams;i++){
-          const ang = (Math.PI*2/beams)*i + t*0.3;
-          const vx = Math.cos(ang)*baseSpeed;
-          const vy = Math.sin(ang)*baseSpeed;
-          pellets.push(new Pellet(this.x, this.y, vx, vy, this.color));
-        }
-        this.fireCooldown = 8;
-      }
-
-      if(this.timer <= 0){
-        this.exploded = true;
-        this.explosionLife = 18;
-        for(let i=0;i<10;i++){
-          const ang = Math.random()*Math.PI*2;
-          const speed = modeConfig.pelletSpeed*1.4;
-          const vx = Math.cos(ang)*speed;
-          const vy = Math.sin(ang)*speed;
-          pellets.push(new Pellet(this.x, this.y, vx, vy, 'rgba(255,210,130,1)'));
-        }
-      }
-    } else {
-      this.explosionLife--;
-      const progress = 1 - this.explosionLife/18;
-      const r = 160*progress;
-      ctx.strokeStyle = `rgba(255,150,120,${this.explosionLife/18})`;
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, r, 0, Math.PI*2);
-      ctx.stroke();
+    this.timer--;
+    this.angle += 0.04*speedScale;
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    const beamCount = 4;
+    for(let i=0;i<beamCount;i++){
+      const a = this.angle + i*Math.PI/2;
+      ctx.rotate(a);
+      const len = 180;
+      const grad = ctx.createLinearGradient(0,0,len,0);
+      grad.addColorStop(0,'rgba(255,255,255,0.0)');
+      grad.addColorStop(0.3,'rgba(255,255,255,0.7)');
+      grad.addColorStop(1,'rgba(255,255,255,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0,-4,len,8);
+      ctx.setTransform(1,0,0,1, this.x, this.y);
     }
-  }
-  isDone(){
-    return this.exploded && this.explosionLife <= 0;
+    ctx.restore();
+    // draw core
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, 10,0,Math.PI*2);
+    ctx.fill();
   }
 }
 
@@ -1030,7 +987,6 @@ function spawnShape(){
   if(selectedMode === 'bossRush' && Math.random() < 0.3){
     size *= 1.8;
   }
-
   shapes.push(new Shape(x,y,size,kind,randomColor()));
 }
 
@@ -1043,6 +999,32 @@ function spawnPelletsFrom(shape){
   const vx = dx/dist*speed;
   const vy = dy/dist*speed;
   pellets.push(new Pellet(shape.x, shape.y, vx, vy, shape.color));
+}
+
+/* circle trap spawner around player */
+function spawnCircleTrap(){
+  circleTraps.push(new CircleTrap(player.x, player.y));
+}
+
+/* multi node */
+function spawnMultiNode(){
+  const x = Math.random()*canvas.width;
+  const y = Math.random()*canvas.height;
+  multiNodes.push(new MultiNode(x,y, randomColor()));
+}
+
+/* dash blocker */
+function spawnDashBlocker(){
+  const x = Math.random()*canvas.width;
+  const y = Math.random()*canvas.height;
+  dashBlockers.push(new DashBlocker(x,y,'rgba(255,120,120,1)'));
+}
+
+/* beam object */
+function spawnBeamObject(){
+  const x = Math.random()*canvas.width;
+  const y = Math.random()*canvas.height;
+  beamObjects.push(new BeamObject(x,y,'rgba(180,220,255,1)'));
 }
 
 /* --------- Abilities logic ---------- */
@@ -1135,7 +1117,7 @@ function activateAbility(id){
   }
 }
 
-/* UI clicks for slots (slots map to activeAbilities) */
+/* UI clicks for slots */
 document.querySelectorAll('.abilityBtn').forEach(btn => {
   const slot = parseInt(btn.dataset.slot, 10);
   btn.addEventListener('click', () => useAbilitySlot(slot));
@@ -1161,27 +1143,7 @@ document.addEventListener('keyup', e => {
   keys[e.key.toLowerCase()] = false;
 });
 
-/* Dash function */
-function tryDash(){
-  if(dashCooldownFrames > 0) return;
-  if(dashLockTime > 0) return;
-  const mag = Math.sqrt(lastMoveDirX*lastMoveDirX + lastMoveDirY*lastMoveDirY);
-  if(mag === 0) return;
-  const dashDist = 150;
-  const nx = lastMoveDirX / mag;
-  const ny = lastMoveDirY / mag;
-
-  player.x += nx * dashDist;
-  player.y += ny * dashDist;
-  if(player.x - player.size/2 < 0) player.x = player.size/2;
-  if(player.x + player.size/2 > canvas.width) player.x = canvas.width - player.size/2;
-  if(player.y - player.size/2 < 0) player.y = player.size/2;
-  if(player.y + player.size/2 > canvas.height) player.y = canvas.height - player.size/2;
-
-  dashFlashTime = 12;
-  dashCooldownFrames = 12*60;
-}
-
+/* Dash button click */
 dashButton.addEventListener('click', () => {
   tryDash();
 });
@@ -1240,13 +1202,52 @@ function endJoystick(){
 canvas.addEventListener('touchend', ev => { ev.preventDefault(); endJoystick(); });
 canvas.addEventListener('touchcancel', ev => { ev.preventDefault(); endJoystick(); });
 
+/* --------- Dash (game function, no cooldown, can be blocked) --------- */
+function tryDash(){
+  if(dashDisabledTime > 0) return; // locked by dash blocker
+  const dashDist = 150;
+  const mag = Math.sqrt(lastMoveDirX*lastMoveDirX + lastMoveDirY*lastMoveDirY);
+  if(mag <= 0.01) return;
+  const nx = lastMoveDirX / mag;
+  const ny = lastMoveDirY / mag;
+
+  // ghost trail
+  for(let i=1;i<=3;i++){
+    const t = i/3;
+    const gx = player.x + nx * dashDist * t;
+    const gy = player.y + ny * dashDist * t;
+    setTimeout(() => {
+      ctx.save();
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = '#a9b7ff';
+      ctx.fillRect(gx - player.size/2, gy - player.size/2, player.size, player.size);
+      ctx.restore();
+    }, i*15);
+  }
+
+  player.x += nx * dashDist;
+  player.y += ny * dashDist;
+  if(player.x - player.size/2 < 0) player.x = player.size/2;
+  if(player.x + player.size/2 > canvas.width) player.x = canvas.width - player.size/2;
+  if(player.y - player.size/2 < 0) player.y = player.size/2;
+  if(player.y + player.size/2 > canvas.height) player.y = canvas.height - player.size/2;
+
+  dashFlashTime = 10;
+}
+
 /* --------- Movement & health --------- */
 function movePlayer(){
   let ax=0, ay=0;
+  // WASD
   if(keys['w']) ay -= 1;
   if(keys['s']) ay += 1;
   if(keys['a']) ax -= 1;
   if(keys['d']) ax += 1;
+  // Arrow keys
+  if(keys['arrowup']) ay -= 1;
+  if(keys['arrowdown']) ay += 1;
+  if(keys['arrowleft']) ax -= 1;
+  if(keys['arrowright']) ax += 1;
 
   const moveVecX = ax + joystickVX*10;
   const moveVecY = ay + joystickVY*10;
@@ -1258,15 +1259,15 @@ function movePlayer(){
     }
   }
 
-  let speed = player.speed;
+  let speed = player.speed * (modeConfig.playerSpeedMult || 1);
   if(player.speedBoostTime > 0) speed *= 1.8;
 
   player.vx += ax * speed + joystickVX;
   player.vy += ay * speed + joystickVY;
   player.vx *= 0.86;
   player.vy *= 0.86;
-  player.vx = Math.max(Math.min(player.vx, player.maxSpeed), -player.maxSpeed);
-  player.vy = Math.max(Math.min(player.vy, player.maxSpeed), -player.maxSpeed);
+  player.vx = Math.max(Math.min(player.vx, player.maxSpeed * (modeConfig.playerSpeedMult || 1.0)), -player.maxSpeed * (modeConfig.playerSpeedMult || 1.0));
+  player.vy = Math.max(Math.min(player.vy, player.maxSpeed * (modeConfig.playerSpeedMult || 1.0)), -player.maxSpeed * (modeConfig.playerSpeedMult || 1.0));
 
   player.x += player.vx;
   player.y += player.vy;
@@ -1333,6 +1334,8 @@ function resetGame(){
   shapes = [];
   pellets = [];
   spinBeams = [];
+  circleTraps = [];
+  multiNodes = [];
   dashBlockers = [];
   beamObjects = [];
   player.x = canvas.width/2;
@@ -1350,11 +1353,10 @@ function resetGame(){
   decoy.active = false;
   decoy.timer = 0;
   dashFlashTime = 0;
-  dashCooldownFrames = 0;
-  dashLockTime = 0;
   megaHealFlashTime = 0;
   cleanseWaveTime = 0;
   cleanseWaveRadius = 0;
+  dashDisabledTime = 0;
   elapsedMs = 0;
   lastFrameTime = null;
   updateTimerLabel();
@@ -1402,7 +1404,14 @@ function animate(){
     ctx.fillRect(0,0,canvas.width,canvas.height);
   }
 
-  if(spawnTimer-- <= 0){
+  if(dashDisabledTime > 0){
+    dashDisabledTime--;
+    ctx.fillStyle = 'rgba(255,80,80,0.18)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
+
+  spawnTimer--;
+  if(spawnTimer <= 0){
     spawnShape();
     if(Math.random() < modeConfig.pelletChance && shapes.length>0){
       const s = shapes[Math.floor(Math.random()*shapes.length)];
@@ -1411,25 +1420,86 @@ function animate(){
     if(Math.random() < modeConfig.beamChance){
       spinBeams.push(new SpinBeam());
     }
-    if(Math.random() < 0.07){
-      dashBlockers.push(new DashBlocker(
-        Math.random()*canvas.width,
-        Math.random()*canvas.height
-      ));
-    }
-    if(Math.random() < 0.06){
-      beamObjects.push(new BeamObject(
-        Math.random()*canvas.width,
-        Math.random()*canvas.height
-      ));
-    }
-    if(selectedMode === 'doubleSpeed'){
-      spawnTimer = Math.max(12, Math.floor(modeConfig.spawnInterval * 0.8));
-    } else {
-      spawnTimer = modeConfig.spawnInterval;
+    if(Math.random() < 0.06) spawnCircleTrap();
+    if(Math.random() < 0.05) spawnMultiNode();
+    if(Math.random() < 0.04) spawnDashBlocker();
+    if(Math.random() < 0.04) spawnBeamObject();
+    spawnTimer = modeConfig.spawnInterval;
+  }
+
+  // circle traps
+  for(let i=circleTraps.length-1;i>=0;i--){
+    const t = circleTraps[i];
+    t.update();
+    if(t.timer <= 0){
+      const dx = player.x - t.x;
+      const dy = player.y - t.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if(dist < t.radius){
+        applyDamage(10);
+      }
+      circleTraps.splice(i,1);
     }
   }
 
+  // multi nodes
+  for(let i=multiNodes.length-1;i>=0;i--){
+    const n = multiNodes[i];
+    n.update();
+    if(n.timer <= 0){
+      const speed = modeConfig.pelletSpeed;
+      const dirs = [
+        [1,0],[-1,0],[0,1],[0,-1],[Math.SQRT1_2,Math.SQRT1_2]
+      ];
+      dirs.forEach(d => {
+        pellets.push(new Pellet(n.x,n.y,d[0]*speed,d[1]*speed,n.color));
+        pellets.push(new Pellet(n.x,n.y,-d[0]*speed,-d[1]*speed,n.color));
+      });
+      multiNodes.splice(i,1);
+    }
+  }
+
+  // dash blockers
+  for(let i=dashBlockers.length-1;i>=0;i--){
+    const d = dashBlockers[i];
+    d.update();
+    if(d.timer === 20){
+      const radius = 150;
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(255,120,120,0.9)';
+      ctx.lineWidth = 4;
+      ctx.arc(d.x,d.y,radius,0,Math.PI*2);
+      ctx.stroke();
+      const dx = player.x - d.x;
+      const dy = player.y - d.y;
+      if(dx*dx + dy*dy <= radius*radius){
+        dashDisabledTime = 10*60;
+      }
+      dashBlockers.splice(i,1);
+    } else if(d.timer <= 0){
+      dashBlockers.splice(i,1);
+    }
+  }
+
+  // beam objects
+  for(let i=beamObjects.length-1;i>=0;i--){
+    const bo = beamObjects[i];
+    bo.update(enemySpeedScale);
+    if(bo.timer <= 0){
+      const speed = modeConfig.pelletSpeed;
+      const dirs = [];
+      for(let k=0;k<10;k++){
+        const a = (Math.PI*2*k)/10;
+        dirs.push([Math.cos(a), Math.sin(a)]);
+      }
+      dirs.forEach(d => {
+        pellets.push(new Pellet(bo.x,bo.y,d[0]*speed,d[1]*speed,bo.color));
+      });
+      beamObjects.splice(i,1);
+    }
+  }
+
+  // shapes
   for(let i=shapes.length-1;i>=0;i--){
     const s = shapes[i];
     s.update(enemySpeedScale);
@@ -1455,6 +1525,7 @@ function animate(){
     }
   }
 
+  // pellets
   for(let i=pellets.length-1;i>=0;i--){
     const p = pellets[i];
     p.update(enemySpeedScale);
@@ -1489,6 +1560,7 @@ function animate(){
     }
   }
 
+  // spin beams
   for(let i=spinBeams.length-1;i>=0;i--){
     const b = spinBeams[i];
     b.update(enemySpeedScale);
@@ -1507,32 +1579,13 @@ function animate(){
     }
   }
 
-  for(let i=dashBlockers.length-1;i>=0;i--){
-    const d = dashBlockers[i];
-    d.update();
-    if(d.isDone()){
-      dashBlockers.splice(i,1);
-    }
-  }
-
-  for(let i=beamObjects.length-1;i>=0;i--){
-    const b = beamObjects[i];
-    b.update(enemySpeedScale);
-    if(b.isDone()){
-      beamObjects.splice(i,1);
-    }
-  }
-
+  // ability timers + VFX
   if(player.shieldActive){
     player.shieldTime--;
     if(player.shieldTime <= 0) player.shieldActive = false;
   }
-  if(player.slowTime > 0){
-    player.slowTime--;
-  }
-  if(player.freezeTime > 0){
-    player.freezeTime--;
-  }
+  if(player.slowTime > 0) player.slowTime--;
+  if(player.freezeTime > 0) player.freezeTime--;
   if(player.shockwaveTime > 0){
     player.shockwaveTime--;
     player.shockwaveRadius += 18;
@@ -1559,12 +1612,8 @@ function animate(){
     ctx.stroke();
     ctx.restore();
   }
-  if(player.barrierTime > 0){
-    player.barrierTime--;
-  }
-  if(player.speedBoostTime > 0){
-    player.speedBoostTime--;
-  }
+  if(player.barrierTime > 0) player.barrierTime--;
+  if(player.speedBoostTime > 0) player.speedBoostTime--;
 
   if(decoy.active){
     decoy.timer--;
@@ -1580,24 +1629,10 @@ function animate(){
 
   if(dashFlashTime > 0){
     dashFlashTime--;
-    const alpha = dashFlashTime / 12;
-    const trailLen = 60;
-    const tx = player.x - lastMoveDirX*trailLen;
-    const ty = player.y - lastMoveDirY*trailLen;
-    const grad = ctx.createLinearGradient(tx,ty,player.x,player.y);
-    grad.addColorStop(0, `rgba(255,255,255,0)`);
-    grad.addColorStop(1, `rgba(200,230,255,${alpha})`);
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.moveTo(tx - player.size/2, ty - player.size/2);
-    ctx.lineTo(tx + player.size/2, ty - player.size/2);
-    ctx.lineTo(player.x + player.size/2, player.y + player.size/2);
-    ctx.lineTo(player.x - player.size/2, player.y + player.size/2);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
+    ctx.globalAlpha = dashFlashTime/10;
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillRect(player.x - player.size, player.y - player.size, player.size*2, player.size*2);
+    ctx.globalAlpha = 1;
   }
 
   if(megaHealFlashTime > 0){
@@ -1673,17 +1708,6 @@ function animate(){
   ctx.fillRect(player.x - player.size/2, player.y - player.size/2, player.size, player.size);
 
   movePlayer();
-
-  if(dashCooldownFrames > 0) dashCooldownFrames--;
-  if(dashLockTime > 0) dashLockTime--;
-
-  if(dashLockTime > 0){
-    dashButtonLockedText.textContent = ' (Locked)';
-  } else if(dashCooldownFrames > 0){
-    dashButtonLockedText.textContent = ' (CD)';
-  } else {
-    dashButtonLockedText.textContent = '';
-  }
 
   animationId = requestAnimationFrame(animate);
 }
