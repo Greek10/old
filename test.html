@@ -205,6 +205,11 @@
     display: none;
     z-index: 1100;
   }
+  #loadoutPanel {
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+  }
   #infoPanel {
     max-height: 85vh;
     display: none;
@@ -224,6 +229,21 @@
   .panel ul {
     padding-left: 20px;
     margin: 4px 0 0;
+  }
+  #loadoutGridWrap {
+    flex: 1;
+    max-height: 55vh;
+    min-height: 220px;
+    overflow-y: auto;
+    margin-top: 8px;
+    padding-right: 6px;
+  }
+  #loadoutGridWrap::-webkit-scrollbar {
+    width: 6px;
+  }
+  #loadoutGridWrap::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.25);
+    border-radius: 999px;
   }
   .infoTabBar {
     display: flex;
@@ -574,6 +594,78 @@
     color: var(--text-muted);
     line-height: 1.3;
   }
+  #worldEventPanel,
+  #artifactPanel {
+    position: absolute;
+    right: 12px;
+    width: 220px;
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    background: rgba(8,10,22,0.78);
+    border: 1px solid rgba(255,255,255,0.18);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.6);
+    font-size: 12px;
+    z-index: 10;
+  }
+  #worldEventPanel { top: 330px; }
+  #artifactPanel { top: 422px; }
+  #worldEventHeader,
+  #artifactHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  #worldEventName {
+    font-weight: 600;
+    font-size: 13px;
+  }
+  #worldEventDesc {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin: 4px 0 6px;
+    line-height: 1.35;
+  }
+  #worldEventQueue {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.55);
+  }
+  #worldEventPanel.active {
+    border-color: rgba(120,200,255,0.5);
+    box-shadow: 0 0 18px rgba(120,200,255,0.35);
+  }
+  #artifactPanel {
+    background: rgba(12,10,24,0.85);
+  }
+  #artifactSlots {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .artifactChip {
+    border: 1px solid rgba(255,255,255,0.16);
+    border-radius: var(--radius-md);
+    padding: 6px 8px;
+    background: rgba(255,255,255,0.03);
+  }
+  .artifactChip strong {
+    display: block;
+    font-size: 12px;
+  }
+  .artifactChip span {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  #artifactSlots .empty {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
   #focusHeader {
     display: flex;
     justify-content: space-between;
@@ -840,6 +932,7 @@
         <li><b>Starfall Salvo</b> – Meteor barrage that melts anything it touches (40s).</li>
         <li><b>Harmonic Field</b> – Stationary dome that slows and erodes hazards (38s).</li>
         <li><b>Beat Drones</b> – Twin drones orbit and fire rhythm shots (28s).</li>
+        <li><b>Solar Bloom</b> – Cascading starbursts that vaporize nearby waves (36s).</li>
       </ul>
     </div>
     <div class="infoSection" data-section="mechanics">
@@ -848,6 +941,8 @@
         <li><b>Resonance</b>: Build the meter by surviving and dashing. At 100% an Echo Burst slows the arena, trims bullets, and hands you barrier + speed buffs.</li>
         <li><b>Focus Chain</b>: Avoid damage to climb tiers that accelerate cooldowns, drip extra resonance, and add a global slow aura.</li>
         <li><b>Momentum Drive</b>: Fills very slowly while you stay in motion. Maintain movement for ~15 seconds (dashes help a little) to unleash five Overdrive pulses before it fully resets.</li>
+        <li><b>Conductor Events</b>: Global arena mutations kick off every few seconds—survive each wave to earn relic rewards and temporary rule changes.</li>
+        <li><b>Relic Archive</b>: Cleared events slot powerful relics that permanently boost the current run (speed, damage resistance, cooldowns, etc.).</li>
         <li><b>Music Rhythm</b>: Hazards, pellets, and beams only spawn on-beat. Survive the full song and the mode ends the moment the track finishes.</li>
         <li><b>Loadouts</b>: Each mode remembers your best time and expects a bespoke ability combo, so mix utility with offense.</li>
       </ul>
@@ -877,6 +972,7 @@
   <span class="closePanel" onclick="closePanel('updatesPanel')">✕</span>
   <h2>Updates</h2>
   <ul>
+    <li>The Conductor timeline now rolls world events during runs. Clear them to slot relics that permanently buff the current attempt.</li>
     <li>Ability loadouts: pick 4 abilities before each run.</li>
     <li>Focus Chain mechanic: avoid damage to tier up cooldown speed, resonance drip, and a global slow aura.</li>
     <li>Gamemodes massively expanded: Zen Marathon, Maelstrom, Minefield, Swarm, Rift Hunter, Echo Field plus retuned classics like Bullet Hell &amp; Boss Rush.</li>
@@ -891,7 +987,9 @@
   <span class="closePanel" onclick="closePanel('loadoutPanel')">✕</span>
   <h2>Choose Loadout</h2>
   <p>Select <b>exactly 4</b> abilities to bring into this run:</p>
-  <div id="loadoutGrid"></div>
+  <div id="loadoutGridWrap">
+    <div id="loadoutGrid"></div>
+  </div>
   <div id="loadoutFooter">
     <div id="loadoutStatus">Selected: 0 / 4</div>
     <button class="glass-button" id="confirmLoadoutBtn" disabled>Start Game</button>
@@ -942,6 +1040,26 @@
     <div id="momentumFill"></div>
   </div>
   <div id="momentumDetail">Stay in motion ~15s to unleash five Overdrive pulses.</div>
+</div>
+
+<div id="worldEventPanel">
+  <div id="worldEventHeader">
+    <span>Conductor</span>
+    <span id="worldEventCountdown">--s</span>
+  </div>
+  <div id="worldEventName">Awaiting signal</div>
+  <div id="worldEventDesc">World events will twist the arena mid-run.</div>
+  <div id="worldEventQueue">Upcoming: --</div>
+</div>
+
+<div id="artifactPanel">
+  <div id="artifactHeader">
+    <span>Relic Archive</span>
+    <span id="artifactCount">0/4</span>
+  </div>
+  <div id="artifactSlots">
+    <div class="empty">Clear conductor events to earn relic buffs.</div>
+  </div>
 </div>
 
 <!-- Ability Bar with 4 slots -->
@@ -1038,6 +1156,13 @@ const momentumPanel = document.getElementById('momentumPanel');
 const momentumFill = document.getElementById('momentumFill');
 const momentumStatus = document.getElementById('momentumStatus');
 const momentumDetail = document.getElementById('momentumDetail');
+const worldEventPanelEl = document.getElementById('worldEventPanel');
+const worldEventNameEl = document.getElementById('worldEventName');
+const worldEventDescEl = document.getElementById('worldEventDesc');
+const worldEventCountdownEl = document.getElementById('worldEventCountdown');
+const worldEventQueueEl = document.getElementById('worldEventQueue');
+const artifactSlotsEl = document.getElementById('artifactSlots');
+const artifactCountEl = document.getElementById('artifactCount');
 
 const infoTabs = infoPanelEl.querySelectorAll('.infoTab');
 const infoSections = infoPanelEl.querySelectorAll('.infoSection');
@@ -1082,6 +1207,329 @@ const RUN_TIPS = [
   'Maelstrom lasers telegraph before firing—slide parallel until they sweep.',
   'Music Rhythm mode is beat-locked: every hazard lands on the downbeat, so listen for the next cue before moving.'
 ];
+
+const EVENT_REST_FRAMES = 5 * 60;
+const INITIAL_EVENT_DELAY = 4 * 60;
+const MAX_ARTIFACTS = 4;
+const BASE_ARTIFACT_BONUSES = {
+  speed: 1,
+  resonanceGain: 1,
+  momentumGain: 1,
+  cooldown: 1,
+  damageTaken: 1,
+  dashDistance: 1,
+  eventHeal: 0
+};
+
+const DEFAULT_EVENT_MODIFIERS = {
+  spawnRateMult: 1,
+  pelletSpeedMult: 1,
+  shapeSpeedMult: 1,
+  playerSpeedMult: 1,
+  dashDistanceMult: 1,
+  resonanceGainMult: 1,
+  momentumGainMult: 1,
+  cooldownRate: 1,
+  hazardBoosts: {}
+};
+
+let artifactBonuses = { ...BASE_ARTIFACT_BONUSES };
+let activeArtifacts = [];
+let eventModifiers = { ...DEFAULT_EVENT_MODIFIERS };
+let conductorOnline = false;
+let worldEventQueue = [];
+let activeWorldEvent = null;
+let worldEventTimer = 0;
+let worldEventCooldown = INITIAL_EVENT_DELAY;
+
+const WORLD_EVENTS = [
+  {
+    id: 'sanctuary',
+    name: 'Sanctuary Drift',
+    desc: 'Spawn rates ease up and bullets slow while a heal pulse waits at the end.',
+    duration: 14 * 60,
+    modifiers: {
+      spawnRateMult: 1.45,
+      pelletSpeedMult: 0.8,
+      shapeSpeedMult: 0.85
+    },
+    onEnd: () => healPlayer(8)
+  },
+  {
+    id: 'stormfront',
+    name: 'Stormfront',
+    desc: 'Hazards erupt faster but cooldowns and relic drops accelerate.',
+    duration: 12 * 60,
+    modifiers: {
+      spawnRateMult: 0.65,
+      pelletSpeedMult: 1.25,
+      shapeSpeedMult: 1.2,
+      cooldownRate: 1.25,
+      hazards: { beamObject: 1.4, sawOrb: 1.3, emitterPod: 1.3 }
+    }
+  },
+  {
+    id: 'fluxbloom',
+    name: 'Flux Bloom',
+    desc: 'Momentum and resonance income spike while you move faster.',
+    duration: 11 * 60,
+    modifiers: {
+      resonanceGainMult: 1.5,
+      momentumGainMult: 1.9,
+      playerSpeedMult: 1.08
+    }
+  },
+  {
+    id: 'riftquake',
+    name: 'Rift Quake',
+    desc: 'Vortex eyes and laser grids dominate, but dashes reach farther.',
+    duration: 13 * 60,
+    modifiers: {
+      dashDistanceMult: 1.2,
+      hazards: { vortexEye: 2.2, laserGrid: 1.6, beamObject: 1.2 }
+    }
+  },
+  {
+    id: 'armada',
+    name: 'Allied Armada',
+    desc: 'A trio of auto turrets joins the fight as spawn pacing steadies.',
+    duration: 15 * 60,
+    modifiers: {
+      spawnRateMult: 0.9
+    },
+    onStart: () => {
+      for(let i=0;i<3;i++){
+        turrets.push({ x: player.x + (i-1)*80, y: player.y, life: 10*60, fire: 0 });
+      }
+    }
+  }
+];
+
+const ARTIFACT_POOL = [
+  {
+    id: 'resonant_core',
+    name: 'Resonant Core',
+    desc: '+25% resonance gain.',
+    apply: bonuses => { bonuses.resonanceGain *= 1.25; }
+  },
+  {
+    id: 'haste_coils',
+    name: 'Haste Coils',
+    desc: '+15% movement speed.',
+    apply: bonuses => { bonuses.speed *= 1.15; }
+  },
+  {
+    id: 'momentum_spindle',
+    name: 'Momentum Spindle',
+    desc: '+30% momentum gain.',
+    apply: bonuses => { bonuses.momentumGain *= 1.3; }
+  },
+  {
+    id: 'quartz_drive',
+    name: 'Quartz Drive',
+    desc: '+20% ability cooldown acceleration.',
+    apply: bonuses => { bonuses.cooldown *= 1.2; }
+  },
+  {
+    id: 'aegis_brace',
+    name: 'Aegis Brace',
+    desc: 'Take 15% less damage.',
+    apply: bonuses => { bonuses.damageTaken *= 0.85; }
+  },
+  {
+    id: 'dash_capacitor',
+    name: 'Dash Capacitor',
+    desc: '+12% dash distance.',
+    apply: bonuses => { bonuses.dashDistance *= 1.12; }
+  },
+  {
+    id: 'restorative_tonics',
+    name: 'Restorative Tonics',
+    desc: 'Heal 5 HP every time a world event ends.',
+    apply: bonuses => { bonuses.eventHeal += 5; }
+  }
+];
+
+function resetEventModifiers(){
+  eventModifiers = {
+    spawnRateMult: 1,
+    pelletSpeedMult: 1,
+    shapeSpeedMult: 1,
+    playerSpeedMult: 1,
+    dashDistanceMult: 1,
+    resonanceGainMult: 1,
+    momentumGainMult: 1,
+    cooldownRate: 1,
+    hazardBoosts: {}
+  };
+}
+
+function applyEventModifiers(mods){
+  resetEventModifiers();
+  if(!mods) return;
+  const keys = ['spawnRateMult','pelletSpeedMult','shapeSpeedMult','playerSpeedMult','dashDistanceMult','resonanceGainMult','momentumGainMult','cooldownRate'];
+  keys.forEach(key => {
+    if(mods[key] !== undefined){
+      eventModifiers[key] = mods[key];
+    }
+  });
+  if(mods.hazards){
+    eventModifiers.hazardBoosts = { ...mods.hazards };
+  }
+}
+
+function refillWorldEventQueue(){
+  const bag = [...WORLD_EVENTS];
+  while(bag.length){
+    const idx = Math.floor(Math.random() * bag.length);
+    worldEventQueue.push(bag.splice(idx,1)[0]);
+  }
+}
+
+function updateWorldEventQueueHud(){
+  if(!worldEventQueueEl) return;
+  if(!worldEventQueue.length){
+    worldEventQueueEl.textContent = 'Upcoming: reshuffling...';
+    return;
+  }
+  const preview = worldEventQueue.slice(0,3).map(e => e.name.split(' ')[0]).join(' • ');
+  worldEventQueueEl.textContent = 'Upcoming: ' + preview;
+}
+
+function updateWorldEventHud(){
+  if(!worldEventNameEl) return;
+  if(activeWorldEvent){
+    worldEventNameEl.textContent = activeWorldEvent.name;
+    worldEventDescEl.textContent = activeWorldEvent.desc;
+    if(worldEventPanelEl) worldEventPanelEl.classList.add('active');
+  } else {
+    worldEventNameEl.textContent = conductorOnline ? 'Awaiting next signal' : 'Conductor offline';
+    worldEventDescEl.textContent = conductorOnline ? 'Finish events to earn relics.' : 'Start a run to bring the Conductor online.';
+    if(worldEventPanelEl) worldEventPanelEl.classList.remove('active');
+  }
+  const countdownFrames = activeWorldEvent ? worldEventTimer : worldEventCooldown;
+  if(worldEventCountdownEl){
+    const seconds = Math.max(0, Math.ceil((countdownFrames || 0)/60));
+    worldEventCountdownEl.textContent = (activeWorldEvent ? 'Ends in ' : 'Next in ') + seconds + 's';
+  }
+  updateWorldEventQueueHud();
+}
+
+function resetArtifacts(){
+  activeArtifacts = [];
+  recalcArtifactBonuses();
+  updateArtifactHud();
+}
+
+function recalcArtifactBonuses(){
+  artifactBonuses = { ...BASE_ARTIFACT_BONUSES };
+  activeArtifacts.forEach(artifact => {
+    if(typeof artifact.apply === 'function'){
+      artifact.apply(artifactBonuses);
+    }
+  });
+}
+
+function updateArtifactHud(){
+  if(artifactCountEl){
+    artifactCountEl.textContent = `${activeArtifacts.length}/${MAX_ARTIFACTS}`;
+  }
+  if(!artifactSlotsEl) return;
+  if(!activeArtifacts.length){
+    artifactSlotsEl.innerHTML = '<div class="empty">Clear conductor events to earn relic buffs.</div>';
+    return;
+  }
+  artifactSlotsEl.innerHTML = activeArtifacts.map(a => `
+    <div class="artifactChip">
+      <strong>${a.name}</strong>
+      <span>${a.desc}</span>
+    </div>
+  `).join('');
+}
+
+function awardArtifact(source){
+  if(activeArtifacts.length >= MAX_ARTIFACTS) return;
+  let pool = ARTIFACT_POOL.filter(a => !activeArtifacts.find(b => b.id === a.id));
+  if(!pool.length) pool = ARTIFACT_POOL.slice();
+  const pick = pool[Math.floor(Math.random()*pool.length)];
+  if(!pick) return;
+  activeArtifacts.push(pick);
+  recalcArtifactBonuses();
+  updateArtifactHud();
+  playSound('artifact_gain');
+}
+
+function resetEventSystem(){
+  conductorOnline = false;
+  activeWorldEvent = null;
+  worldEventQueue = [];
+  worldEventTimer = 0;
+  worldEventCooldown = INITIAL_EVENT_DELAY;
+  resetEventModifiers();
+  updateWorldEventHud();
+}
+
+function startConductor(){
+  conductorOnline = true;
+  if(worldEventQueue.length === 0){
+    refillWorldEventQueue();
+  }
+  worldEventCooldown = INITIAL_EVENT_DELAY;
+  worldEventTimer = 0;
+  activeWorldEvent = null;
+  resetEventModifiers();
+  updateWorldEventHud();
+}
+
+function startNextWorldEvent(){
+  if(worldEventQueue.length === 0){
+    refillWorldEventQueue();
+  }
+  const next = worldEventQueue.shift();
+  if(!next) return;
+  activeWorldEvent = next;
+  applyEventModifiers(next.modifiers);
+  worldEventTimer = next.duration || 12*60;
+  if(typeof next.onStart === 'function'){
+    next.onStart();
+  }
+  updateWorldEventHud();
+  playSound('world_event_start');
+}
+
+function endCurrentWorldEvent(rewardPlayer){
+  if(activeWorldEvent && typeof activeWorldEvent.onEnd === 'function'){
+    activeWorldEvent.onEnd();
+  }
+  if(rewardPlayer){
+    if(artifactBonuses.eventHeal > 0){
+      healPlayer(artifactBonuses.eventHeal);
+    }
+    awardArtifact(activeWorldEvent);
+    playSound('world_event_end');
+  }
+  activeWorldEvent = null;
+  worldEventTimer = 0;
+  resetEventModifiers();
+  worldEventCooldown = EVENT_REST_FRAMES;
+  updateWorldEventHud();
+}
+
+function updateWorldEvents(){
+  if(!conductorOnline) return;
+  if(activeWorldEvent){
+    worldEventTimer--;
+    if(worldEventTimer <= 0){
+      endCurrentWorldEvent(true);
+    }
+  } else {
+    worldEventCooldown--;
+    if(worldEventCooldown <= 0){
+      startNextWorldEvent();
+    }
+  }
+  updateWorldEventHud();
+}
 
 const rhythmState = {
   active: false,
@@ -1316,6 +1764,10 @@ const SOUND_LIBRARY = {
     { type: 'sawtooth', freq: 200, duration: 0.24, volume: 0.28 },
     { type: 'triangle', freq: 420, duration: 0.18, volume: 0.18, offset: 0.08 }
   ],
+  ability_solar: [
+    { type: 'triangle', freq: 340, duration: 0.2, volume: 0.22 },
+    { type: 'triangle', freq: 620, duration: 0.18, volume: 0.18, offset: 0.05 }
+  ],
   ability_harmonic: [
     { type: 'sine', freq: 320, duration: 0.4, volume: 0.18 },
     { type: 'sine', freq: 480, duration: 0.5, volume: 0.12, offset: 0.12 }
@@ -1323,6 +1775,18 @@ const SOUND_LIBRARY = {
   ability_beat: [
     { type: 'square', freq: 560, duration: 0.1, volume: 0.2 },
     { type: 'triangle', freq: 760, duration: 0.1, volume: 0.15, offset: 0.05 }
+  ],
+  world_event_start: [
+    { type: 'sawtooth', freq: 280, duration: 0.16, volume: 0.22 },
+    { type: 'triangle', freq: 520, duration: 0.2, volume: 0.18, offset: 0.05 }
+  ],
+  world_event_end: [
+    { type: 'triangle', freq: 360, duration: 0.14, volume: 0.2 },
+    { type: 'triangle', freq: 600, duration: 0.16, volume: 0.18, offset: 0.08 }
+  ],
+  artifact_gain: [
+    { type: 'square', freq: 420, duration: 0.12, volume: 0.22 },
+    { type: 'square', freq: 660, duration: 0.12, volume: 0.18, offset: 0.05 }
   ],
   music_downbeat: [
     { type: 'sine', freq: 110, duration: 0.35, volume: 0.28 },
@@ -1675,21 +2139,24 @@ function getNextSpawnInterval(){
   if(Array.isArray(range) && range.length === 2){
     const min = Math.max(10, Math.min(range[0], range[1]));
     const max = Math.max(min, Math.max(range[0], range[1]));
-    return Math.floor(Math.random() * (max - min + 1)) + min;
+    const base = Math.floor(Math.random() * (max - min + 1)) + min;
+    return Math.max(10, Math.floor(base * (eventModifiers.spawnRateMult || 1)));
   }
   const base = modeConfig.spawnInterval || 55;
   const jitter = modeConfig.spawnJitter || 0;
   if(jitter > 0){
-    return Math.max(10, Math.floor(base + (Math.random()*jitter*2 - jitter)));
+    const roll = Math.floor(base + (Math.random()*jitter*2 - jitter));
+    return Math.max(10, Math.floor(roll * (eventModifiers.spawnRateMult || 1)));
   }
-  return base;
+  return Math.max(10, Math.floor(base * (eventModifiers.spawnRateMult || 1)));
 }
 
 function rollHazard(key, fn){
   const base = BASE_HAZARD_CHANCE[key];
   if(!base) return;
   const mult = modeConfig?.hazards?.[key];
-  const chance = base * (mult === undefined ? 1 : mult);
+  const eventBoost = eventModifiers?.hazardBoosts?.[key] ?? 1;
+  const chance = base * (mult === undefined ? 1 : mult) * eventBoost;
   if(Math.random() < chance){
     fn();
   }
@@ -1770,6 +2237,8 @@ function triggerRhythmBeat(beatIndex){
 }
 
 refreshBestCallout();
+updateWorldEventHud();
+updateArtifactHud();
 
 /* --------- Resonance mechanic --------- */
 const RESONANCE_MAX = 100;
@@ -1795,7 +2264,9 @@ function gainResonance(amount){
   if(resonanceBurstTime > 0 || amount <= 0) return;
   const modeBonus = modeConfig?.resonanceBonus || 1;
   const focusBonus = 1 + focusLevel * 0.15;
-  resonance = Math.min(RESONANCE_MAX, resonance + amount * modeBonus * focusBonus);
+  const relicBonus = artifactBonuses?.resonanceGain || 1;
+  const eventBonus = eventModifiers?.resonanceGainMult || 1;
+  resonance = Math.min(RESONANCE_MAX, resonance + amount * modeBonus * focusBonus * relicBonus * eventBonus);
   updateResonanceBar();
   if(amount >= 1.5){
     const now = performance.now();
@@ -1933,7 +2404,9 @@ function gainMomentum(amount){
   if(amount >= MOMENTUM_DASH_BONUS * 0.75){
     playSound('momentum_charge');
   }
-  momentum = Math.min(MOMENTUM_MAX, momentum + amount);
+  const relicBonus = artifactBonuses?.momentumGain || 1;
+  const eventBonus = eventModifiers?.momentumGainMult || 1;
+  momentum = Math.min(MOMENTUM_MAX, momentum + amount * relicBonus * eventBonus);
   updateMomentumHud();
   if(momentum >= MOMENTUM_MAX * 0.95 && !momentumPrimedChime){
     playSound('momentum_ready');
@@ -2016,14 +2489,15 @@ const ALL_ABILITIES = {
   nano:     { name:'Nano Swarm',  desc:'Lingering nanites erode anything inside.' },
   starfall: { name:'Starfall Salvo', desc:'Call down cascading meteors that torch hazards.' },
   harmonic: { name:'Harmonic Field', desc:'Drop a slowing dome that melts anything inside.' },
-  beatDrones: { name:'Beat Drones', desc:'Deploy orbiting drones that fire rhythm shots.' }
+  beatDrones: { name:'Beat Drones', desc:'Deploy orbiting drones that fire rhythm shots.' },
+  solar:   { name:'Solar Bloom', desc:'Chain of starbursts that vaporize nearby waves.' }
 };
 
 const abilities = {
   shield:0, slow:0, shockwave:0, freeze:0, decoy:0, regen:0,
   megaHeal:0, barrier:0, speed:0, cleanse:0,
   blink:0, turret:0, orbitals:0, gravity:0, arc:0, nano:0,
-  starfall:0, harmonic:0, beatDrones:0
+  starfall:0, harmonic:0, beatDrones:0, solar:0
 };
 const abilityMax = {
   shield:   45*60,
@@ -2044,7 +2518,8 @@ const abilityMax = {
   nano:     30*60,
   starfall: 40*60,
   harmonic: 38*60,
-  beatDrones: 28*60
+  beatDrones: 28*60,
+  solar: 36*60
 };
 
 let selectedAbilityIds = [];
@@ -2742,7 +3217,7 @@ function spawnPelletsFrom(shape){
   const dx = target.x - shape.x;
   const dy = target.y - shape.y;
   const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-  const speed = modeConfig.pelletSpeed;
+  const speed = modeConfig.pelletSpeed * (eventModifiers.pelletSpeedMult || 1);
   const baseAngle = Math.atan2(dy, dx);
   const volley = Math.max(1, Math.round(modeConfig.pelletVolley || 1));
   const spread = modeConfig.pelletSpread || 0;
@@ -3032,6 +3507,25 @@ function useBeatDrones(){
   gainResonance(2.4);
 }
 
+function useSolarBloom(){
+  if(!abilityReady('solar')) return;
+  playSound('ability_solar');
+  for(let i=0;i<3;i++){
+    arcBursts.push({
+      radius: 18,
+      life: 70 + i*12,
+      x: player.x,
+      y: player.y,
+      color: 'rgba(255,210,140,0.85)',
+      growth: 20 + i*2,
+      lineWidth: 4,
+      purgeBoost: 1.3
+    });
+  }
+  abilities.solar = abilityMax.solar;
+  gainResonance(3.8);
+}
+
 function activateAbility(id){
   if(!id) return;
   if(abilities[id] > 0) return;
@@ -3055,6 +3549,7 @@ function activateAbility(id){
     case 'starfall':  useStarfall(); break;
     case 'harmonic':  useHarmonicField(); break;
     case 'beatDrones':useBeatDrones(); break;
+    case 'solar':     useSolarBloom(); break;
   }
 }
 
@@ -3196,7 +3691,7 @@ function tryDash(){
     playSound('ability_locked');
     return; // locked by dash blocker
   }
-  const dashDist = 150;
+  const dashDist = 150 * (artifactBonuses.dashDistance || 1) * (eventModifiers.dashDistanceMult || 1);
   const mag = Math.sqrt(lastMoveDirX*lastMoveDirX + lastMoveDirY*lastMoveDirY);
   if(mag <= 0.01){
     playSound('ability_locked');
@@ -3259,15 +3754,17 @@ function movePlayer(){
     }
   }
 
-  let speed = player.speed * (modeConfig.playerSpeedMult || 1);
+  const playerSpeedMult = (modeConfig.playerSpeedMult || 1) * (eventModifiers.playerSpeedMult || 1) * (artifactBonuses.speed || 1);
+  let speed = player.speed * playerSpeedMult;
   if(player.speedBoostTime > 0) speed *= 1.8;
 
   player.vx += ax * speed + joystickVX;
   player.vy += ay * speed + joystickVY;
   player.vx *= 0.86;
   player.vy *= 0.86;
-  player.vx = Math.max(Math.min(player.vx, player.maxSpeed * (modeConfig.playerSpeedMult || 1.0)), -player.maxSpeed * (modeConfig.playerSpeedMult || 1.0));
-  player.vy = Math.max(Math.min(player.vy, player.maxSpeed * (modeConfig.playerSpeedMult || 1.0)), -player.maxSpeed * (modeConfig.playerSpeedMult || 1.0));
+  const cappedMax = player.maxSpeed * playerSpeedMult;
+  player.vx = Math.max(Math.min(player.vx, cappedMax), -cappedMax);
+  player.vy = Math.max(Math.min(player.vy, cappedMax), -cappedMax);
 
   player.x += player.vx;
   player.y += player.vy;
@@ -3284,6 +3781,7 @@ function applyDamage(base){
   if(player.shieldActive) return;
   let dmg = base * modeConfig.damageMultiplier;
   if(player.barrierTime > 0) dmg *= 0.5;
+  dmg *= artifactBonuses?.damageTaken || 1;
   resonance = 0;
   resonanceBurstTime = 0;
   resonancePulseTime = 0;
@@ -3312,6 +3810,12 @@ function updateHealthBar(){
   } else{
     fill.style.background = 'linear-gradient(90deg,#ff4f7b,#ff9966)';
   }
+}
+
+function healPlayer(amount){
+  if(!amount || amount <= 0) return;
+  player.health = Math.min(100, player.health + amount);
+  updateHealthBar();
 }
 
 /* --------- Timer --------- */
@@ -3362,6 +3866,8 @@ document.getElementById('restartBtn').addEventListener('click', returnToMenu);
 
 function resetGame(){
   playSound('game_reset');
+  resetArtifacts();
+  resetEventSystem();
   shapes = [];
   pellets = [];
   spinBeams = [];
@@ -3445,6 +3951,7 @@ function animate(){
   elapsedMs += dt;
   updateTimerLabel();
   tickFocusChain();
+  updateWorldEvents();
 
   if(resonanceBurstTime > 0){
     resonanceBurstTime--;
@@ -3464,7 +3971,7 @@ function animate(){
   const baseSpeedScale = getSpeedScale();
   const resonanceSlow = resonanceBurstTime > 0 ? 0.7 : 1;
   const focusSlow = Math.max(0.6, 1 - focusLevel*0.07);
-  const enemySpeedScale = player.freezeTime > 0 ? 0 : baseSpeedScale * resonanceSlow * focusSlow;
+  const enemySpeedScale = player.freezeTime > 0 ? 0 : baseSpeedScale * resonanceSlow * focusSlow * (eventModifiers.shapeSpeedMult || 1);
 
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
@@ -3885,9 +4392,10 @@ function animate(){
   for(let i=arcBursts.length-1;i>=0;i--){
     const burst = arcBursts[i];
     burst.life--;
-    burst.radius += 16;
-    ctx.strokeStyle = 'rgba(160,220,255,0.8)';
-    ctx.lineWidth = 3;
+    const growth = burst.growth || 16;
+    burst.radius += growth;
+    ctx.strokeStyle = burst.color || 'rgba(160,220,255,0.8)';
+    ctx.lineWidth = burst.lineWidth || 3;
     ctx.beginPath();
     ctx.arc(burst.x, burst.y, burst.radius, 0, Math.PI*2);
     ctx.stroke();
@@ -3897,7 +4405,8 @@ function animate(){
         const size = sizeGetter(obj);
         const dx = obj.x - burst.x;
         const dy = obj.y - burst.y;
-        if(Math.sqrt(dx*dx + dy*dy) < burst.radius + size){
+        const buffer = size * (burst.purgeBoost || 1);
+        if(Math.sqrt(dx*dx + dy*dy) < burst.radius + buffer){
           list.splice(j,1);
         }
       }
@@ -4212,7 +4721,7 @@ function animate(){
     ctx.stroke();
   }
 
-  const cooldownAccel = 1 + focusLevel*0.35;
+  const cooldownAccel = (1 + focusLevel*0.35) * (artifactBonuses.cooldown || 1) * (eventModifiers.cooldownRate || 1);
   for(let i=0;i<activeAbilities.length;i++){
     const id = activeAbilities[i];
     const cdEl = document.getElementById('slot'+i+'CD');
@@ -4279,7 +4788,8 @@ function startGame(){
   resetGame();
   running = true;
   lastFrameTime = performance.now();
-   configureRhythmMode();
+  configureRhythmMode();
+  startConductor();
   playSound('game_start');
   animate();
 }
