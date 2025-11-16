@@ -18,35 +18,50 @@
 
     canvas { display: block; }
 
-    /* Overlays */
-    #startOverlay, #endingOverlay {
+    /* Start Overlay — fixed & clickable */
+    #startOverlay {
       position: fixed;
       inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(8px);
+      pointer-events: auto;
     }
 
-    #startOverlayInner {
-      position: absolute;
+    /* Ending overlay */
+    #endingOverlayInner {
+      position: fixed;
       inset: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      backdrop-filter: blur(9px);
-      background: rgba(0,0,0,0.6);
+      background: rgba(0,0,0,0.8);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      z-index: 9998;
+    }
+
+    #endingOverlayInner.visible {
+      opacity: 1;
+      pointer-events: auto;
     }
 
     .card {
-      background: rgba(0, 0, 0, 0.55);
-      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(0,0,0,0.55);
       padding: 25px;
       border-radius: 16px;
-      box-shadow: 0 0 30px rgba(0,0,0,0.7);
-      text-align: center;
+      border: 1px solid rgba(255,255,255,0.1);
       width: 360px;
+      text-align: center;
     }
 
     .btn {
       margin-top: 15px;
-      padding: 10px 20px;
+      padding: 10px 22px;
       border-radius: 999px;
       background: #ff5c9a;
       color: white;
@@ -57,18 +72,19 @@
     }
 
     .btn:hover {
-      filter: brightness(1.15);
+      filter: brightness(1.1);
     }
 
     #crosshair {
-      position: absolute;
+      position: fixed;
       left: 50%;
       top: 50%;
       width: 12px;
       height: 12px;
       transform: translate(-50%, -50%);
       pointer-events: none;
-      opacity: 0.65;
+      opacity: 0.7;
+      z-index: 20;
     }
 
     #crosshair::before,
@@ -91,7 +107,7 @@
     }
 
     #hintOverlayText {
-      position: absolute;
+      position: fixed;
       left: 50%;
       bottom: 28px;
       transform: translateX(-50%);
@@ -99,37 +115,19 @@
       background: rgba(0,0,0,0.5);
       border-radius: 8px;
       font-size: 0.75rem;
-    }
-
-    #endingOverlayInner {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0,0,0,0.8);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-
-    #endingOverlayInner.visible {
-      opacity: 1;
-      pointer-events: auto;
+      z-index: 20;
     }
   </style>
 </head>
 <body>
 
-  <!-- Start Screen -->
+  <!-- CLICKABLE START SCREEN -->
   <div id="startOverlay">
-    <div id="startOverlayInner">
-      <div class="card">
-        <h1><span style="color:#ff5c9a">party</span>.web</h1>
-        <p>Walk to the house… or leave.</p>
-        <p><strong>Controls:</strong> WASD, Mouse, Shift to sprint.</p>
-        <button id="startButton" class="btn">Enter Party</button>
-      </div>
+    <div class="card" style="pointer-events:auto;">
+      <h1><span style="color:#ff5c9a">party</span>.web</h1>
+      <p>Walk to the house… or leave.</p>
+      <p><strong>Controls:</strong> WASD, Mouse, Shift</p>
+      <button id="startButton" class="btn" style="pointer-events:auto;">Enter Party</button>
     </div>
   </div>
 
@@ -137,46 +135,37 @@
   <div id="crosshair"></div>
 
   <!-- Hint -->
-  <div id="hintOverlayText">
-    Find the house. Maybe the party is inside.
-  </div>
+  <div id="hintOverlayText">Find the house. Maybe the party is inside.</div>
 
-  <!-- Ending Overlay -->
-  <div id="endingOverlay">
-    <div id="endingOverlayInner">
-      <div class="card">
-        <h2 id="endingCardTitle"></h2>
-        <p id="endingCardSubtitle"></p>
-        <p id="endingDetails"></p>
-        <p style="color:#ff5c9a; margin-top:10px;">Press R to restart</p>
-      </div>
+  <!-- Ending Screen -->
+  <div id="endingOverlayInner">
+    <div class="card">
+      <h2 id="endingCardTitle"></h2>
+      <p id="endingCardSubtitle"></p>
+      <p id="endingDetails"></p>
+      <p style="color:#ff5c9a; margin-top:10px;">Press R to restart</p>
     </div>
   </div>
 
-  <!-- Scene -->
+  <!-- 3D SCENE -->
   <script type="module">
 
     import * as THREE from "https://unpkg.com/three@0.161.0/build/three.module.js";
     import { PointerLockControls } from "https://unpkg.com/three@0.161.0/examples/jsm/controls/PointerLockControls.js";
 
-    /* ---------------------------
-       VARIABLES / WORLD SETUP
-    ----------------------------*/
-
     let camera, scene, renderer, controls;
-    let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-    let sprint = false;
+    let moveForward=false, moveBackward=false, moveLeft=false, moveRight=false, sprint=false;
+
     const velocity = new THREE.Vector3();
     const direction = new THREE.Vector3();
     const clock = new THREE.Clock();
     let ended = false;
-
-    const startPos = new THREE.Vector3(0, 1.7, 18);
-    const triggers = [];
     let tixMesh;
 
-    /* HTML elements */
-    const startOverlay = document.getElementById("startOverlay");
+    const triggers = [];
+    const startPos = new THREE.Vector3(0, 1.7, 18);
+
+    /* UI references */
     const endingOverlayInner = document.getElementById("endingOverlayInner");
     const endingTitle = document.getElementById("endingCardTitle");
     const endingSubtitle = document.getElementById("endingCardSubtitle");
@@ -186,78 +175,65 @@
     init();
     animate();
 
-    /* ---------------------------
-        INITIALIZATION
-    ----------------------------*/
-
     function init() {
-
-      /* Create scene */
+      /* Scene setup */
       scene = new THREE.Scene();
       scene.fog = new THREE.FogExp2(0x050509, 0.045);
 
-      camera = new THREE.PerspectiveCamera(
-        75, window.innerWidth / window.innerHeight, 0.1, 1000
-      );
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
       camera.position.copy(startPos);
 
-      renderer = new THREE.WebGLRenderer({ antialias:true });
+      renderer = new THREE.WebGLRenderer({antialias:true});
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(window.devicePixelRatio);
-      renderer.setClearColor(0x050509);
       document.body.appendChild(renderer.domElement);
 
       /* Lights */
       scene.add(new THREE.AmbientLight(0x8888aa, 0.9));
-
       const moon = new THREE.DirectionalLight(0x99bbff, 0.8);
       moon.position.set(20,40,10);
       scene.add(moon);
 
-      /* Controls */
+      /* PointerLock Controls */
       controls = new PointerLockControls(camera, document.body);
 
+      // Start button click
       document.getElementById("startButton").addEventListener("click", () => {
-        startOverlay.style.display = "none";
+        document.getElementById("startOverlay").style.display = "none";
 
-        // slight delay fixes pointer-lock refusal
-        setTimeout(() => controls.lock(), 50);
+        setTimeout(() => controls.lock(), 80);
       });
 
-      // fallback: clicking anywhere locks if not ended
+      // safety fallback
       document.body.addEventListener("click", () => {
         if (!controls.isLocked && !ended) controls.lock();
       });
 
-      /* Build scene */
-      createGround();
-      createHouse();
-      createTrees();
-      createSubject();
-      createCar();
-      createTix();
-
+      /* Build world */
+      createGround(); createHouse(); createTrees();
+      createSubject(); createCar(); createTix();
       setupTriggers();
 
-      /* Key Input */
+      /* Input handlers */
       document.addEventListener("keydown", onKeyDown);
       document.addEventListener("keyup", onKeyUp);
       window.addEventListener("resize", onResize);
     }
 
-    /* ---------------------------
-           SCENE OBJECTS
-    ----------------------------*/
+    /* -----------------------------
+       WORLD BUILDING FUNCTIONS
+    ------------------------------*/
 
-    function createGround() {
-      const geo = new THREE.PlaneGeometry(80,80);
-      const mat = new THREE.MeshStandardMaterial({ color:0x0b0f16, roughness:1 });
-      const ground = new THREE.Mesh(geo,mat);
-      ground.rotation.x = -Math.PI/2;
-      scene.add(ground);
+    function createGround(){
+      const m = new THREE.Mesh(
+        new THREE.PlaneGeometry(80,80),
+        new THREE.MeshStandardMaterial({color:0x0b0f16})
+      );
+      m.rotation.x = -Math.PI/2;
+      scene.add(m);
     }
 
-    function createHouse() {
+    function createHouse(){
       const body = new THREE.Mesh(
         new THREE.BoxGeometry(16,8,16),
         new THREE.MeshStandardMaterial({color:0x141421})
@@ -265,32 +241,23 @@
       body.position.set(0,4,-10);
       scene.add(body);
 
-      const roof = new THREE.Mesh(
-        new THREE.ConeGeometry(10,4,4),
-        new THREE.MeshStandardMaterial({color:0x1f1b3a})
-      );
-      roof.position.set(0,9,-10);
-      roof.rotation.y = Math.PI/4;
-      scene.add(roof);
-
-      // glowing door
       const door = new THREE.Mesh(
         new THREE.PlaneGeometry(3,4),
-        new THREE.MeshBasicMaterial({color:0xff5c9a, transparent:true, opacity:0.5})
+        new THREE.MeshBasicMaterial({color:0xff5c9a, opacity:0.5, transparent:true})
       );
       door.position.set(0,2,-2);
       scene.add(door);
 
-      const partyLight = new THREE.PointLight(0xff99cc, 2, 18);
-      partyLight.position.set(0,4,-12);
-      scene.add(partyLight);
+      const light = new THREE.PointLight(0xff99cc, 2, 20);
+      light.position.set(0,4,-12);
+      scene.add(light);
     }
 
-    function createTrees() {
-      const trunkMat = new THREE.MeshStandardMaterial({ color:0x382626 });
-      const leafMat = new THREE.MeshStandardMaterial({ color:0x13281c });
+    function createTrees(){
+      const trunkMat = new THREE.MeshStandardMaterial({color:0x382626});
+      const leafMat = new THREE.MeshStandardMaterial({color:0x13281c});
 
-      [[-10,-4],[-14,-8],[10,-3],[14,-7]].forEach(([x,z]) => {
+      [[-10,-4],[-14,-8],[10,-3],[14,-7]].forEach(([x,z])=>{
         const trunk = new THREE.Mesh(
           new THREE.CylinderGeometry(0.4,0.7,4),
           trunkMat
@@ -307,21 +274,17 @@
       });
     }
 
-    function createSubject() {
-      const subject = new THREE.Mesh(
+    function createSubject(){
+      const sub = new THREE.Mesh(
         new THREE.CapsuleGeometry(0.8,1.8),
-        new THREE.MeshStandardMaterial({
-          color:0xffffff,
-          emissive:0xffffff,
-          emissiveIntensity:0.1
-        })
+        new THREE.MeshStandardMaterial({color:0xffffff, emissive:0xffffff, emissiveIntensity:0.05})
       );
-      subject.position.set(-4,2.2,8);
-      subject.userData.isSubject = true;
-      scene.add(subject);
+      sub.position.set(-4,2.3,8);
+      sub.userData.subject = true;
+      scene.add(sub);
     }
 
-    function createCar() {
+    function createCar(){
       const body = new THREE.Mesh(
         new THREE.BoxGeometry(4,1,2),
         new THREE.MeshStandardMaterial({color:0x30353f})
@@ -330,7 +293,7 @@
       scene.add(body);
     }
 
-    function createTix() {
+    function createTix(){
       tixMesh = new THREE.Mesh(
         new THREE.BoxGeometry(0.8,0.2,0.5),
         new THREE.MeshStandardMaterial({color:0xffd15c, emissive:0xffd15c})
@@ -339,97 +302,99 @@
       scene.add(tixMesh);
     }
 
-    /* ---------------------------
+    /* -----------------------------
         TRIGGERS / ENDINGS
-    ----------------------------*/
+    ------------------------------*/
 
-    function setupTriggers() {
+    function setupTriggers(){
       triggers.push({
         name:"fake_party",
         type:"volume",
-        box:{min:new THREE.Vector3(-1.5,0,-1), max:new THREE.Vector3(1.5,3,-4.5)},
-        once:true
+        min:new THREE.Vector3(-1.5,0,-1),
+        max:new THREE.Vector3(1.5,3,-4.5),
+        done:false
       });
 
       triggers.push({
         name:"inside_house",
         type:"volume",
-        box:{min:new THREE.Vector3(-7,0,-6), max:new THREE.Vector3(7,5,-20)},
-        once:true
+        min:new THREE.Vector3(-7,0,-6),
+        max:new THREE.Vector3(7,5,-20),
+        done:false
       });
 
       triggers.push({
-        name:"car_refuse",
+        name:"car",
         type:"volume",
-        box:{min:new THREE.Vector3(-2,0,22), max:new THREE.Vector3(2,3,27)},
-        once:true
+        min:new THREE.Vector3(-2,0,22),
+        max:new THREE.Vector3(2,3,27),
+        done:false
       });
 
       triggers.push({
         name:"tix",
         type:"tix",
-        radius:1.2,
-        once:true
+        radius:1.4,
+        done:false
       });
     }
 
-    function end(id) {
+    function triggerEnding(id){
       if (ended) return;
       ended = true;
       controls.unlock();
 
-      let title="", subtitle="", details="";
+      let title="", sub="", det="";
 
-      if (id==="fake_party") {
+      if(id==="fake_party"){
         title="Fake Party";
-        subtitle="That didn’t look normal.";
-        details="Something behind the walls is smiling.";
+        sub="That wasn’t a normal room.";
+        det="Something inside was watching.";
       }
-      else if(id==="inside_house") {
+      else if(id==="inside_house"){
         title="Winner";
-        subtitle="You entered the party room.";
-        details="But the house wasn't made for you.";
+        sub="You stepped into the real party.";
+        det="But it didn't feel right.";
       }
-      else if(id==="car_refuse") {
+      else if(id==="car"){
         title="Refusal";
-        subtitle="You go home instead.";
-        details="In the mirror, something stands where the house was.";
+        sub="You chose to go home.";
+        det="But something stood where the house once was.";
       }
-      else if(id==="tix") {
+      else if(id==="tix"){
         title="Tix Ending";
-        subtitle="Nostalgia claimed its price.";
-        details="You touched the forbidden ticket.";
+        sub="You touched the forbidden ticket.";
+        det="Nostalgia consumes you.";
       }
 
       endingTitle.textContent = title + " Ending";
-      endingSubtitle.textContent = subtitle;
-      endingDetails.textContent = details;
+      endingSubtitle.textContent = sub;
+      endingDetails.textContent = det;
 
       endingOverlayInner.classList.add("visible");
-      hintText.textContent = "Press R to restart.";
     }
 
-    function resetGame() {
+    function resetGame(){
       ended = false;
       endingOverlayInner.classList.remove("visible");
       camera.position.copy(startPos);
       camera.rotation.set(0,0,0);
-
       hintText.textContent = "Find the house.";
     }
 
-    /* ---------------------------
-             INPUT
-    ----------------------------*/
+    /* -----------------------------
+           INPUT
+    ------------------------------*/
 
     function onKeyDown(e){
+      if(ended && e.code==="KeyR"){ resetGame(); return; }
+
       switch(e.code){
         case "KeyW": moveForward=true; break;
         case "KeyA": moveLeft=true; break;
         case "KeyS": moveBackward=true; break;
         case "KeyD": moveRight=true; break;
         case "ShiftLeft": sprint=true; break;
-        case "KeyR": if(ended) resetGame(); break;
       }
     }
 
@@ -443,79 +408,77 @@
       }
     }
 
-    /* ---------------------------
-          TRIGGER CHECKING
-    ----------------------------*/
+    /* -----------------------------
+         TRIGGER CHECKING
+    ------------------------------*/
 
-    function checkTriggers() {
-      const pos = camera.position;
+    function checkTriggers(){
+      const p = camera.position;
 
-      for (const trig of triggers){
-        if (trig.once && trig._done) continue;
+      for(const t of triggers){
 
-        if (trig.type==="volume"){
+        if(t.done) continue;
+
+        if(t.type==="volume"){
           if(
-            pos.x>=trig.box.min.x && pos.x<=trig.box.max.x &&
-            pos.y>=trig.box.min.y && pos.y<=trig.box.max.y &&
-            pos.z>=trig.box.min.z && pos.z<=trig.box.max.z
+            p.x>=t.min.x && p.x<=t.max.x &&
+            p.y>=t.min.y && p.y<=t.max.y &&
+            p.z>=t.min.z && p.z<=t.max.z
           ){
-            trig._done=true;
-            end(trig.name);
+            t.done = true;
+            triggerEnding(t.name);
             return;
           }
         }
 
-        if(trig.type==="tix"){
-          if (!tixMesh) continue;
-          const d = pos.distanceTo(tixMesh.position);
-          if(d<=trig.radius){
-            trig._done=true;
-            end(trig.name);
+        if(t.type==="tix"){
+          if(p.distanceTo(tixMesh.position) <= t.radius){
+            t.done = true;
+            triggerEnding("tix");
             return;
           }
         }
       }
     }
 
-    /* ---------------------------
-              RESIZE
-    ----------------------------*/
-    function onResize(){
-      camera.aspect = window.innerWidth/window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    /* ---------------------------
-              LOOP
-    ----------------------------*/
+    /* -----------------------------
+             RENDER LOOP
+    ------------------------------*/
 
     function animate(){
       requestAnimationFrame(animate);
-      const delta = clock.getDelta();
+
+      const dt = clock.getDelta();
 
       if(!ended && controls.isLocked){
+
         const speed = sprint ? 420 : 260;
 
-        velocity.x -= velocity.x * 8 * delta;
-        velocity.z -= velocity.z * 8 * delta;
+        velocity.x -= velocity.x * 8 * dt;
+        velocity.z -= velocity.z * 8 * dt;
 
         direction.z = Number(moveForward) - Number(moveBackward);
         direction.x = Number(moveRight) - Number(moveLeft);
         direction.normalize();
 
-        if(moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
-        if(moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
+        if(moveForward || moveBackward) velocity.z -= direction.z * speed * dt;
+        if(moveLeft || moveRight) velocity.x -= direction.x * speed * dt;
 
-        controls.moveRight(-velocity.x * delta);
-        controls.moveForward(-velocity.z * delta);
+        controls.moveRight(-velocity.x * dt);
+        controls.moveForward(-velocity.z * dt);
 
         camera.position.y = 1.7;
 
         checkTriggers();
       }
 
-      renderer.render(scene, camera);
+      renderer.render(scene,camera);
+    }
+
+    function onResize(){
+      camera.aspect = window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
   </script>
