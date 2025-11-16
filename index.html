@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>MiniGame Hub</title>
 <style>
-<audio src="https://raw.githubusercontent.com/Greek10/Greek10.github.io/refs/heads/main/Blaze.mp3" autoplay loop></audio>
 /* ===================== GLOBAL UI ===================== */
 body {
     margin: 0;
@@ -101,6 +100,18 @@ h1, h2, h3 { font-weight: 600; }
 </head>
 
 <body>
+
+<!-- ===================== 🔊 MUSIC ENGINE ===================== -->
+<audio id="bgm" src="https://raw.githubusercontent.com/Greek10/Greek10.github.io/refs/heads/main/Blaze.mp3" loop></audio>
+<script>
+window.addEventListener("click", () => {
+    const bg = document.getElementById("bgm");
+    bg.volume = 0.40;      // volume 40%
+    bg.play();
+}, { once: true });
+</script>
+<!-- ============================================================ -->
+
 <!-- ===================== LOADER ===================== -->
 <div id="loader" class="loader-screen">
     <h2 style="font-size:32px; color:#70c4ff;">Loading…</h2>
@@ -155,9 +166,8 @@ const games = [
 ];
 
 /* =============================================================
-   MINIGAME TEMPLATES (WITHOUT <script> TAGS)
+   MINIGAME TEMPLATES
 ============================================================= */
-
 const gameTemplates = {
     aim: name => ({
         html: `
@@ -278,7 +288,7 @@ const gameTemplates = {
 };
 
 /* =============================================================
-   LOAD GAME (NOW EXECUTES SCRIPTS!)
+   LOAD GAME
 ============================================================= */
 function loadGame(id, name) {
     document.getElementById("homePage").style.display = "none";
@@ -289,7 +299,6 @@ function loadGame(id, name) {
     gp.innerHTML = game.html;
     gp.style.display = "block";
 
-    // Run game logic
     game.script();
 }
 
