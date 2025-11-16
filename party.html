@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>party.web — 3D Prototype (Mouse Look)</title>
+  <title>party.web — 3D Prototype (Jumpscare)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <style>
@@ -117,6 +117,63 @@
       opacity: 1;
       pointer-events: auto;
     }
+
+    /* Jumpscare overlay */
+    #jumpscareOverlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, #ffffff 0, #fce4ff 35%, #190010 70%, #000 100%);
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(1);
+      transition: opacity 0.08s ease, transform 0.08s ease;
+      z-index: 9999;
+    }
+
+    #jumpscareOverlay.active {
+      opacity: 1;
+      transform: scale(1.12);
+    }
+
+    #jumpscareFace {
+      width: 60vmin;
+      height: 60vmin;
+      border-radius: 50%;
+      background: radial-gradient(circle at center, #ffffff 0, #f5f5f5 40%, #e0d0ff 65%, #000 100%);
+      position: relative;
+      box-shadow: 0 0 60px rgba(255,255,255,0.9);
+      overflow: hidden;
+    }
+
+    #jumpscareFace::before {
+      /* eyes */
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 30%;
+      width: 52%;
+      height: 24%;
+      transform: translateX(-50%);
+      background:
+        radial-gradient(circle at 25% 50%, #000 0, #000 30%, transparent 32%),
+        radial-gradient(circle at 75% 50%, #000 0, #000 30%, transparent 32%);
+    }
+
+    #jumpscareFace::after {
+      /* mouth */
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 62%;
+      width: 60%;
+      height: 35%;
+      transform: translateX(-50%);
+      border-bottom: 14px solid #000;
+      border-radius: 50%;
+    }
   </style>
 </head>
 <body>
@@ -147,13 +204,18 @@
     </div>
   </div>
 
+  <!-- Jumpscare Screen -->
+  <div id="jumpscareOverlay">
+    <div id="jumpscareFace"></div>
+  </div>
+
   <!-- 3D Scene -->
   <script type="module">
     import * as THREE from "https://unpkg.com/three@0.161.0/build/three.module.js";
 
     let scene, camera, renderer;
-    let player;          // holder for position & yaw
-    let pitch = 0;       // camera up/down rotation
+    let player;          // container for camera position + yaw
+    let pitch = 0;       // camera pitch
     let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, sprint = false;
     let ended = false;
 
@@ -165,10 +227,19 @@
     let tixMesh;
     const triggers = [];
 
+    // stalking / jumpscare
+    let stalker;
+    let stalkActive = false;
+    let stalkStarted = false;
+    let stalkJumpscareDone = false;
+
     // mouse look
     let mouseDown = false;
     let lastMouseX = 0, lastMouseY = 0;
     const lookSensitivity = 0.003;
+
+    // audio
+    let audioCtx = null;
 
     const endingOverlayInner = document.getElementById("endingOverlayInner");
     const endingTitle = document.getElementById("endingCardTitle");
@@ -176,6 +247,7 @@
     const endingDetails = document.getElementById("endingDetails");
     const hintText = document.getElementById("hintOverlayText");
     const startOverlay = document.getElementById("startOverlay");
+    const jumpscareOverlay = document.getElementById("jumpscareOverlay");
 
     init();
     animate();
@@ -187,7 +259,7 @@
 
       camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-      // Player object (controls position & yaw)
+      // Player object
       player = new THREE.Object3D();
       player.position.copy(startPos);
       scene.add(player);
@@ -211,14 +283,15 @@
       createHouse();
       createTrees();
       createSubject();
+      createStalker();
       createCar();
       createTix();
       setupTriggers();
 
-      // Start button
+      // Start
       document.getElementById("startButton").addEventListener("click", () => {
         startOverlay.style.display = "none";
-        hintText.textContent = "Left-drag to look, WASD to move. Find the house.";
+        hintText.textContent = "Left-drag to look, WASD to move. Enter the house… if you dare.";
       });
 
       // Keyboard
@@ -235,7 +308,7 @@
       window.addEventListener("resize", onResize);
     }
 
-    /* World creation */
+    /* WORLD CREATION */
 
     function createGround() {
       const ground = new THREE.Mesh(
@@ -313,6 +386,7 @@
     }
 
     function createSubject() {
+      // Static watcher outside
       const subject = new THREE.Mesh(
         new THREE.CapsuleGeometry(0.8, 1.8, 8, 16),
         new THREE.MeshStandardMaterial({
@@ -324,6 +398,20 @@
       subject.position.set(-4, 2.3, 8);
       subject.userData.subject = true;
       scene.add(subject);
+    }
+
+    function createStalker() {
+      // Stalker used for behind-you jumpscare
+      stalker = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.9, 2.2, 8, 16),
+        new THREE.MeshStandardMaterial({
+          color: 0xfdfdfd,
+          emissive: 0xffffff,
+          emissiveIntensity: 0.2
+        })
+      );
+      stalker.visible = false;
+      scene.add(stalker);
     }
 
     function createCar() {
@@ -348,25 +436,19 @@
       scene.add(tixMesh);
     }
 
-    /* Triggers / endings */
+    /* TRIGGERS / ENDINGS */
 
     function setupTriggers() {
+      // Enter house → start stalk sequence
       triggers.push({
-        name: "fake_party",
-        type: "volume",
-        min: new THREE.Vector3(-1.5, 0, -1),
-        max: new THREE.Vector3(1.5, 3, -4.5),
-        done: false
-      });
-
-      triggers.push({
-        name: "inside_house",
+        name: "house_stalk_start",
         type: "volume",
         min: new THREE.Vector3(-7, 0, -6),
         max: new THREE.Vector3(7, 5, -20),
         done: false
       });
 
+      // Car ending
       triggers.push({
         name: "car",
         type: "volume",
@@ -375,6 +457,7 @@
         done: false
       });
 
+      // Tix ending
       triggers.push({
         name: "tix",
         type: "tix",
@@ -384,47 +467,150 @@
     }
 
     function triggerEnding(id) {
-      if (ended) return;
-      ended = true;
-
       let title = "", sub = "", det = "";
 
-      if (id === "fake_party") {
-        title = "Fake Party";
-        sub = "That didn’t look normal.";
-        det = "Something inside was watching you through the walls.";
-      } else if (id === "inside_house") {
-        title = "Winner";
-        sub = "You stepped into the real party.";
-        det = "But the house wasn’t built for you.";
-      } else if (id === "car") {
+      if (id === "car") {
+        ended = true;
         title = "Refusal";
         sub = "You chose to go home.";
-        det = "In the distance, the house is still there. Waiting.";
+        det = "In the distance, the house is still there. Watching.";
       } else if (id === "tix") {
+        ended = true;
         title = "Tix Ending";
         sub = "You touched the forbidden ticket.";
         det = "Nostalgia has a price. You just paid it.";
+      } else if (id === "house_jumpscare") {
+        title = "It Was Behind You";
+        sub = "You finally turned around.";
+        det = "For a second, you saw its face clearly. That was enough.";
       }
 
       endingTitle.textContent = title + " Ending";
       endingSubtitle.textContent = sub;
       endingDetails.textContent = det;
-      hintText.textContent = "Press R to restart.";
       endingOverlayInner.classList.add("visible");
+    }
+
+    function startStalkSequence() {
+      if (stalkStarted) return;
+      stalkStarted = true;
+      stalkActive = true;
+      stalkJumpscareDone = false;
+      stalker.visible = true;
+
+      hintText.textContent = "Something feels wrong. You’re not alone in here.";
+
+      // place stalker behind player
+      const yaw = player.rotation.y;
+      const distance = 5;
+      const offsetX = Math.sin(yaw) * distance;
+      const offsetZ = Math.cos(yaw) * distance; // behind relative to facing
+
+      stalker.position.set(
+        player.position.x + offsetX,
+        1.5,
+        player.position.z + offsetZ
+      );
+    }
+
+    function triggerJumpscare() {
+      if (stalkJumpscareDone) return;
+      stalkJumpscareDone = true;
+      stalkActive = false;
+      ended = true;
+
+      // hide stalker in the world
+      stalker.visible = false;
+
+      // Screen jumpscare overlay
+      jumpscareOverlay.classList.add("active");
+      hintText.textContent = "";
+
+      // Play harsh synthetic scream
+      playJumpscareSound();
+
+      // Camera / screen shake
+      shakeScreen(500);
+
+      // After short delay, go to ending screen
+      setTimeout(() => {
+        jumpscareOverlay.classList.remove("active");
+        triggerEnding("house_jumpscare");
+      }, 700);
+    }
+
+    function playJumpscareSound() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      const now = audioCtx.currentTime;
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = "square";
+      osc.frequency.setValueAtTime(650, now);
+      osc.frequency.linearRampToValueAtTime(300, now + 0.5);
+
+      gain.gain.setValueAtTime(1.0, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.6);
+    }
+
+    function shakeScreen(durationMs) {
+      const canvas = renderer.domElement;
+      let start = null;
+      const original = canvas.style.transform || "";
+
+      function step(timestamp) {
+        if (!start) start = timestamp;
+        const elapsed = timestamp - start;
+        const progress = Math.min(elapsed / durationMs, 1);
+        const intensity = (1 - progress) * 8;
+
+        const x = (Math.random() - 0.5) * intensity;
+        const y = (Math.random() - 0.5) * intensity;
+        canvas.style.transform = `translate(${x}px, ${y}px)`;
+
+        if (elapsed < durationMs) {
+          requestAnimationFrame(step);
+        } else {
+          canvas.style.transform = original;
+        }
+      }
+
+      requestAnimationFrame(step);
     }
 
     function resetGame() {
       ended = false;
+      stalkActive = false;
+      stalkStarted = false;
+      stalkJumpscareDone = false;
+      stalker.visible = false;
+
+      // reset triggers
+      for (const t of triggers) {
+        t.done = false;
+      }
+
       endingOverlayInner.classList.remove("visible");
+      jumpscareOverlay.classList.remove("active");
+
       player.position.copy(startPos);
       player.rotation.set(0, 0, 0);
       pitch = 0;
       camera.rotation.set(0, 0, 0);
+
       hintText.textContent = "Left-drag to look around. Find the house.";
     }
 
-    /* Input */
+    /* INPUT */
 
     function onKeyDown(e) {
       if (ended && e.code === "KeyR") {
@@ -488,7 +674,7 @@
       camera.rotation.x = pitch;
     }
 
-    /* Triggers check */
+    /* TRIGGERS CHECK */
 
     function checkTriggers() {
       const camPos = new THREE.Vector3();
@@ -504,7 +690,11 @@
             camPos.z >= t.min.z && camPos.z <= t.max.z
           ) {
             t.done = true;
-            triggerEnding(t.name);
+            if (t.name === "house_stalk_start") {
+              startStalkSequence();
+            } else if (t.name === "car") {
+              triggerEnding("car");
+            }
             return;
           }
         }
@@ -519,7 +709,42 @@
       }
     }
 
-    /* Resize */
+    /* STALKER UPDATE */
+
+    function updateStalker(dt) {
+      if (!stalkActive || !stalker.visible || ended) return;
+
+      const playerPos = player.position.clone();
+      const camPos = new THREE.Vector3();
+      camera.getWorldPosition(camPos);
+
+      const toStalker = stalker.position.clone().sub(camPos);
+      const dist = toStalker.length();
+
+      const forward = new THREE.Vector3();
+      camera.getWorldDirection(forward);
+
+      const lookDir = toStalker.clone().normalize().negate(); // from stalker to camera
+      const angle = forward.angleTo(toStalker.clone().normalize());
+
+      // If close enough and you're looking at it → jumpscare
+      if (dist < 2.2 && angle < 0.4) {
+        triggerJumpscare();
+        return;
+      }
+
+      // If you're NOT looking at it (angle big) → it creeps closer
+      if (angle > 0.85 && dist > 1.2) {
+        const dirToPlayer = playerPos.clone().sub(stalker.position).normalize();
+        const speed = 2.8; // creep speed
+        stalker.position.addScaledVector(dirToPlayer, speed * dt);
+      }
+
+      // Make it face you horizontally
+      stalker.lookAt(camPos.x, stalker.position.y + 0.4, camPos.z);
+    }
+
+    /* RESIZE */
 
     function onResize() {
       camera.aspect = window.innerWidth / window.innerHeight;
@@ -527,7 +752,7 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    /* Main loop */
+    /* MAIN LOOP */
 
     function animate() {
       requestAnimationFrame(animate);
@@ -535,7 +760,7 @@
       const dt = clock.getDelta();
 
       if (!ended) {
-        const speed = sprint ? 8 : 4; // units per second
+        const speed = sprint ? 8 : 4;
 
         direction.set(0, 0, 0);
         if (moveForward) direction.z -= 1;
@@ -546,7 +771,6 @@
         if (direction.lengthSq() > 0) {
           direction.normalize();
 
-          // rotate move vector by player's yaw
           const yaw = player.rotation.y;
           const sin = Math.sin(yaw);
           const cos = Math.cos(yaw);
@@ -556,17 +780,16 @@
 
           player.position.x += moveX * speed * dt;
           player.position.z += moveZ * speed * dt;
-
-          // keep on ground
           player.position.y = 0;
         }
 
-        // world bounds
+        // bounds
         const limit = 36;
         player.position.x = THREE.MathUtils.clamp(player.position.x, -limit, limit);
         player.position.z = THREE.MathUtils.clamp(player.position.z, -limit, limit);
 
         checkTriggers();
+        updateStalker(dt);
       }
 
       renderer.render(scene, camera);
