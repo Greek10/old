@@ -91,25 +91,47 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    padding: 14px;
     z-index: 1000;
   }
   #openingInner {
-    width: 90%;
-    max-width: 620px;
-    padding: 24px 22px 20px;
+    width: min(92%, 520px);
+    max-height: min(92vh, 640px);
+    padding: 18px 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
   #openingTitle {
-    font-size: 28px;
-    letter-spacing: 0.18em;
+    font-size: 24px;
+    letter-spacing: 0.14em;
     text-align: center;
     text-transform: uppercase;
-    margin-bottom: 4px;
+    margin-bottom: 0;
   }
   #openingSubtitle {
-    font-size: 12px;
+    font-size: 11px;
     text-align: center;
     color: var(--text-muted);
-    margin-bottom: 16px;
+    margin-bottom: 4px;
+  }
+  #modeGridWrap {
+    flex: 1;
+    min-height: 220px;
+    max-height: min(360px, 55vh);
+    overflow-y: auto;
+    margin: 0 -6px;
+    padding: 2px 6px 6px;
+  }
+  #modeGridWrap::-webkit-scrollbar {
+    width: 6px;
+  }
+  #modeGridWrap::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.15);
+    border-radius: 999px;
+  }
+  #modeGridWrap::-webkit-scrollbar-track {
+    background: transparent;
   }
   #modeGrid {
     display: grid;
@@ -144,8 +166,14 @@
     color: var(--text-muted);
   }
 
+  #openingActions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+
   #bestTimeCallout {
-    margin-top: 14px;
+    margin-top: 6px;
     padding: 10px 14px;
     border-radius: var(--radius-md);
     border: 1px dashed rgba(255,255,255,0.25);
@@ -191,6 +219,24 @@
   .panel ul {
     padding-left: 20px;
     margin: 4px 0 0;
+  }
+  .infoSection {
+    margin-bottom: 12px;
+  }
+  .infoSection h3 {
+    margin: 8px 0 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 12px;
+    color: var(--text-main);
+  }
+  .infoSection ul {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 12px;
+  }
+  .infoSection li {
+    margin-bottom: 4px;
   }
   .closePanel {
     position: absolute;
@@ -437,6 +483,53 @@
     border-color: rgba(255,230,140,0.8);
     box-shadow: 0 0 18px rgba(255,200,120,0.35);
   }
+  #momentumPanel {
+    position: absolute;
+    top: 240px;
+    right: 12px;
+    width: 220px;
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    background: rgba(10,10,22,0.78);
+    border: 1px solid rgba(255,255,255,0.18);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.65);
+    font-size: 12px;
+    z-index: 10;
+  }
+  #momentumPanel.charged {
+    border-color: rgba(255,120,160,0.7);
+    box-shadow: 0 0 18px rgba(255,120,160,0.4);
+  }
+  #momentumHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  #momentumTrack {
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  #momentumFill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg,#ff6ea5,#ffd480);
+    box-shadow: 0 0 12px rgba(255,110,165,0.4);
+    transition: width 0.2s ease-out;
+  }
+  #momentumDetail {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.3;
+  }
   #focusHeader {
     display: flex;
     justify-content: space-between;
@@ -593,7 +686,8 @@
   <div id="openingInner" class="glass-panel">
     <div id="openingTitle">SHAPE &amp; BEATS</div>
     <div id="openingSubtitle">1) Pick a mode, 2) Pick 4 abilities, 3) Survive.</div>
-    <div id="modeGrid">
+    <div id="modeGridWrap">
+      <div id="modeGrid">
       <div class="mode-card" data-mode="chill">
         <div class="mode-name">Chill</div>
         <div class="mode-tag">Low spawn, low damage. Warm-up mode.</div>
@@ -646,8 +740,9 @@
         <div class="mode-name">Echo Field</div>
         <div class="mode-tag">Resonance builds faster but hazards sync up.</div>
       </div>
+      </div>
     </div>
-    <div style="margin-top:12px; display:flex; gap:8px; justify-content:center;">
+    <div id="openingActions">
       <button class="glass-button" id="infoBtn">Info</button>
       <button class="glass-button" id="updatesBtn">Updates</button>
     </div>
@@ -659,31 +754,63 @@
 <div class="panel glass-panel" id="infoPanel">
   <span class="closePanel" onclick="closePanel('infoPanel')">✕</span>
   <h2>Information</h2>
-  <p>Controls:</p>
-  <ul>
-    <li>Move: <b>WASD</b> / <b>Arrow Keys</b> or mobile joystick (touch anywhere).</li>
-    <li>Dash: <b>B</b> on keyboard or Dash button on mobile.</li>
-    <li>Abilities: choose 4 in the loadout, then press <b>1–4</b> in game.</li>
-  </ul>
-  <p>Abilities pool (you pick 4):</p>
-  <ul>
-    <li>Shield – Temporary invulnerability.</li>
-    <li>Time Slow – Slows shapes and bullets.</li>
-    <li>Shockwave – Blast that clears nearby threats.</li>
-    <li>Freeze Field – Freezes enemies briefly.</li>
-    <li>Clone Decoy – Fake clone attracts enemies.</li>
-    <li>Heal Over Time – Gradual HP regen.</li>
-    <li>Mega Heal – Big instant heal.</li>
-    <li>Barrier – Reduces damage taken for a short time.</li>
-    <li>Speed Boost – Temporary movement speed increase.</li>
-    <li>Cleanse – Clears all bullets on screen.</li>
-    <li>Phase Blink – Instant short-range teleport.</li>
-    <li>Guardian Turret – Deploy an auto-firing helper.</li>
-    <li>Orbitals – Spinning shards block shots.</li>
-    <li>Gravity Well – Pulls and slows anything caught inside.</li>
-    <li>Arc Storm – Expanding lightning ring that erases hazards.</li>
-    <li>Nano Swarm – Lingering field that dissolves enemies.</li>
-  </ul>
+  <div class="infoSection">
+    <h3>Controls</h3>
+    <ul>
+      <li><b>Move</b>: WASD / Arrow Keys or drag the on-screen joystick.</li>
+      <li><b>Dash</b>: Tap <b>B</b> or the Dash button for an instant burst (no cooldown).</li>
+      <li><b>Abilities</b>: Pick any 4 in the loadout, then press <b>1–4</b> (or tap the slot) to activate.</li>
+      <li><b>Menu</b>: Click a mode card, pick abilities, then confirm to dive in.</li>
+    </ul>
+  </div>
+  <div class="infoSection">
+    <h3>Abilities</h3>
+    <ul>
+      <li><b>Shield</b> – Temporary invulnerability (45s).</li>
+      <li><b>Time Slow</b> – Slows enemies and bullets around you (35s).</li>
+      <li><b>Shockwave</b> – Radial blast clears nearby threats (25s).</li>
+      <li><b>Freeze Field</b> – Freezes enemies in place (35s).</li>
+      <li><b>Clone Decoy</b> – Taunting hologram lasts 6 seconds (40s).</li>
+      <li><b>Heal Over Time</b> – Gradual regen ring (30s).</li>
+      <li><b>Mega Heal</b> – Big instant heal (25s).</li>
+      <li><b>Barrier</b> – Damage reduction bubble (25s).</li>
+      <li><b>Speed Boost</b> – Sprint-level movement (18s).</li>
+      <li><b>Cleanse</b> – Deletes every bullet on screen (20s).</li>
+      <li><b>Phase Blink</b> – Short teleport in your move direction (20s).</li>
+      <li><b>Guardian Turret</b> – Auto-firing ally (35s).</li>
+      <li><b>Orbitals</b> – Spinning shards block and shred (30s).</li>
+      <li><b>Gravity Well</b> – Singularities pull hazards inward (32s).</li>
+      <li><b>Arc Storm</b> – Expanding lightning ring (25s).</li>
+      <li><b>Nano Swarm</b> – Lingering dissolving field (30s).</li>
+    </ul>
+  </div>
+  <div class="infoSection">
+    <h3>Mechanics</h3>
+    <ul>
+      <li><b>Resonance</b>: Build the meter by surviving and dashing. At 100% an Echo Burst slows the arena, trims bullets, and hands you barrier + speed buffs.</li>
+      <li><b>Focus Chain</b>: Avoid damage to climb tiers that accelerate cooldowns, drip extra resonance, and add a global slow aura.</li>
+      <li><b>Momentum Drive</b>: New meter that fills while you move and dash. Max it out to trigger Overdrive pulses—auto Arc Storm bursts that chew through hazards while granting a burst of momentum.</li>
+      <li><b>Loadouts</b>: Each mode remembers your best time and expects a bespoke ability combo, so mix utility with offense.</li>
+    </ul>
+  </div>
+  <div class="infoSection">
+    <h3>Enemies</h3>
+    <ul>
+      <li><b>Orbiters & Homers</b> – Base shapes that drift or chase relentlessly.</li>
+      <li><b>Circle Traps</b> – Rings that shrink after priming; dash through before they snap shut.</li>
+      <li><b>Multi Nodes</b> – Floating turrets that volley pellets across lanes.</li>
+      <li><b>Dash Blockers</b> – Anchors that jam your dash if you clip their aura.</li>
+      <li><b>Beam Obelisks</b> – Telegraph sweeping lasers before carving the arena.</li>
+      <li><b>Saw Orbs</b> – Curving sawblades that arc toward you before spiraling away.</li>
+      <li><b>Laser Grids</b> – Wall-to-wall beam fences with bright telegraphs.</li>
+      <li><b>Meteor Shards</b> – Fast shards that splinter when they land.</li>
+      <li><b>Pulse Mines</b> – Stationary mines that explode into radial bullets.</li>
+      <li><b>Blade Runners</b> – Charged rails that dash in straight lethal bursts.</li>
+      <li><b>Emitter Pods</b> – Pods that spawn spiral bullet storms.</li>
+      <li><b>Seeker Swarms</b> – Packs of micro drones that home in together.</li>
+      <li><b>Vortex Eyes</b> – Gravity wells that bend projectiles and pull you off line.</li>
+    </ul>
+  </div>
 </div>
 
 <!-- Updates Panel -->
@@ -745,6 +872,17 @@
     <div id="focusFill"></div>
   </div>
   <div id="focusDetail">Avoid damage to rank up cooldown and resonance bonuses.</div>
+</div>
+
+<div id="momentumPanel">
+  <div id="momentumHeader">
+    <span>Momentum Drive</span>
+    <span id="momentumStatus">Idle</span>
+  </div>
+  <div id="momentumTrack">
+    <div id="momentumFill"></div>
+  </div>
+  <div id="momentumDetail">Move &amp; dash to charge auto Overdrive pulses.</div>
 </div>
 
 <!-- Ability Bar with 4 slots -->
@@ -836,6 +974,10 @@ const focusPanel = document.getElementById('focusPanel');
 const focusFill = document.getElementById('focusFill');
 const focusTier = document.getElementById('focusTier');
 const focusDetail = document.getElementById('focusDetail');
+const momentumPanel = document.getElementById('momentumPanel');
+const momentumFill = document.getElementById('momentumFill');
+const momentumStatus = document.getElementById('momentumStatus');
+const momentumDetail = document.getElementById('momentumDetail');
 
 infoBtn.addEventListener('click', () => {
   document.getElementById('infoPanel').style.display = 'block';
@@ -1253,6 +1395,88 @@ function tickFocusChain(){
 }
 
 resetFocusChain();
+
+/* --------- Momentum Drive mechanic --------- */
+const MOMENTUM_MAX = 100;
+let momentum = 0;
+let momentumDecayDelay = 0;
+let momentumOverdriveTime = 0;
+let momentumPulseTimer = 0;
+
+function updateMomentumHud(){
+  if(!momentumFill) return;
+  const pct = momentumOverdriveTime > 0 ? 1 : Math.min(momentum / MOMENTUM_MAX, 1);
+  momentumFill.style.width = (pct*100) + '%';
+  if(momentumStatus){
+    if(momentumOverdriveTime > 0) momentumStatus.textContent = 'Overdrive';
+    else if(pct > 0.75) momentumStatus.textContent = 'Primed';
+    else if(pct > 0.3) momentumStatus.textContent = 'Building';
+    else momentumStatus.textContent = 'Idle';
+  }
+  if(momentumPanel){
+    momentumPanel.classList.toggle('charged', momentumOverdriveTime > 0 || pct >= 0.95);
+  }
+}
+
+function resetMomentum(message){
+  momentum = 0;
+  momentumDecayDelay = 0;
+  momentumOverdriveTime = 0;
+  momentumPulseTimer = 0;
+  if(message && momentumDetail){
+    momentumDetail.textContent = message;
+  }
+  updateMomentumHud();
+}
+
+function gainMomentum(amount){
+  if(amount <= 0 || momentumOverdriveTime > 0) return;
+  momentum = Math.min(MOMENTUM_MAX, momentum + amount);
+  momentumDecayDelay = 45;
+  updateMomentumHud();
+  if(momentum >= MOMENTUM_MAX){
+    triggerMomentumOverdrive();
+  }
+}
+
+function triggerMomentumOverdrive(){
+  momentumOverdriveTime = 6*60;
+  momentumPulseTimer = 0;
+  if(momentumDetail){
+    momentumDetail.textContent = 'Overdrive pulses are carving a path for you.';
+  }
+  updateMomentumHud();
+}
+
+function tickMomentum(isMoving){
+  if(momentumOverdriveTime > 0){
+    momentumOverdriveTime--;
+    if(momentumPulseTimer-- <= 0){
+      momentumPulseTimer = 18;
+      arcBursts.push({ radius: 18, life: 48, x: player.x, y: player.y });
+      destroyClosestThreat(player.x, player.y, 30);
+      gainResonance(0.8);
+      player.speedBoostTime = Math.max(player.speedBoostTime, 10);
+    }
+    if(momentumOverdriveTime <= 0){
+      resetMomentum('Drive drained. Keep moving to rebuild it.');
+    } else {
+      updateMomentumHud();
+    }
+    return;
+  }
+  if(isMoving){
+    const bonus = player.speedBoostTime > 0 ? 0.4 : 0;
+    gainMomentum(0.7 + bonus);
+  } else if(momentumDecayDelay > 0){
+    momentumDecayDelay--;
+  } else if(momentum > 0){
+    momentum = Math.max(0, momentum - 0.4);
+    updateMomentumHud();
+  }
+}
+
+resetMomentum('Move & dash to charge auto Overdrive pulses.');
 
 /* --------- Ability definitions & loadout --------- */
 const ALL_ABILITIES = {
@@ -2380,6 +2604,7 @@ function tryDash(){
 
   dashFlashTime = 12;
   gainResonance(3);
+  gainMomentum(12);
 }
 
 /* --------- Movement & health --------- */
@@ -2398,7 +2623,8 @@ function movePlayer(){
 
   const moveVecX = ax + joystickVX*10;
   const moveVecY = ay + joystickVY*10;
-  if(moveVecX !== 0 || moveVecY !== 0){
+  const activeInput = moveVecX !== 0 || moveVecY !== 0;
+  if(activeInput){
     const mag = Math.sqrt(moveVecX*moveVecX + moveVecY*moveVecY);
     if(mag > 0){
       lastMoveDirX = moveVecX / mag;
@@ -2423,6 +2649,8 @@ function movePlayer(){
   if(player.x + player.size/2 > canvas.width) player.x = canvas.width - player.size/2;
   if(player.y - player.size/2 < 0) player.y = player.size/2;
   if(player.y + player.size/2 > canvas.height) player.y = canvas.height - player.size/2;
+
+  return activeInput;
 }
 
 function applyDamage(base){
@@ -2435,6 +2663,7 @@ function applyDamage(base){
   if(resonanceText) resonanceText.textContent = 'Interrupted! Build it back up.';
   updateResonanceBar();
   resetFocusChain();
+  resetMomentum('Momentum lost! Stay evasive to build it again.');
   player.health -= dmg;
   if(player.health <= 0){
     player.health = 0;
@@ -2534,6 +2763,7 @@ function resetGame(){
   resonancePulseTime = 0;
   if(resonanceText) resonanceText.textContent = 'Survive and dash to build Echo energy.';
   updateResonanceBar();
+  resetMomentum('Move & dash to charge auto Overdrive pulses.');
   resetFocusChain();
   elapsedMs = 0;
   lastFrameTime = null;
@@ -3259,7 +3489,8 @@ function animate(){
   ctx.fillStyle = player.color;
   ctx.fillRect(player.x - player.size/2, player.y - player.size/2, player.size, player.size);
 
-  movePlayer();
+  const activeMove = movePlayer();
+  tickMomentum(activeMove);
 
   animationId = requestAnimationFrame(animate);
 }
