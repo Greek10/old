@@ -566,8 +566,8 @@
   <h2>Updates</h2>
   <ul>
     <li>Ability loadouts: pick 4 abilities before each run.</li>
-    <li>New enemies: circle dash trap, multi-pellet node, dash blocker, beam object.</li>
-    <li>Dash is now a core move (B / dash button) with no cooldown.</li>
+    <li>New enemies: circle dash trap, multi-pellet node, dash blocker, beam object, <b>saw orbs</b>, and <b>laser grids</b>.</li>
+    <li>Dash is now a core move (B / dash button) with no cooldown and a revamped trail effect.</li>
     <li>2X Speed mode: faster player & faster game.</li>
     <li>Spin lasers nerfed: slower sweep.</li>
   </ul>
@@ -951,6 +951,9 @@ let circleTraps = [];
 let multiNodes = [];
 let dashBlockers = [];
 let beamObjects = [];
+let sawOrbs = [];
+let laserGrids = [];
+let dashTrails = [];
 let spawnTimer = 0;
 let animationId = null;
 
@@ -1174,6 +1177,104 @@ class BeamObject {
   }
 }
 
+class SawOrb {
+  constructor(x,y){
+    this.x = x;
+    this.y = y;
+    this.size = 18 + Math.random()*6;
+    this.speed = 2.6 + Math.random()*1.2;
+    this.wave = Math.random()*Math.PI*2;
+    this.life = 9*60;
+  }
+  update(speedScale){
+    this.life--;
+    const targetX = decoy.active ? decoy.x : player.x;
+    const targetY = decoy.active ? decoy.y : player.y;
+    const dx = targetX - this.x;
+    const dy = targetY - this.y;
+    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+    const nx = dx/dist;
+    const ny = dy/dist;
+    this.wave += 0.35 * speedScale;
+    const sway = Math.sin(this.wave) * 1.4;
+    const perpX = -ny;
+    const perpY = nx;
+    this.x += (nx * this.speed + perpX * sway) * speedScale;
+    this.y += (ny * this.speed + perpY * sway) * speedScale;
+
+    ctx.save();
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = 'rgba(255,150,110,0.85)';
+    ctx.fillStyle = 'rgba(255,170,120,0.95)';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.setLineDash([6,6]);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+class LaserGrid {
+  constructor(){
+    this.orientation = Math.random()<0.5 ? 'horizontal' : 'vertical';
+    this.pos = this.orientation === 'horizontal' ? Math.random()*canvas.height : Math.random()*canvas.width;
+    this.state = 'charge';
+    this.charge = 70;
+    this.active = 45;
+    this.fade = 28;
+    this.widthMap = { charge: 14, active: 30, fade: 18 };
+  }
+  update(){
+    if(this.state === 'charge'){
+      this.drawLine('charge');
+      this.charge--;
+      if(this.charge <= 0) this.state = 'active';
+      return true;
+    }
+    if(this.state === 'active'){
+      this.drawLine('active');
+      this.active--;
+      if(this.active <= 0) this.state = 'fade';
+      return true;
+    }
+    this.drawLine('fade');
+    this.fade--;
+    return this.fade > 0;
+  }
+  drawLine(stage){
+    const width = this.widthMap[stage] || 18;
+    const alpha = stage === 'active' ? 0.75 : stage === 'charge' ? 0.4 : 0.2;
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    const grad = ctx.createLinearGradient(0,0, this.orientation === 'horizontal' ? canvas.width : 0, this.orientation === 'horizontal' ? 0 : canvas.height);
+    grad.addColorStop(0,'rgba(120,220,255,0)');
+    grad.addColorStop(0.5,`rgba(120,220,255,${alpha})`);
+    grad.addColorStop(1,'rgba(120,220,255,0)');
+    ctx.fillStyle = grad;
+    if(this.orientation === 'horizontal'){
+      ctx.fillRect(0, this.pos - width/2, canvas.width, width);
+    } else {
+      ctx.fillRect(this.pos - width/2, 0, width, canvas.height);
+    }
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = 'rgba(200,240,255,0.5)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash(stage === 'charge' ? [16,12] : []);
+    if(this.orientation === 'horizontal'){
+      ctx.strokeRect(0, this.pos - width/2 - 6, canvas.width, width + 12);
+    } else {
+      ctx.strokeRect(this.pos - width/2 - 6, 0, width + 12, canvas.height);
+    }
+    ctx.restore();
+  }
+  getWidth(){
+    return this.widthMap[this.state] || 18;
+  }
+}
+
 /* --------- Spawn functions --------- */
 function randomColor(){
   const r = Math.floor(Math.random()*200+55);
@@ -1234,6 +1335,20 @@ function spawnBeamObject(){
   const x = Math.random()*canvas.width;
   const y = Math.random()*canvas.height;
   beamObjects.push(new BeamObject(x,y,'rgba(180,220,255,1)'));
+}
+
+function spawnSawOrb(){
+  const edge = Math.floor(Math.random()*4);
+  let x,y;
+  if(edge === 0){ x = Math.random()*canvas.width; y = -40; }
+  else if(edge === 1){ x = canvas.width + 40; y = Math.random()*canvas.height; }
+  else if(edge === 2){ x = Math.random()*canvas.width; y = canvas.height + 40; }
+  else { x = -40; y = Math.random()*canvas.height; }
+  sawOrbs.push(new SawOrb(x,y));
+}
+
+function spawnLaserGrid(){
+  laserGrids.push(new LaserGrid());
 }
 
 /* --------- Abilities logic ---------- */
@@ -1419,19 +1534,20 @@ function tryDash(){
   if(mag <= 0.01) return;
   const nx = lastMoveDirX / mag;
   const ny = lastMoveDirY / mag;
-
-  // ghost trail
-  for(let i=1;i<=3;i++){
-    const t = i/3;
-    const gx = player.x + nx * dashDist * t;
-    const gy = player.y + ny * dashDist * t;
-    setTimeout(() => {
-      ctx.save();
-      ctx.globalAlpha = 0.25;
-      ctx.fillStyle = '#a9b7ff';
-      ctx.fillRect(gx - player.size/2, gy - player.size/2, player.size, player.size);
-      ctx.restore();
-    }, i*15);
+  const startX = player.x;
+  const startY = player.y;
+  const angle = Math.atan2(ny, nx);
+  for(let i=0;i<5;i++){
+    const t = i/5;
+    dashTrails.push({
+      x: startX + nx * dashDist * t,
+      y: startY + ny * dashDist * t,
+      life: 22 - i*2,
+      maxLife: 22 - i*2,
+      rotation: angle,
+      thickness: player.size * (0.6 + (1 - t)*0.4),
+      intensity: 0.85 - t*0.1
+    });
   }
 
   player.x += nx * dashDist;
@@ -1441,7 +1557,7 @@ function tryDash(){
   if(player.y - player.size/2 < 0) player.y = player.size/2;
   if(player.y + player.size/2 > canvas.height) player.y = canvas.height - player.size/2;
 
-  dashFlashTime = 10;
+  dashFlashTime = 12;
 }
 
 /* --------- Movement & health --------- */
@@ -1551,6 +1667,9 @@ function resetGame(){
   multiNodes = [];
   dashBlockers = [];
   beamObjects = [];
+  sawOrbs = [];
+  laserGrids = [];
+  dashTrails = [];
   player.x = canvas.width/2;
   player.y = canvas.height/2;
   player.vx = player.vy = 0;
@@ -1640,6 +1759,8 @@ function animate(){
     if(Math.random() < 0.05) spawnMultiNode();
     if(Math.random() < 0.04) spawnDashBlocker();
     if(Math.random() < 0.04) spawnBeamObject();
+    if(Math.random() < 0.05) spawnSawOrb();
+    if(Math.random() < 0.025) spawnLaserGrid();
     spawnTimer = modeConfig.spawnInterval;
   }
 
@@ -1712,6 +1833,45 @@ function animate(){
         pellets.push(new Pellet(bo.x,bo.y,d[0]*speed,d[1]*speed,bo.color));
       });
       beamObjects.splice(i,1);
+    }
+  }
+
+  // saw orbs
+  for(let i=sawOrbs.length-1;i>=0;i--){
+    const orb = sawOrbs[i];
+    orb.update(enemySpeedScale);
+    if(orb.life <= 0 || orb.x < -200 || orb.x > canvas.width+200 || orb.y < -200 || orb.y > canvas.height+200){
+      sawOrbs.splice(i,1);
+      continue;
+    }
+    const dx = orb.x - player.x;
+    const dy = orb.y - player.y;
+    const hitRadius = orb.size + player.size/2 - 4;
+    if(dx*dx + dy*dy < hitRadius*hitRadius){
+      applyDamage(8);
+      sawOrbs.splice(i,1);
+      continue;
+    }
+  }
+
+  // laser grids
+  for(let i=laserGrids.length-1;i>=0;i--){
+    const lg = laserGrids[i];
+    const alive = lg.update();
+    if(lg.state === 'active'){
+      const half = lg.getWidth()/2 + player.size/2;
+      if(lg.orientation === 'horizontal'){
+        if(Math.abs(player.y - lg.pos) < half){
+          applyDamage(2);
+        }
+      } else {
+        if(Math.abs(player.x - lg.pos) < half){
+          applyDamage(2);
+        }
+      }
+    }
+    if(!alive){
+      laserGrids.splice(i,1);
     }
   }
 
@@ -1841,6 +2001,28 @@ function animate(){
       ctx.fillRect(decoy.x - player.size/2, decoy.y - player.size/2, player.size, player.size);
       ctx.globalAlpha = 1.0;
     }
+  }
+
+  // dash trails
+  for(let i=dashTrails.length-1;i>=0;i--){
+    const trail = dashTrails[i];
+    trail.life -= 1;
+    if(trail.life <= 0){
+      dashTrails.splice(i,1);
+      continue;
+    }
+    const alpha = (trail.life / trail.maxLife) * trail.intensity;
+    ctx.save();
+    ctx.translate(trail.x, trail.y);
+    ctx.rotate(trail.rotation);
+    ctx.globalAlpha = alpha;
+    const grad = ctx.createLinearGradient(-player.size, 0, player.size*2.2, 0);
+    grad.addColorStop(0,'rgba(79,140,255,0)');
+    grad.addColorStop(0.5,'rgba(180,210,255,0.9)');
+    grad.addColorStop(1,'rgba(79,140,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(-player.size, -trail.thickness/2, player.size*2.2, trail.thickness);
+    ctx.restore();
   }
 
   if(dashFlashTime > 0){
