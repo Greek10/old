@@ -2,27 +2,26 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>PARTY-ish 3D Prototype</title>
+  <title>party.web — 3D Prototype</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <style>
     html, body {
       margin: 0;
       padding: 0;
       overflow: hidden;
       height: 100%;
-      background: radial-gradient(circle at top, #1a1a2e 0%, #050509 60%, #000 100%);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: #f5f5f5;
+      background: radial-gradient(circle at top, #1a1a2e, #050509, #000);
+      font-family: system-ui, sans-serif;
+      color: #fff;
     }
 
-    canvas {
-      display: block;
-    }
+    canvas { display: block; }
 
-    #startOverlay, #endingOverlay, #hintOverlay {
+    /* Overlays */
+    #startOverlay, #endingOverlay {
       position: fixed;
       inset: 0;
-      pointer-events: none;
     }
 
     #startOverlayInner {
@@ -31,95 +30,42 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      backdrop-filter: blur(12px);
-      background: radial-gradient(circle at top, rgba(255,255,255,0.04), rgba(0,0,0,0.9));
-      pointer-events: auto;
+      backdrop-filter: blur(9px);
+      background: rgba(0,0,0,0.6);
     }
 
     .card {
-      background: linear-gradient(135deg, rgba(15,15,30,0.95), rgba(5,5,15,0.98));
-      border-radius: 18px;
-      border: 1px solid rgba(255,255,255,0.05);
-      box-shadow:
-        0 0 40px rgba(0,0,0,0.7),
-        0 0 80px rgba(120,120,255,0.25);
-      padding: 24px 28px;
-      max-width: 420px;
+      background: rgba(0, 0, 0, 0.55);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.7);
       text-align: center;
-    }
-
-    .card h1 {
-      margin: 0 0 8px;
-      font-size: 1.75rem;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-
-    .accent {
-      color: #ff5c9a;
-    }
-
-    .card p {
-      margin: 6px 0;
-      font-size: 0.9rem;
-      color: #d0d0ff;
+      width: 360px;
     }
 
     .btn {
-      margin-top: 18px;
-      padding: 10px 22px;
+      margin-top: 15px;
+      padding: 10px 20px;
       border-radius: 999px;
+      background: #ff5c9a;
+      color: white;
+      font-weight: bold;
       border: none;
       cursor: pointer;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      background: radial-gradient(circle at top left, #ff5c9a, #7f5cff);
-      color: #fff;
-      box-shadow:
-        0 0 18px rgba(255,92,154,0.45),
-        0 0 28px rgba(127,92,255,0.35);
-      transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+      font-size: 16px;
     }
 
     .btn:hover {
-      transform: translateY(-1px) scale(1.02);
-      filter: brightness(1.08);
-      box-shadow:
-        0 0 22px rgba(255,92,154,0.7),
-        0 0 32px rgba(127,92,255,0.6);
-    }
-
-    .btn:active {
-      transform: translateY(1px) scale(0.98);
-      filter: brightness(0.95);
-      box-shadow:
-        0 0 12px rgba(255,92,154,0.5),
-        0 0 20px rgba(127,92,255,0.4);
-    }
-
-    #hintOverlayText {
-      position: absolute;
-      left: 50%;
-      bottom: 28px;
-      transform: translateX(-50%);
-      padding: 6px 12px;
-      border-radius: 999px;
-      background: rgba(0,0,0,0.65);
-      border: 1px solid rgba(255,255,255,0.08);
-      font-size: 0.75rem;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-      color: #cfd2ff;
-      pointer-events: none;
+      filter: brightness(1.15);
     }
 
     #crosshair {
       position: absolute;
       left: 50%;
       top: 50%;
-      width: 14px;
-      height: 14px;
+      width: 12px;
+      height: 12px;
       transform: translate(-50%, -50%);
       pointer-events: none;
       opacity: 0.65;
@@ -133,19 +79,26 @@
     }
 
     #crosshair::before {
-      left: 50%;
-      top: 0;
+      left: 50%; top: 0;
+      width: 2px; height: 12px;
       transform: translateX(-50%);
-      width: 2px;
-      height: 14px;
     }
 
     #crosshair::after {
-      top: 50%;
-      left: 0;
+      top: 50%; left: 0;
+      width: 12px; height: 2px;
       transform: translateY(-50%);
-      width: 14px;
-      height: 2px;
+    }
+
+    #hintOverlayText {
+      position: absolute;
+      left: 50%;
+      bottom: 28px;
+      transform: translateX(-50%);
+      padding: 6px 12px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 8px;
+      font-size: 0.75rem;
     }
 
     #endingOverlayInner {
@@ -154,7 +107,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: radial-gradient(circle at center, rgba(0,0,0,0.4), rgba(0,0,0,0.96));
+      background: rgba(0,0,0,0.8);
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.3s ease;
@@ -164,46 +117,17 @@
       opacity: 1;
       pointer-events: auto;
     }
-
-    #endingCardTitle {
-      font-size: 1.6rem;
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    #endingCardSubtitle {
-      font-size: 0.9rem;
-      color: #d0d0ff;
-      margin-bottom: 8px;
-    }
-
-    #endingDetails {
-      font-size: 0.85rem;
-      color: #aeb2ff;
-    }
-
-    #endingHint {
-      margin-top: 8px;
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #ff5c9a;
-    }
   </style>
 </head>
 <body>
-  <!-- Start overlay -->
+
+  <!-- Start Screen -->
   <div id="startOverlay">
     <div id="startOverlayInner">
       <div class="card">
-        <h1><span class="accent">party</span>.web</h1>
-        <p>It’s your birthday… probably.</p>
-        <p>Walk to the house. Go inside. Or don’t.</p>
-        <p>Some choices feel familiar to a certain old Roblox horror game.</p>
-        <p style="margin-top: 10px; opacity: 0.8;">
-          <strong>Controls:</strong> Click to lock, WASD to move, mouse to look, Shift to sprint, R to restart after an ending.
-        </p>
+        <h1><span style="color:#ff5c9a">party</span>.web</h1>
+        <p>Walk to the house… or leave.</p>
+        <p><strong>Controls:</strong> WASD, Mouse, Shift to sprint.</p>
         <button id="startButton" class="btn">Enter Party</button>
       </div>
     </div>
@@ -212,29 +136,32 @@
   <!-- Crosshair -->
   <div id="crosshair"></div>
 
-  <!-- Hint / small bottom text -->
-  <div id="hintOverlay">
-    <div id="hintOverlayText">
-      Find the house. Maybe the party is inside… or maybe the exit is by the car.
-    </div>
+  <!-- Hint -->
+  <div id="hintOverlayText">
+    Find the house. Maybe the party is inside.
   </div>
 
-  <!-- Ending overlay -->
+  <!-- Ending Overlay -->
   <div id="endingOverlay">
     <div id="endingOverlayInner">
       <div class="card">
-        <div id="endingCardTitle"></div>
-        <div id="endingCardSubtitle"></div>
-        <div id="endingDetails"></div>
-        <div id="endingHint">Press R to wake up.</div>
+        <h2 id="endingCardTitle"></h2>
+        <p id="endingCardSubtitle"></p>
+        <p id="endingDetails"></p>
+        <p style="color:#ff5c9a; margin-top:10px;">Press R to restart</p>
       </div>
     </div>
   </div>
 
-  <!-- 3D scene -->
+  <!-- Scene -->
   <script type="module">
+
     import * as THREE from "https://unpkg.com/three@0.161.0/build/three.module.js";
     import { PointerLockControls } from "https://unpkg.com/three@0.161.0/examples/jsm/controls/PointerLockControls.js";
+
+    /* ---------------------------
+       VARIABLES / WORLD SETUP
+    ----------------------------*/
 
     let camera, scene, renderer, controls;
     let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
@@ -242,520 +169,356 @@
     const velocity = new THREE.Vector3();
     const direction = new THREE.Vector3();
     const clock = new THREE.Clock();
-
     let ended = false;
+
     const startPos = new THREE.Vector3(0, 1.7, 18);
-
-    // Simple trigger volumes
     const triggers = [];
-
     let tixMesh;
 
+    /* HTML elements */
     const startOverlay = document.getElementById("startOverlay");
     const endingOverlayInner = document.getElementById("endingOverlayInner");
     const endingTitle = document.getElementById("endingCardTitle");
     const endingSubtitle = document.getElementById("endingCardSubtitle");
     const endingDetails = document.getElementById("endingDetails");
     const hintText = document.getElementById("hintOverlayText");
-    const crosshair = document.getElementById("crosshair");
 
     init();
     animate();
 
+    /* ---------------------------
+        INITIALIZATION
+    ----------------------------*/
+
     function init() {
-      // Scene setup
+
+      /* Create scene */
       scene = new THREE.Scene();
       scene.fog = new THREE.FogExp2(0x050509, 0.045);
 
       camera = new THREE.PerspectiveCamera(
-        75,
-        window.innerWidth / window.innerHeight,
-        0.1,
-        1000
+        75, window.innerWidth / window.innerHeight, 0.1, 1000
       );
       camera.position.copy(startPos);
 
-      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer = new THREE.WebGLRenderer({ antialias:true });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(window.devicePixelRatio);
-      renderer.setClearColor(0x050509, 1);
+      renderer.setClearColor(0x050509);
       document.body.appendChild(renderer.domElement);
 
-      // Lighting
-      const ambient = new THREE.AmbientLight(0x8888aa, 0.9);
-      scene.add(ambient);
+      /* Lights */
+      scene.add(new THREE.AmbientLight(0x8888aa, 0.9));
 
-      const moonLight = new THREE.DirectionalLight(0x99bbff, 0.8);
-      moonLight.position.set(20, 40, 10);
-      scene.add(moonLight);
+      const moon = new THREE.DirectionalLight(0x99bbff, 0.8);
+      moon.position.set(20,40,10);
+      scene.add(moon);
 
-      const houseGlow = new THREE.PointLight(0xff77aa, 2, 40);
-      houseGlow.position.set(0, 5, -10);
-      scene.add(houseGlow);
-
-      // Controls
+      /* Controls */
       controls = new PointerLockControls(camera, document.body);
-
-      controls.addEventListener("lock", () => {
-        hintText.textContent = "WASD to move, Shift to sprint. Don’t stare too long at the white thing.";
-        crosshair.style.opacity = "0.8";
-      });
-
-      controls.addEventListener("unlock", () => {
-        if (!ended) {
-          hintText.textContent = "Click anywhere to lock mouse and keep playing.";
-        }
-        crosshair.style.opacity = "0.4";
-      });
 
       document.getElementById("startButton").addEventListener("click", () => {
         startOverlay.style.display = "none";
-        controls.lock();
+
+        // slight delay fixes pointer-lock refusal
+        setTimeout(() => controls.lock(), 50);
       });
 
-      // World
+      // fallback: clicking anywhere locks if not ended
+      document.body.addEventListener("click", () => {
+        if (!controls.isLocked && !ended) controls.lock();
+      });
+
+      /* Build scene */
       createGround();
       createHouse();
       createTrees();
-      createSubjectFigure();
+      createSubject();
       createCar();
       createTix();
 
       setupTriggers();
 
-      // Input
+      /* Key Input */
       document.addEventListener("keydown", onKeyDown);
       document.addEventListener("keyup", onKeyUp);
-      window.addEventListener("resize", onWindowResize);
+      window.addEventListener("resize", onResize);
     }
 
-    function createGround() {
-      const geo = new THREE.PlaneGeometry(80, 80, 1, 1);
-      const mat = new THREE.MeshStandardMaterial({
-        color: 0x0b0f16,
-        roughness: 0.95,
-        metalness: 0.0
-      });
-      const ground = new THREE.Mesh(geo, mat);
-      ground.rotation.x = -Math.PI / 2;
-      ground.receiveShadow = true;
-      scene.add(ground);
+    /* ---------------------------
+           SCENE OBJECTS
+    ----------------------------*/
 
-      // Slight path to the house
-      const pathGeo = new THREE.PlaneGeometry(4, 20);
-      const pathMat = new THREE.MeshStandardMaterial({
-        color: 0x1c1f2b,
-        roughness: 0.8
-      });
-      const path = new THREE.Mesh(pathGeo, pathMat);
-      path.rotation.x = -Math.PI / 2;
-      path.position.set(0, 0.01, 4);
-      scene.add(path);
+    function createGround() {
+      const geo = new THREE.PlaneGeometry(80,80);
+      const mat = new THREE.MeshStandardMaterial({ color:0x0b0f16, roughness:1 });
+      const ground = new THREE.Mesh(geo,mat);
+      ground.rotation.x = -Math.PI/2;
+      scene.add(ground);
     }
 
     function createHouse() {
-      // Main box
-      const bodyGeo = new THREE.BoxGeometry(16, 8, 16);
-      const bodyMat = new THREE.MeshStandardMaterial({
-        color: 0x141421,
-        roughness: 0.75,
-        metalness: 0.05
-      });
-      const body = new THREE.Mesh(bodyGeo, bodyMat);
-      body.position.set(0, 4, -10);
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(16,8,16),
+        new THREE.MeshStandardMaterial({color:0x141421})
+      );
+      body.position.set(0,4,-10);
       scene.add(body);
 
-      // Roof
-      const roofGeo = new THREE.ConeGeometry(10, 4, 4);
-      const roofMat = new THREE.MeshStandardMaterial({
-        color: 0x1f1b3a,
-        roughness: 0.9
-      });
-      const roof = new THREE.Mesh(roofGeo, roofMat);
-      roof.position.set(0, 9, -10);
-      roof.rotation.y = Math.PI / 4;
+      const roof = new THREE.Mesh(
+        new THREE.ConeGeometry(10,4,4),
+        new THREE.MeshStandardMaterial({color:0x1f1b3a})
+      );
+      roof.position.set(0,9,-10);
+      roof.rotation.y = Math.PI/4;
       scene.add(roof);
 
-      // Door frame glow
-      const doorGeo = new THREE.PlaneGeometry(3, 4);
-      const doorMat = new THREE.MeshBasicMaterial({
-        color: 0xff5c9a,
-        transparent: true,
-        opacity: 0.55
-      });
-      const door = new THREE.Mesh(doorGeo, doorMat);
-      door.position.set(0, 2.2, -2);
+      // glowing door
+      const door = new THREE.Mesh(
+        new THREE.PlaneGeometry(3,4),
+        new THREE.MeshBasicMaterial({color:0xff5c9a, transparent:true, opacity:0.5})
+      );
+      door.position.set(0,2,-2);
       scene.add(door);
 
-      // Windows
-      const windowGeo = new THREE.PlaneGeometry(2, 2);
-      const windowMat = new THREE.MeshBasicMaterial({
-        color: 0x7f9cff,
-        transparent: true,
-        opacity: 0.5
-      });
-
-      const leftWindow = new THREE.Mesh(windowGeo, windowMat);
-      leftWindow.position.set(-4, 4, -2.01);
-      scene.add(leftWindow);
-
-      const rightWindow = new THREE.Mesh(windowGeo, windowMat);
-      rightWindow.position.set(4, 4, -2.01);
-      scene.add(rightWindow);
-
-      // Fake "party room" light inside (just a point light)
       const partyLight = new THREE.PointLight(0xff99cc, 2, 18);
-      partyLight.position.set(0, 4, -12);
+      partyLight.position.set(0,4,-12);
       scene.add(partyLight);
     }
 
     function createTrees() {
-      const trunkMat = new THREE.MeshStandardMaterial({ color: 0x382626, roughness: 1 });
-      const leavesMat = new THREE.MeshStandardMaterial({ color: 0x13281c, roughness: 0.9 });
+      const trunkMat = new THREE.MeshStandardMaterial({ color:0x382626 });
+      const leafMat = new THREE.MeshStandardMaterial({ color:0x13281c });
 
-      const positions = [
-        [-10, -4],
-        [-14, -8],
-        [10, -3],
-        [14, -7],
-        [-16, 2],
-        [16, 4]
-      ];
-
-      positions.forEach(([x, z]) => {
-        const trunkGeo = new THREE.CylinderGeometry(0.4, 0.7, 4, 6);
-        const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-        trunk.position.set(x, 2, z);
+      [[-10,-4],[-14,-8],[10,-3],[14,-7]].forEach(([x,z]) => {
+        const trunk = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.4,0.7,4),
+          trunkMat
+        );
+        trunk.position.set(x,2,z);
         scene.add(trunk);
 
-        const leavesGeo = new THREE.SphereGeometry(2.2, 12, 12);
-        const leaves = new THREE.Mesh(leavesGeo, leavesMat);
-        leaves.position.set(x, 5, z);
+        const leaves = new THREE.Mesh(
+          new THREE.SphereGeometry(2.2),
+          leafMat
+        );
+        leaves.position.set(x,5,z);
         scene.add(leaves);
       });
     }
 
-    function createSubjectFigure() {
-      // Simple creepy white figure watching from the yard
-      const bodyGeo = new THREE.CapsuleGeometry(0.8, 1.8, 8, 16);
-      const bodyMat = new THREE.MeshStandardMaterial({
-        color: 0xeeeeee,
-        roughness: 0.5,
-        metalness: 0.0,
-        emissive: 0xffffff,
-        emissiveIntensity: 0.05
-      });
-
-      const subject = new THREE.Mesh(bodyGeo, bodyMat);
-      subject.position.set(-4, 2.2, 8);
-      scene.add(subject);
-
-      // "Face" as a small plane
-      const faceGeo = new THREE.PlaneGeometry(0.9, 0.9);
-      const canvas = document.createElement("canvas");
-      canvas.width = 256;
-      canvas.height = 256;
-      const ctx = canvas.getContext("2d");
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, 256, 256);
-      ctx.fillStyle = "#000000";
-      ctx.beginPath();
-      ctx.arc(80, 100, 22, 0, Math.PI * 2);
-      ctx.arc(176, 100, 22, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.lineWidth = 8;
-      ctx.beginPath();
-      ctx.arc(128, 160, 60, 0.25 * Math.PI, 0.75 * Math.PI);
-      ctx.strokeStyle = "#000000";
-      ctx.stroke();
-
-      const faceTex = new THREE.CanvasTexture(canvas);
-      const faceMat = new THREE.MeshBasicMaterial({
-        map: faceTex,
-        transparent: false
-      });
-      const face = new THREE.Mesh(faceGeo, faceMat);
-      face.position.set(0, 1.5, 0.85);
-      subject.add(face);
-
-      // Make him gently look at player (just a tiny idle rotation in animate)
+    function createSubject() {
+      const subject = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.8,1.8),
+        new THREE.MeshStandardMaterial({
+          color:0xffffff,
+          emissive:0xffffff,
+          emissiveIntensity:0.1
+        })
+      );
+      subject.position.set(-4,2.2,8);
       subject.userData.isSubject = true;
       scene.add(subject);
     }
 
     function createCar() {
-      const bodyGeo = new THREE.BoxGeometry(4, 1, 2);
-      const bodyMat = new THREE.MeshStandardMaterial({ color: 0x30353f, roughness: 0.8 });
-      const body = new THREE.Mesh(bodyGeo, bodyMat);
-      body.position.set(0, 0.6, 24);
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(4,1,2),
+        new THREE.MeshStandardMaterial({color:0x30353f})
+      );
+      body.position.set(0,0.6,24);
       scene.add(body);
-
-      const topGeo = new THREE.BoxGeometry(2.5, 0.8, 2);
-      const topMat = new THREE.MeshStandardMaterial({ color: 0x181c23, roughness: 0.9 });
-      const top = new THREE.Mesh(topGeo, topMat);
-      top.position.set(0, 1.5, 24);
-      scene.add(top);
-
-      const headlightGeo = new THREE.SphereGeometry(0.2, 8, 8);
-      const headlightMat = new THREE.MeshStandardMaterial({
-        color: 0xfff4c1,
-        emissive: 0xfff4c1,
-        emissiveIntensity: 1.2
-      });
-      const h1 = new THREE.Mesh(headlightGeo, headlightMat);
-      const h2 = new THREE.Mesh(headlightGeo, headlightMat);
-      h1.position.set(-1.3, 0.5, 25);
-      h2.position.set(1.3, 0.5, 25);
-      scene.add(h1, h2);
-
-      const carLight = new THREE.SpotLight(0xfff4c1, 1.2, 30, Math.PI / 6, 0.4);
-      carLight.position.set(0, 1.3, 25.2);
-      carLight.target.position.set(0, 0.5, 15);
-      scene.add(carLight);
-      scene.add(carLight.target);
     }
 
     function createTix() {
-      const geo = new THREE.BoxGeometry(0.8, 0.2, 0.5);
-      const mat = new THREE.MeshStandardMaterial({
-        color: 0xffd15c,
-        emissive: 0xffd15c,
-        emissiveIntensity: 0.6,
-        roughness: 0.6
-      });
-      tixMesh = new THREE.Mesh(geo, mat);
-      tixMesh.position.set(6, 0.3, 10);
+      tixMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(0.8,0.2,0.5),
+        new THREE.MeshStandardMaterial({color:0xffd15c, emissive:0xffd15c})
+      );
+      tixMesh.position.set(6,0.3,10);
       scene.add(tixMesh);
     }
 
+    /* ---------------------------
+        TRIGGERS / ENDINGS
+    ----------------------------*/
+
     function setupTriggers() {
-      // Front door: leads into "fake party" ending
       triggers.push({
-        name: "fake_party",
-        type: "volume",
-        box: {
-          min: new THREE.Vector3(-1.5, 0, -1),
-          max: new THREE.Vector3(1.5, 3, -4.5)
-        },
-        once: true
+        name:"fake_party",
+        type:"volume",
+        box:{min:new THREE.Vector3(-1.5,0,-1), max:new THREE.Vector3(1.5,3,-4.5)},
+        once:true
       });
 
-      // Inside house zone: "winner" style jumpscare ending
       triggers.push({
-        name: "inside_house",
-        type: "volume",
-        box: {
-          min: new THREE.Vector3(-7, 0, -6),
-          max: new THREE.Vector3(7, 5, -20)
-        },
-        once: true
+        name:"inside_house",
+        type:"volume",
+        box:{min:new THREE.Vector3(-7,0,-6), max:new THREE.Vector3(7,5,-20)},
+        once:true
       });
 
-      // Car "refuse" ending
       triggers.push({
-        name: "car_refuse",
-        type: "volume",
-        box: {
-          min: new THREE.Vector3(-2, 0, 22),
-          max: new THREE.Vector3(2, 3, 27)
-        },
-        once: true
+        name:"car_refuse",
+        type:"volume",
+        box:{min:new THREE.Vector3(-2,0,22), max:new THREE.Vector3(2,3,27)},
+        once:true
       });
 
-      // Tix trigger: use distance check instead of volume
       triggers.push({
-        name: "tix",
-        type: "tix",
-        radius: 1.2,
-        once: true
+        name:"tix",
+        type:"tix",
+        radius:1.2,
+        once:true
       });
     }
 
-    function triggerEnding(id) {
+    function end(id) {
       if (ended) return;
       ended = true;
       controls.unlock();
 
-      let title = "";
-      let subtitle = "";
-      let details = "";
+      let title="", subtitle="", details="";
 
-      if (id === "fake_party") {
-        title = "Fake Party";
-        subtitle = "That didn’t look like a normal birthday room.";
-        details = "You stepped into the glowing doorway and found… whatever that was. " +
-                  "Somewhere behind the walls, something is watching. It’s smiling. It’s waiting.";
-      } else if (id === "inside_house") {
-        title = "Winner";
-        subtitle = "You made it inside. That might not be a good thing.";
-        details = "For a brief moment, you felt like the main character. " +
-                  "Then you realised the house isn’t built for you. You’re just… the guest.";
-      } else if (id === "car_refuse") {
-        title = "Refusal";
-        subtitle = "You decide to go home instead.";
-        details = "You get in the car, lock the doors, and breathe. " +
-                  "In the rear-view mirror, something stands where the house used to be.";
-      } else if (id === "tix") {
-        title = "Tix Room";
-        subtitle = "You touched the forbidden ticket.";
-        details = "For a shiny, pixelated second, you were rich. " +
-                  "Then the universe reminded you that nostalgia has a price.";
-      } else {
-        title = "Unknown Ending";
-        subtitle = "You broke reality.";
-        details = "Somehow you found an ending I didn’t code. Impressive.";
+      if (id==="fake_party") {
+        title="Fake Party";
+        subtitle="That didn’t look normal.";
+        details="Something behind the walls is smiling.";
+      }
+      else if(id==="inside_house") {
+        title="Winner";
+        subtitle="You entered the party room.";
+        details="But the house wasn't made for you.";
+      }
+      else if(id==="car_refuse") {
+        title="Refusal";
+        subtitle="You go home instead.";
+        details="In the mirror, something stands where the house was.";
+      }
+      else if(id==="tix") {
+        title="Tix Ending";
+        subtitle="Nostalgia claimed its price.";
+        details="You touched the forbidden ticket.";
       }
 
       endingTitle.textContent = title + " Ending";
       endingSubtitle.textContent = subtitle;
       endingDetails.textContent = details;
 
-      hintText.textContent = "Press R to restart from the front yard.";
       endingOverlayInner.classList.add("visible");
+      hintText.textContent = "Press R to restart.";
     }
 
     function resetGame() {
       ended = false;
       endingOverlayInner.classList.remove("visible");
       camera.position.copy(startPos);
-      camera.rotation.set(0, 0, 0);
-      hintText.textContent = "Find the house. Maybe the party is inside… or maybe the exit is by the car.";
-      // You need to click again to lock mouse
+      camera.rotation.set(0,0,0);
+
+      hintText.textContent = "Find the house.";
     }
 
-    function onKeyDown(event) {
-      switch (event.code) {
-        case "ArrowUp":
-        case "KeyW":
-          moveForward = true;
-          break;
-        case "ArrowLeft":
-        case "KeyA":
-          moveLeft = true;
-          break;
-        case "ArrowDown":
-        case "KeyS":
-          moveBackward = true;
-          break;
-        case "ArrowRight":
-        case "KeyD":
-          moveRight = true;
-          break;
-        case "ShiftLeft":
-        case "ShiftRight":
-          sprint = true;
-          break;
-        case "KeyR":
-          if (ended) {
-            resetGame();
+    /* ---------------------------
+             INPUT
+    ----------------------------*/
+
+    function onKeyDown(e){
+      switch(e.code){
+        case "KeyW": moveForward=true; break;
+        case "KeyA": moveLeft=true; break;
+        case "KeyS": moveBackward=true; break;
+        case "KeyD": moveRight=true; break;
+        case "ShiftLeft": sprint=true; break;
+        case "KeyR": if(ended) resetGame(); break;
+      }
+    }
+
+    function onKeyUp(e){
+      switch(e.code){
+        case "KeyW": moveForward=false; break;
+        case "KeyA": moveLeft=false; break;
+        case "KeyS": moveBackward=false; break;
+        case "KeyD": moveRight=false; break;
+        case "ShiftLeft": sprint=false; break;
+      }
+    }
+
+    /* ---------------------------
+          TRIGGER CHECKING
+    ----------------------------*/
+
+    function checkTriggers() {
+      const pos = camera.position;
+
+      for (const trig of triggers){
+        if (trig.once && trig._done) continue;
+
+        if (trig.type==="volume"){
+          if(
+            pos.x>=trig.box.min.x && pos.x<=trig.box.max.x &&
+            pos.y>=trig.box.min.y && pos.y<=trig.box.max.y &&
+            pos.z>=trig.box.min.z && pos.z<=trig.box.max.z
+          ){
+            trig._done=true;
+            end(trig.name);
+            return;
           }
-          break;
+        }
+
+        if(trig.type==="tix"){
+          if (!tixMesh) continue;
+          const d = pos.distanceTo(tixMesh.position);
+          if(d<=trig.radius){
+            trig._done=true;
+            end(trig.name);
+            return;
+          }
+        }
       }
     }
 
-    function onKeyUp(event) {
-      switch (event.code) {
-        case "ArrowUp":
-        case "KeyW":
-          moveForward = false;
-          break;
-        case "ArrowLeft":
-        case "KeyA":
-          moveLeft = false;
-          break;
-        case "ArrowDown":
-        case "KeyS":
-          moveBackward = false;
-          break;
-        case "ArrowRight":
-        case "KeyD":
-          moveRight = false;
-          break;
-        case "ShiftLeft":
-        case "ShiftRight":
-          sprint = false;
-          break;
-      }
-    }
-
-    function onWindowResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
+    /* ---------------------------
+              RESIZE
+    ----------------------------*/
+    function onResize(){
+      camera.aspect = window.innerWidth/window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    function checkTriggers(delta) {
-      const pos = camera.position;
+    /* ---------------------------
+              LOOP
+    ----------------------------*/
 
-      for (const trig of triggers) {
-        if (trig._used && trig.once) continue;
-
-        if (trig.type === "volume") {
-          if (
-            pos.x >= trig.box.min.x && pos.x <= trig.box.max.x &&
-            pos.y >= trig.box.min.y && pos.y <= trig.box.max.y &&
-            pos.z >= trig.box.min.z && pos.z <= trig.box.max.z
-          ) {
-            trig._used = true;
-            if (trig.name === "inside_house") {
-              // Add a tiny delay so it feels like a jumpscare
-              setTimeout(() => triggerEnding(trig.name), 160);
-            } else {
-              triggerEnding(trig.name);
-            }
-            break;
-          }
-        } else if (trig.type === "tix") {
-          if (!tixMesh) continue;
-          const dist = pos.distanceTo(tixMesh.position);
-          if (dist <= trig.radius) {
-            trig._used = true;
-            triggerEnding(trig.name);
-            break;
-          }
-        }
-      }
-    }
-
-    function animate() {
+    function animate(){
       requestAnimationFrame(animate);
-
       const delta = clock.getDelta();
 
-      // Gentle idle look for subject figure
-      scene.traverse(obj => {
-        if (obj.userData.isSubject) {
-          obj.rotation.y = Math.sin(performance.now() * 0.0003) * 0.3;
-        }
-      });
+      if(!ended && controls.isLocked){
+        const speed = sprint ? 420 : 260;
 
-      if (!ended && controls.isLocked) {
-        const speed = sprint ? 420.0 : 260.0;
-
-        velocity.x -= velocity.x * 8.0 * delta;
-        velocity.z -= velocity.z * 8.0 * delta;
+        velocity.x -= velocity.x * 8 * delta;
+        velocity.z -= velocity.z * 8 * delta;
 
         direction.z = Number(moveForward) - Number(moveBackward);
         direction.x = Number(moveRight) - Number(moveLeft);
         direction.normalize();
 
-        if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
-        if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
+        if(moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
+        if(moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
 
         controls.moveRight(-velocity.x * delta);
         controls.moveForward(-velocity.z * delta);
 
-        // Keep player on ground & inside a rough boundary
         camera.position.y = 1.7;
-        const limit = 36;
-        camera.position.x = THREE.MathUtils.clamp(camera.position.x, -limit, limit);
-        camera.position.z = THREE.MathUtils.clamp(camera.position.z, -limit, limit);
 
-        checkTriggers(delta);
+        checkTriggers();
       }
 
       renderer.render(scene, camera);
     }
+
   </script>
+
 </body>
 </html>
