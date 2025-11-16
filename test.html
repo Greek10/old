@@ -1044,17 +1044,24 @@ function setActiveInfoSection(target){
 infoTabs.forEach(tab => {
   tab.addEventListener('click', () => {
     setActiveInfoSection(tab.dataset.target);
+    playSound('tab_switch');
   });
 });
 
 infoBtn.addEventListener('click', () => {
   setActiveInfoSection(activeInfoSection || 'controls');
   infoPanelEl.style.display = 'block';
+  playSound('panel_open');
 });
 updatesBtn.addEventListener('click', () => {
   document.getElementById('updatesPanel').style.display = 'block';
+  playSound('panel_open');
 });
-function closePanel(id){ document.getElementById(id).style.display = 'none'; }
+function closePanel(id){
+  const panel = document.getElementById(id);
+  if(panel) panel.style.display = 'none';
+  playSound('panel_close');
+}
 
 const RUN_TIPS = [
   'Dash (B) right as a beam fires to avoid damage.',
@@ -1074,6 +1081,265 @@ const bestTimes = (() => {
     return {};
   }
 })();
+
+/* --------- Audio & sound effects --------- */
+const audioState = { ctx: null, master: null };
+
+const SOUND_LIBRARY = {
+  panel_open: [
+    { type: 'triangle', freq: 420, duration: 0.18, volume: 0.18 },
+    { type: 'triangle', freq: 640, duration: 0.2, volume: 0.12, offset: 0.08 }
+  ],
+  panel_close: [
+    { type: 'triangle', freq: 320, duration: 0.12, volume: 0.16 },
+    { type: 'triangle', freq: 220, duration: 0.18, volume: 0.14, offset: 0.04 }
+  ],
+  tab_switch: [
+    { type: 'square', freq: 520, duration: 0.08, volume: 0.15 }
+  ],
+  mode_select: [
+    { type: 'triangle', freq: 360, duration: 0.12, volume: 0.2 },
+    { type: 'triangle', freq: 520, duration: 0.12, volume: 0.18, offset: 0.05 }
+  ],
+  ability_select: [
+    { type: 'triangle', freq: 480, duration: 0.09, volume: 0.2 },
+    { type: 'triangle', freq: 640, duration: 0.09, volume: 0.18, offset: 0.04 }
+  ],
+  ability_remove: [
+    { type: 'triangle', freq: 420, duration: 0.09, volume: 0.18 },
+    { type: 'triangle', freq: 280, duration: 0.09, volume: 0.16, offset: 0.05 }
+  ],
+  ability_locked: [
+    { type: 'sawtooth', freq: 160, duration: 0.18, volume: 0.24 }
+  ],
+  menu_confirm: [
+    { type: 'triangle', freq: 300, duration: 0.14, volume: 0.2 },
+    { type: 'triangle', freq: 520, duration: 0.18, volume: 0.2, offset: 0.07 }
+  ],
+  menu_open: [
+    { type: 'sine', freq: 260, duration: 0.2, volume: 0.16 },
+    { type: 'sine', freq: 360, duration: 0.18, volume: 0.14, offset: 0.08 }
+  ],
+  game_start: [
+    { type: 'sawtooth', freq: 200, duration: 0.14, volume: 0.22 },
+    { type: 'triangle', freq: 360, duration: 0.18, volume: 0.2, offset: 0.05 },
+    { type: 'triangle', freq: 520, duration: 0.22, volume: 0.18, offset: 0.1 }
+  ],
+  game_reset: [
+    { type: 'triangle', freq: 300, duration: 0.12, volume: 0.18 }
+  ],
+  dash: [
+    { type: 'sawtooth', freq: 480, duration: 0.08, volume: 0.26 },
+    { type: 'sawtooth', freq: 680, duration: 0.08, volume: 0.22, offset: 0.04 }
+  ],
+  resonance_ping: [
+    { type: 'triangle', freq: 720, duration: 0.08, volume: 0.14 }
+  ],
+  resonance_burst: [
+    { type: 'square', freq: 420, duration: 0.2, volume: 0.24 },
+    { type: 'triangle', freq: 640, duration: 0.22, volume: 0.2, offset: 0.05 },
+    { type: 'triangle', freq: 820, duration: 0.25, volume: 0.18, offset: 0.1 }
+  ],
+  focus_rank: [
+    { type: 'triangle', freq: 340, duration: 0.12, volume: 0.2 },
+    { type: 'triangle', freq: 520, duration: 0.14, volume: 0.2, offset: 0.05 },
+    { type: 'triangle', freq: 700, duration: 0.16, volume: 0.2, offset: 0.1 }
+  ],
+  focus_break: [
+    { type: 'sine', freq: 220, duration: 0.2, volume: 0.16 }
+  ],
+  momentum_charge: [
+    { type: 'square', freq: 300, duration: 0.12, volume: 0.18 }
+  ],
+  momentum_ready: [
+    { type: 'triangle', freq: 260, duration: 0.12, volume: 0.2 },
+    { type: 'triangle', freq: 520, duration: 0.18, volume: 0.2, offset: 0.06 }
+  ],
+  momentum_overdrive: [
+    { type: 'square', freq: 380, duration: 0.18, volume: 0.24 },
+    { type: 'square', freq: 620, duration: 0.2, volume: 0.22, offset: 0.06 }
+  ],
+  momentum_pulse: [
+    { type: 'sawtooth', freq: 520, duration: 0.1, volume: 0.2 }
+  ],
+  momentum_reset: [
+    { type: 'sine', freq: 200, duration: 0.16, volume: 0.15 }
+  ],
+  player_hit: [
+    { type: 'sawtooth', freq: 140, duration: 0.22, volume: 0.24 }
+  ],
+  player_heal: [
+    { type: 'triangle', freq: 420, duration: 0.14, volume: 0.2 },
+    { type: 'triangle', freq: 620, duration: 0.18, volume: 0.18, offset: 0.06 }
+  ],
+  game_over: [
+    { type: 'triangle', freq: 320, duration: 0.22, volume: 0.2 },
+    { type: 'triangle', freq: 180, duration: 0.25, volume: 0.2, offset: 0.08 }
+  ],
+  summary_open: [
+    { type: 'triangle', freq: 480, duration: 0.12, volume: 0.18 }
+  ],
+  spawn_shape: [
+    { type: 'square', freq: 280, duration: 0.1, volume: 0.18 }
+  ],
+  pellet_fire: [
+    { type: 'triangle', freq: 520, duration: 0.06, volume: 0.14 }
+  ],
+  trap_spawn: [
+    { type: 'triangle', freq: 360, duration: 0.1, volume: 0.16 }
+  ],
+  node_spawn: [
+    { type: 'square', freq: 300, duration: 0.1, volume: 0.16 }
+  ],
+  blocker_spawn: [
+    { type: 'sawtooth', freq: 240, duration: 0.14, volume: 0.2 }
+  ],
+  beam_charge: [
+    { type: 'triangle', freq: 540, duration: 0.14, volume: 0.2 }
+  ],
+  beam_spin: [
+    { type: 'triangle', freq: 600, duration: 0.18, volume: 0.18 }
+  ],
+  saw_spawn: [
+    { type: 'square', freq: 400, duration: 0.1, volume: 0.17 }
+  ],
+  laser_charge: [
+    { type: 'triangle', freq: 720, duration: 0.14, volume: 0.2 }
+  ],
+  meteor_spawn: [
+    { type: 'sawtooth', freq: 200, duration: 0.18, volume: 0.18 }
+  ],
+  mine_arm: [
+    { type: 'triangle', freq: 500, duration: 0.1, volume: 0.16 }
+  ],
+  blade_spawn: [
+    { type: 'square', freq: 560, duration: 0.12, volume: 0.18 }
+  ],
+  emitter_spawn: [
+    { type: 'triangle', freq: 420, duration: 0.12, volume: 0.16 }
+  ],
+  seeker_spawn: [
+    { type: 'triangle', freq: 460, duration: 0.08, volume: 0.16 },
+    { type: 'triangle', freq: 620, duration: 0.1, volume: 0.16, offset: 0.05 }
+  ],
+  vortex_spawn: [
+    { type: 'sawtooth', freq: 260, duration: 0.14, volume: 0.18 },
+    { type: 'triangle', freq: 500, duration: 0.12, volume: 0.16, offset: 0.06 }
+  ],
+  hazard_pop: [
+    { type: 'triangle', freq: 560, duration: 0.05, volume: 0.14 }
+  ],
+  turret_fire: [
+    { type: 'square', freq: 520, duration: 0.08, volume: 0.18 }
+  ],
+  ability_shield: [
+    { type: 'triangle', freq: 480, duration: 0.16, volume: 0.2 }
+  ],
+  ability_slow: [
+    { type: 'sine', freq: 240, duration: 0.2, volume: 0.18 }
+  ],
+  ability_shockwave: [
+    { type: 'square', freq: 300, duration: 0.16, volume: 0.2 },
+    { type: 'triangle', freq: 520, duration: 0.16, volume: 0.2, offset: 0.08 }
+  ],
+  ability_freeze: [
+    { type: 'triangle', freq: 680, duration: 0.16, volume: 0.2 }
+  ],
+  ability_decoy: [
+    { type: 'square', freq: 360, duration: 0.12, volume: 0.18 }
+  ],
+  ability_regen: [
+    { type: 'triangle', freq: 360, duration: 0.16, volume: 0.18 }
+  ],
+  ability_mega: [
+    { type: 'square', freq: 320, duration: 0.2, volume: 0.22 },
+    { type: 'triangle', freq: 520, duration: 0.2, volume: 0.2, offset: 0.08 }
+  ],
+  ability_barrier: [
+    { type: 'triangle', freq: 380, duration: 0.14, volume: 0.18 }
+  ],
+  ability_speed: [
+    { type: 'square', freq: 560, duration: 0.12, volume: 0.2 }
+  ],
+  ability_cleanse: [
+    { type: 'triangle', freq: 600, duration: 0.14, volume: 0.2 },
+    { type: 'triangle', freq: 780, duration: 0.16, volume: 0.18, offset: 0.05 }
+  ],
+  ability_blink: [
+    { type: 'sawtooth', freq: 620, duration: 0.12, volume: 0.2 }
+  ],
+  ability_turret: [
+    { type: 'square', freq: 420, duration: 0.14, volume: 0.18 }
+  ],
+  ability_orbitals: [
+    { type: 'triangle', freq: 540, duration: 0.16, volume: 0.18 }
+  ],
+  ability_gravity: [
+    { type: 'sine', freq: 220, duration: 0.18, volume: 0.2 }
+  ],
+  ability_arc: [
+    { type: 'square', freq: 680, duration: 0.14, volume: 0.2 }
+  ],
+  ability_nano: [
+    { type: 'sawtooth', freq: 300, duration: 0.16, volume: 0.18 }
+  ]
+};
+
+function ensureAudioContext(){
+  if(audioState.ctx) return audioState.ctx;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if(!AC) return null;
+  audioState.ctx = new AC();
+  audioState.master = audioState.ctx.createGain();
+  audioState.master.gain.value = 0.25;
+  audioState.master.connect(audioState.ctx.destination);
+  return audioState.ctx;
+}
+
+function resumeAudio(){
+  const ctx = ensureAudioContext();
+  if(ctx && ctx.state === 'suspended'){
+    ctx.resume();
+  }
+}
+
+['pointerdown','touchstart','keydown'].forEach(evt => {
+  document.addEventListener(evt, resumeAudio, { passive: true });
+});
+
+function playSound(key){
+  const data = SOUND_LIBRARY[key];
+  if(!data || data.length === 0) return;
+  const ctx = ensureAudioContext();
+  if(!ctx || !audioState.master) return;
+  const now = ctx.currentTime;
+  if(ctx.state === 'suspended') ctx.resume();
+  data.forEach(note => {
+    const osc = ctx.createOscillator();
+    osc.type = note.type || 'sine';
+    const start = now + (note.offset || 0);
+    osc.frequency.setValueAtTime(note.freq || 440, start);
+    const gain = ctx.createGain();
+    const attack = Math.max(0.001, note.attack ?? 0.01);
+    const release = note.release ?? 0.12;
+    const duration = note.duration || 0.2;
+    const volume = Math.max(0.0001, note.volume ?? 0.2);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.linearRampToValueAtTime(volume, start + attack);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration + release);
+    osc.connect(gain);
+    if(ctx.createStereoPanner){
+      const pan = ctx.createStereoPanner();
+      pan.pan.value = note.pan || 0;
+      gain.connect(pan);
+      pan.connect(audioState.master);
+    } else {
+      gain.connect(audioState.master);
+    }
+    osc.start(start);
+    osc.stop(start + duration + release + 0.02);
+  });
+}
 
 function formatMs(ms){
   if(ms === undefined || ms === null) return '--:--.--';
@@ -1374,6 +1640,7 @@ const RESONANCE_MAX = 100;
 let resonance = 0;
 let resonanceBurstTime = 0;
 let resonancePulseTime = 0;
+let lastResonancePing = 0;
 
 function updateResonanceBar(){
   if(!resonanceFill) return;
@@ -1394,6 +1661,13 @@ function gainResonance(amount){
   const focusBonus = 1 + focusLevel * 0.15;
   resonance = Math.min(RESONANCE_MAX, resonance + amount * modeBonus * focusBonus);
   updateResonanceBar();
+  if(amount >= 1.5){
+    const now = performance.now();
+    if(now - lastResonancePing > 150){
+      playSound('resonance_ping');
+      lastResonancePing = now;
+    }
+  }
   if(resonance >= RESONANCE_MAX){
     triggerResonanceBurst();
   }
@@ -1408,6 +1682,7 @@ function triggerResonanceBurst(){
   player.speedBoostTime = Math.max(player.speedBoostTime, 4*60);
   pellets = pellets.filter((_, idx) => idx % 2 === 0);
   updateResonanceBar();
+  playSound('resonance_burst');
 }
 
 updateResonanceBar();
@@ -1445,11 +1720,15 @@ function updateFocusHud(){
   if(focusFill) focusFill.style.width = (progress*100) + '%';
 }
 
-function resetFocusChain(){
+function resetFocusChain(playAudio = false){
+  const hadProgress = focusTime > 0 || focusLevel > 0;
   focusTime = 0;
   focusLevel = 0;
   focusGlowTime = 0;
   updateFocusHud();
+  if(playAudio && hadProgress){
+    playSound('focus_break');
+  }
 }
 
 function tickFocusChain(){
@@ -1459,6 +1738,7 @@ function tickFocusChain(){
   if(focusLevel < FOCUS_THRESHOLDS.length-1 && focusTime >= nextTarget){
     focusLevel++;
     focusGlowTime = 40;
+    playSound('focus_rank');
   }
   updateFocusHud();
 }
@@ -1480,6 +1760,7 @@ let momentum = 0;
 let momentumIdleFrames = 0;
 let momentumPulsesRemaining = 0;
 let momentumPulseTimer = 0;
+let momentumPrimedChime = false;
 
 function updateMomentumHud(){
   if(!momentumFill) return;
@@ -1496,21 +1777,34 @@ function updateMomentumHud(){
   }
 }
 
-function resetMomentum(message){
+function resetMomentum(message, silent = false){
   momentum = 0;
   momentumIdleFrames = 0;
   momentumPulsesRemaining = 0;
   momentumPulseTimer = 0;
+  momentumPrimedChime = false;
   if(message && momentumDetail){
     momentumDetail.textContent = message;
   }
   updateMomentumHud();
+  if(!silent){
+    playSound('momentum_reset');
+  }
 }
 
 function gainMomentum(amount){
   if(amount <= 0 || momentumPulsesRemaining > 0) return;
+  if(amount >= MOMENTUM_DASH_BONUS * 0.75){
+    playSound('momentum_charge');
+  }
   momentum = Math.min(MOMENTUM_MAX, momentum + amount);
   updateMomentumHud();
+  if(momentum >= MOMENTUM_MAX * 0.95 && !momentumPrimedChime){
+    playSound('momentum_ready');
+    momentumPrimedChime = true;
+  } else if(momentum < MOMENTUM_MAX * 0.5){
+    momentumPrimedChime = false;
+  }
   if(momentum >= MOMENTUM_MAX){
     triggerMomentumOverdrive();
   }
@@ -1520,9 +1814,11 @@ function triggerMomentumOverdrive(){
   momentum = MOMENTUM_MAX;
   momentumPulsesRemaining = MOMENTUM_PULSES;
   momentumPulseTimer = 0;
+  momentumPrimedChime = false;
   if(momentumDetail){
     momentumDetail.textContent = 'Five Overdrive pulses are carving a path for you.';
   }
+  playSound('momentum_overdrive');
   updateMomentumHud();
 }
 
@@ -1535,6 +1831,7 @@ function tickMomentum(isMoving){
       destroyClosestThreat(player.x, player.y, 30);
       gainResonance(0.8);
       player.speedBoostTime = Math.max(player.speedBoostTime, 10);
+      playSound('momentum_pulse');
       if(momentumPulsesRemaining <= 0){
         resetMomentum('Drive drained. Keep moving to rebuild it.');
       } else {
@@ -1561,7 +1858,7 @@ function tickMomentum(isMoving){
   }
 }
 
-resetMomentum('Stay in motion ~15s to unleash five Overdrive pulses.');
+resetMomentum('Stay in motion ~15s to unleash five Overdrive pulses.', true);
 
 /* --------- Ability definitions & loadout --------- */
 const ALL_ABILITIES = {
@@ -1628,12 +1925,17 @@ for (const [id, data] of Object.entries(ALL_ABILITIES)) {
 function toggleAbility(id, el){
   const idx = selectedAbilityIds.indexOf(id);
   if(idx === -1){
-    if(selectedAbilityIds.length >= 4) return;
+    if(selectedAbilityIds.length >= 4){
+      playSound('ability_locked');
+      return;
+    }
     selectedAbilityIds.push(id);
     el.classList.add('selected');
+    playSound('ability_select');
   } else {
     selectedAbilityIds.splice(idx,1);
     el.classList.remove('selected');
+    playSound('ability_remove');
   }
   updateLoadoutStatus();
 }
@@ -1652,6 +1954,7 @@ document.querySelectorAll('.mode-card').forEach(card => {
     modeConfig = MODES[modeKey];
     modeLabel.textContent = 'MODE: ' + modeConfig.name;
     resetFocusChain();
+    playSound('mode_select');
 
     selectedAbilityIds = [];
     for(const id in abilityCardEls){
@@ -1659,6 +1962,7 @@ document.querySelectorAll('.mode-card').forEach(card => {
     }
     updateLoadoutStatus();
     loadoutPanel.style.display = 'block';
+    playSound('panel_open');
   });
 });
 
@@ -1669,12 +1973,14 @@ confirmLoadoutBtn.addEventListener('click', () => {
   configureAbilitySlots();
   loadoutPanel.style.display = 'none';
   openingScreen.style.display = 'none';
+  playSound('menu_confirm');
   startGame();
 });
 
 function returnToMenu(){
   resetGame();
   openingScreen.style.display = 'flex';
+  playSound('menu_open');
 }
 
 playAgainBtn.addEventListener('click', returnToMenu);
@@ -2281,6 +2587,7 @@ function spawnShape(){
     const kind = Math.random() < homingChance ? 'homing' : 'normal';
     shapes.push(new Shape(x,y,size,kind,randomColor()));
   }
+  playSound('spawn_shape');
 }
 
 function spawnPelletsFrom(shape){
@@ -2308,11 +2615,13 @@ function spawnPelletsFrom(shape){
       pellets.push(new Pellet(shape.x, shape.y, Math.cos(angle)*ringSpeed, Math.sin(angle)*ringSpeed, shape.color));
     }
   }
+  playSound('pellet_fire');
 }
 
 /* circle trap spawner around player */
 function spawnCircleTrap(){
   circleTraps.push(new CircleTrap(player.x, player.y));
+  playSound('trap_spawn');
 }
 
 /* multi node */
@@ -2320,6 +2629,7 @@ function spawnMultiNode(){
   const x = Math.random()*canvas.width;
   const y = Math.random()*canvas.height;
   multiNodes.push(new MultiNode(x,y, randomColor()));
+  playSound('node_spawn');
 }
 
 /* dash blocker */
@@ -2327,6 +2637,7 @@ function spawnDashBlocker(){
   const x = Math.random()*canvas.width;
   const y = Math.random()*canvas.height;
   dashBlockers.push(new DashBlocker(x,y,'rgba(255,120,120,1)'));
+  playSound('blocker_spawn');
 }
 
 /* beam object */
@@ -2334,6 +2645,7 @@ function spawnBeamObject(){
   const x = Math.random()*canvas.width;
   const y = Math.random()*canvas.height;
   beamObjects.push(new BeamObject(x,y,'rgba(180,220,255,1)'));
+  playSound('beam_charge');
 }
 
 function spawnSawOrb(){
@@ -2344,27 +2656,33 @@ function spawnSawOrb(){
   else if(edge === 2){ x = Math.random()*canvas.width; y = canvas.height + 40; }
   else { x = -40; y = Math.random()*canvas.height; }
   sawOrbs.push(new SawOrb(x,y));
+  playSound('saw_spawn');
 }
 
 function spawnLaserGrid(){
   laserGrids.push(new LaserGrid());
+  playSound('laser_charge');
 }
 
 function spawnMeteorShard(){
   meteorShards.push(new MeteorShard());
+  playSound('meteor_spawn');
 }
 function spawnPulseMine(){
   const x = Math.random()*canvas.width;
   const y = Math.random()*canvas.height;
   pulseMines.push(new PulseMine(x,y));
+  playSound('mine_arm');
 }
 function spawnBladeRunner(){
   bladeRunners.push(new BladeRunner());
+  playSound('blade_spawn');
 }
 function spawnEmitterPod(){
   const x = Math.random()*canvas.width;
   const y = Math.random()*canvas.height;
   emitterPods.push(new EmitterPod(x,y));
+  playSound('emitter_spawn');
 }
 function spawnSeekerSwarm(){
   const edge = Math.floor(Math.random()*4);
@@ -2376,25 +2694,38 @@ function spawnSeekerSwarm(){
   for(let i=0;i<5;i++){
     seekerMinis.push(new SeekerMini(baseX + Math.random()*20-10, baseY + Math.random()*20-10));
   }
+  playSound('seeker_spawn');
 }
 function spawnVortexEye(){
   vortexEyes.push(new VortexEye());
+  playSound('vortex_spawn');
 }
 
 /* --------- Abilities logic ---------- */
+function abilityReady(id){
+  if(abilities[id] > 0){
+    playSound('ability_locked');
+    return false;
+  }
+  return true;
+}
+
 function useShield(){
-  if(abilities.shield > 0) return;
+  if(!abilityReady('shield')) return;
+  playSound('ability_shield');
   player.shieldActive = true;
   player.shieldTime = 5*60;
   abilities.shield = abilityMax.shield;
 }
 function useSlow(){
-  if(abilities.slow > 0) return;
+  if(!abilityReady('slow')) return;
+  playSound('ability_slow');
   player.slowTime = 4*60;
   abilities.slow = abilityMax.slow;
 }
 function useShockwave(){
-  if(abilities.shockwave > 0) return;
+  if(!abilityReady('shockwave')) return;
+  playSound('ability_shockwave');
   player.shockwaveTime = 20;
   player.shockwaveRadius = 30;
   abilities.shockwave = abilityMax.shockwave;
@@ -2412,12 +2743,14 @@ function useShockwave(){
   });
 }
 function useFreeze(){
-  if(abilities.freeze > 0) return;
+  if(!abilityReady('freeze')) return;
+  playSound('ability_freeze');
   player.freezeTime = 3*60;
   abilities.freeze = abilityMax.freeze;
 }
 function useDecoy(){
-  if(abilities.decoy > 0) return;
+  if(!abilityReady('decoy')) return;
+  playSound('ability_decoy');
   decoy.active = true;
   decoy.x = player.x;
   decoy.y = player.y;
@@ -2425,42 +2758,53 @@ function useDecoy(){
   abilities.decoy = abilityMax.decoy;
 }
 function useRegen(){
-  if(abilities.regen > 0) return;
+  if(!abilityReady('regen')) return;
+  playSound('ability_regen');
+  playSound('player_heal');
   player.regenTime = 5*60;
   abilities.regen = abilityMax.regen;
 }
 function useMegaHeal(){
-  if(abilities.megaHeal > 0) return;
+  if(!abilityReady('megaHeal')) return;
+  playSound('ability_mega');
+  playSound('player_heal');
   player.health = Math.min(100, player.health + 30);
   updateHealthBar();
   megaHealFlashTime = 15;
   abilities.megaHeal = abilityMax.megaHeal;
 }
 function useBarrier(){
-  if(abilities.barrier > 0) return;
+  if(!abilityReady('barrier')) return;
+  playSound('ability_barrier');
   player.barrierTime = 4*60;
   abilities.barrier = abilityMax.barrier;
 }
 function useSpeedBoost(){
-  if(abilities.speed > 0) return;
+  if(!abilityReady('speed')) return;
+  playSound('ability_speed');
   player.speedBoostTime = 4*60;
   abilities.speed = abilityMax.speed;
 }
 function useCleanse(){
-  if(abilities.cleanse > 0) return;
+  if(!abilityReady('cleanse')) return;
+  playSound('ability_cleanse');
   pellets = [];
   cleanseWaveTime = 18;
   cleanseWaveRadius = 30;
   abilities.cleanse = abilityMax.cleanse;
 }
 function useBlink(){
-  if(abilities.blink > 0) return;
+  if(!abilityReady('blink')) return;
   const dashDist = 220;
   let nx = lastMoveDirX;
   let ny = lastMoveDirY;
   const mag = Math.sqrt(nx*nx + ny*ny);
-  if(mag <= 0.01) return;
+  if(mag <= 0.01){
+    playSound('ability_locked');
+    return;
+  }
   nx /= mag; ny /= mag;
+  playSound('ability_blink');
   player.x += nx * dashDist;
   player.y += ny * dashDist;
   player.x = Math.max(player.size/2, Math.min(canvas.width - player.size/2, player.x));
@@ -2470,13 +2814,15 @@ function useBlink(){
   gainResonance(4);
 }
 function useTurret(){
-  if(abilities.turret > 0) return;
+  if(!abilityReady('turret')) return;
+  playSound('ability_turret');
   turrets.push({ x: player.x, y: player.y, life: 9*60, fire: 0 });
   abilities.turret = abilityMax.turret;
   gainResonance(3);
 }
 function useOrbitals(){
-  if(abilities.orbitals > 0) return;
+  if(!abilityReady('orbitals')) return;
+  playSound('ability_orbitals');
   for(let i=0;i<4;i++){
     orbitals.push({ angle: (Math.PI*2/4)*i, life: 11*60, distance: 60, speed: 0.08 + i*0.01 });
   }
@@ -2484,19 +2830,22 @@ function useOrbitals(){
   gainResonance(2.5);
 }
 function useGravityWell(){
-  if(abilities.gravity > 0) return;
+  if(!abilityReady('gravity')) return;
+  playSound('ability_gravity');
   gravityWells.push({ x: player.x, y: player.y, radius: 240, life: 7*60, strength: 1.6 });
   abilities.gravity = abilityMax.gravity;
   gainResonance(2.5);
 }
 function useArcStorm(){
-  if(abilities.arc > 0) return;
+  if(!abilityReady('arc')) return;
+  playSound('ability_arc');
   arcBursts.push({ radius: 20, life: 80, x: player.x, y: player.y });
   abilities.arc = abilityMax.arc;
   gainResonance(3);
 }
 function useNanoSwarm(){
-  if(abilities.nano > 0) return;
+  if(!abilityReady('nano')) return;
+  playSound('ability_nano');
   nanoFields.push({ x: player.x, y: player.y, radius: 220, life: 9*60 });
   abilities.nano = abilityMax.nano;
   gainResonance(3);
@@ -2564,6 +2913,7 @@ function destroyClosestThreat(x,y,radius){
       const dy = obj.y - y;
       if(dx*dx + dy*dy <= Math.pow(size + radius,2)){
         set.list.splice(i,1);
+        playSound('hazard_pop');
         return true;
       }
     }
@@ -2658,10 +3008,16 @@ canvas.addEventListener('touchcancel', ev => { ev.preventDefault(); endJoystick(
 
 /* --------- Dash (game function, no cooldown, can be blocked) --------- */
 function tryDash(){
-  if(dashDisabledTime > 0) return; // locked by dash blocker
+  if(dashDisabledTime > 0){
+    playSound('ability_locked');
+    return; // locked by dash blocker
+  }
   const dashDist = 150;
   const mag = Math.sqrt(lastMoveDirX*lastMoveDirX + lastMoveDirY*lastMoveDirY);
-  if(mag <= 0.01) return;
+  if(mag <= 0.01){
+    playSound('ability_locked');
+    return;
+  }
   const nx = lastMoveDirX / mag;
   const ny = lastMoveDirY / mag;
   const startX = player.x;
@@ -2680,6 +3036,7 @@ function tryDash(){
     });
   }
 
+  playSound('dash');
   player.x += nx * dashDist;
   player.y += ny * dashDist;
   if(player.x - player.size/2 < 0) player.x = player.size/2;
@@ -2748,9 +3105,10 @@ function applyDamage(base){
   resonancePulseTime = 0;
   if(resonanceText) resonanceText.textContent = 'Interrupted! Build it back up.';
   updateResonanceBar();
-  resetFocusChain();
+  resetFocusChain(true);
   resetMomentum('Momentum lost! Stay evasive to build it again.');
   player.health -= dmg;
+  playSound('player_hit');
   if(player.health <= 0){
     player.health = 0;
     updateHealthBar();
@@ -2792,17 +3150,20 @@ function showGameOverSummary(finalTime){
   summaryBadge.classList.toggle('muted', !updated);
   summaryTip.textContent = 'Tip: ' + RUN_TIPS[Math.floor(Math.random()*RUN_TIPS.length)];
   gameOverPanel.style.display = 'block';
+  playSound('summary_open');
 }
 
 function gameOver(){
   running = false;
   cancelAnimationFrame(animationId);
+  playSound('game_over');
   showGameOverSummary(elapsedMs);
 }
 
 document.getElementById('restartBtn').addEventListener('click', returnToMenu);
 
 function resetGame(){
+  playSound('game_reset');
   shapes = [];
   pellets = [];
   spinBeams = [];
@@ -2849,7 +3210,7 @@ function resetGame(){
   resonancePulseTime = 0;
   if(resonanceText) resonanceText.textContent = 'Survive and dash to build Echo energy.';
   updateResonanceBar();
-  resetMomentum('Stay in motion ~15s to unleash five Overdrive pulses.');
+  resetMomentum('Stay in motion ~15s to unleash five Overdrive pulses.', true);
   resetFocusChain();
   elapsedMs = 0;
   lastFrameTime = null;
@@ -2939,6 +3300,7 @@ function animate(){
     }
     if(Math.random() < (modeConfig.beamChance || 0)){
       spinBeams.push(new SpinBeam());
+      playSound('beam_spin');
     }
     runHazardRolls();
     if(typeof modeConfig.customCycle === 'function'){
@@ -3239,6 +3601,7 @@ function animate(){
         const angle = Math.atan2(target.y - turret.y, target.x - turret.x);
         guardianShots.push({ x: turret.x, y: turret.y, vx: Math.cos(angle)*11, vy: Math.sin(angle)*11, life: 70 });
         turret.fire = 20;
+        playSound('turret_fire');
       }
     }
     if(turret.life <= 0) turrets.splice(i,1);
@@ -3586,6 +3949,7 @@ function startGame(){
   resetGame();
   running = true;
   lastFrameTime = performance.now();
+  playSound('game_start');
   animate();
 }
 
