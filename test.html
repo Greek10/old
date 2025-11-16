@@ -228,7 +228,7 @@
     color: var(--text-muted);
   }
 
-  /* Top Controls + Mode label */
+  /* Top Controls + Mode label + Timer */
   #topBar {
     position: absolute;
     top: 12px;
@@ -250,6 +250,20 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--text-muted);
+    z-index: 10;
+  }
+  #timerLabel {
+    position: absolute;
+    top: 34px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: var(--text-main);
+    letter-spacing: 0.08em;
     z-index: 10;
   }
 
@@ -284,7 +298,7 @@
     transition: width 0.15s ease-out, background 0.15s ease-out;
   }
 
-  /* Ability Bar - fixed 4 slots */
+  /* Ability Bar with 4 slots */
   #abilityBarWrapper {
     position: absolute;
     bottom: 12px;
@@ -427,7 +441,7 @@
     <li>Freeze Field – Freezes enemies briefly.</li>
     <li>Clone Decoy – Fake clone that attracts enemies.</li>
     <li>Heal Over Time – Gradual HP regen.</li>
-    <li>Dash – Quick movement burst.</li>
+    <li>Dash – Quick burst of movement.</li>
     <li>Mega Heal – Big instant heal.</li>
     <li>Barrier – Reduces damage taken for a short time.</li>
     <li>Speed Boost – Temporary movement speed increase.</li>
@@ -442,7 +456,8 @@
   <ul>
     <li>Ability loadouts: pick 4 abilities before each run.</li>
     <li>New abilities: Dash, Mega Heal, Barrier, Speed Boost, Cleanse.</li>
-    <li>Modes extended: Bullet Hell, Sniper, Boss Rush.</li>
+    <li>Visual effects added for all abilities.</li>
+    <li>Stopwatch timer to show survival time.</li>
   </ul>
 </div>
 
@@ -458,11 +473,12 @@
   </div>
 </div>
 
-<!-- Top Bar & Health -->
+<!-- Top Bar & Health & Timer -->
 <div id="topBar">
   <button class="glass-button" id="restartBtn">Restart</button>
 </div>
 <div id="modeLabel">MODE: ---</div>
+<div id="timerLabel">00:00.00</div>
 
 <div id="healthBar">
   <div id="healthTrack">
@@ -508,6 +524,7 @@ const openingScreen = document.getElementById('openingScreen');
 const infoBtn = document.getElementById('infoBtn');
 const updatesBtn = document.getElementById('updatesBtn');
 const modeLabel = document.getElementById('modeLabel');
+const timerLabel = document.getElementById('timerLabel');
 const loadoutPanel = document.getElementById('loadoutPanel');
 const loadoutGrid = document.getElementById('loadoutGrid');
 const loadoutStatus = document.getElementById('loadoutStatus');
@@ -647,7 +664,7 @@ function toggleAbility(id, el){
 
 function updateLoadoutStatus(){
   loadoutStatus.textContent = `Selected: ${selectedAbilityIds.length} / 4`;
-  confirmLoadoutBtn.disabled = selectedAbilityIds.length !== 4;
+  confirmLoadoutBtn.disabled = (selectedAbilityIds.length !== 4);
 }
 
 /* when a mode is chosen, open loadout panel */
@@ -731,6 +748,16 @@ const decoy = {
 
 let lastMoveDirX = 1;
 let lastMoveDirY = 0;
+
+/* timer state */
+let elapsedMs = 0;
+let lastFrameTime = null;
+
+/* extra FX timers */
+let dashFlashTime = 0;
+let megaHealFlashTime = 0;
+let cleanseWaveTime = 0;
+let cleanseWaveRadius = 0;
 
 /* --------- Entities --------- */
 class Shape {
@@ -870,13 +897,11 @@ function useShockwave(){
   abilities.shockwave = abilityMax.shockwave;
 
   const r = 140;
-  // Clear nearby bullets
   pellets = pellets.filter(p => {
     const dx = p.x - player.x;
     const dy = p.y - player.y;
     return dx*dx + dy*dy > r*r;
   });
-  // Damage shapes near
   shapes = shapes.filter(s => {
     const dx = s.x - player.x;
     const dy = s.y - player.y;
@@ -916,12 +941,14 @@ function useDash(){
     if(player.y - player.size/2 < 0) player.y = player.size/2;
     if(player.y + player.size/2 > canvas.height) player.y = canvas.height - player.size/2;
   }
+  dashFlashTime = 8;
   abilities.dash = abilityMax.dash;
 }
 function useMegaHeal(){
   if(abilities.megaHeal > 0) return;
   player.health = Math.min(100, player.health + 30);
   updateHealthBar();
+  megaHealFlashTime = 15;
   abilities.megaHeal = abilityMax.megaHeal;
 }
 function useBarrier(){
@@ -937,6 +964,8 @@ function useSpeedBoost(){
 function useCleanse(){
   if(abilities.cleanse > 0) return;
   pellets = [];
+  cleanseWaveTime = 18;
+  cleanseWaveRadius = 30;
   abilities.cleanse = abilityMax.cleanse;
 }
 
@@ -1100,12 +1129,24 @@ function updateHealthBar(){
   }
 }
 
+/* --------- Timer --------- */
+function updateTimerLabel(){
+  const total = Math.floor(elapsedMs);
+  const minutes = Math.floor(total / 60000);
+  const seconds = Math.floor((total % 60000) / 1000);
+  const centis  = Math.floor((total % 1000) / 10);
+  const mm = String(minutes).padStart(2,'0');
+  const ss = String(seconds).padStart(2,'0');
+  const cc = String(centis).padStart(2,'0');
+  timerLabel.textContent = `${mm}:${ss}.${cc}`;
+}
+
 /* --------- Game Over & Restart --------- */
 function gameOver(){
   running = false;
   cancelAnimationFrame(animationId);
   setTimeout(() => {
-    alert('Game Over! Click Restart to play again.');
+    alert('Game Over! Time: ' + timerLabel.textContent + '  – Click Restart to play again.');
   }, 50);
 }
 
@@ -1132,6 +1173,13 @@ function resetGame(){
   player.speedBoostTime = 0;
   decoy.active = false;
   decoy.timer = 0;
+  dashFlashTime = 0;
+  megaHealFlashTime = 0;
+  cleanseWaveTime = 0;
+  cleanseWaveRadius = 0;
+  elapsedMs = 0;
+  lastFrameTime = null;
+  updateTimerLabel();
   updateHealthBar();
   for(let k in abilities) abilities[k] = 0;
   for(let i=0;i<4;i++){
@@ -1148,6 +1196,15 @@ function getSpeedScale(){
 
 function animate(){
   if(!running) return;
+
+  // timer update
+  const now = performance.now();
+  if(lastFrameTime === null) lastFrameTime = now;
+  const dt = now - lastFrameTime;
+  lastFrameTime = now;
+  elapsedMs += dt;
+  updateTimerLabel();
+
   const baseSpeedScale = getSpeedScale();
   const enemySpeedScale = player.freezeTime > 0 ? 0 : baseSpeedScale;
 
@@ -1159,6 +1216,17 @@ function animate(){
   g.addColorStop(1,'rgba(0,0,0,0.05)');
   ctx.fillStyle = g;
   ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // time slow overlay
+  if(player.slowTime > 0){
+    ctx.fillStyle = 'rgba(40,40,80,0.25)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
+  // freeze overlay
+  if(player.freezeTime > 0){
+    ctx.fillStyle = 'rgba(120,200,255,0.18)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
 
   // spawn logic
   spawnTimer--;
@@ -1208,6 +1276,15 @@ function animate(){
     const p = pellets[i];
     p.update(enemySpeedScale);
 
+    // tiny trail effect when slowTime > 0 (motion blur)
+    if(player.slowTime > 0){
+      ctx.globalAlpha = 0.2;
+      ctx.beginPath();
+      ctx.arc(p.x - p.vx*2, p.y - p.vy*2, p.size*0.8, 0, Math.PI*2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
     // hit decoy?
     if(decoy.active){
       const ddx = p.x - decoy.x;
@@ -1251,7 +1328,7 @@ function animate(){
     }
   }
 
-  // ability timers
+  // ability timers + VFX
   if(player.shieldActive){
     player.shieldTime--;
     if(player.shieldTime <= 0) player.shieldActive = false;
@@ -1278,6 +1355,16 @@ function animate(){
       if(player.health > 100) player.health = 100;
       updateHealthBar();
     }
+    // regen aura
+    ctx.save();
+    ctx.globalAlpha = 0.8;
+    ctx.strokeStyle = 'rgba(80,255,140,0.8)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    const r = player.size/2 + 6 + (player.regenTime % 12);
+    ctx.arc(player.x, player.y, r, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
   }
   if(player.barrierTime > 0){
     player.barrierTime--;
@@ -1297,6 +1384,34 @@ function animate(){
       ctx.fillRect(decoy.x - player.size/2, decoy.y - player.size/2, player.size, player.size);
       ctx.globalAlpha = 1.0;
     }
+  }
+
+  // dash flash VFX
+  if(dashFlashTime > 0){
+    dashFlashTime--;
+    ctx.globalAlpha = dashFlashTime/8;
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillRect(player.x - player.size, player.y - player.size, player.size, player.size);
+    ctx.globalAlpha = 1;
+  }
+
+  // mega heal flash (green screen bloom)
+  if(megaHealFlashTime > 0){
+    megaHealFlashTime--;
+    const alpha = (megaHealFlashTime/15) * 0.4;
+    ctx.fillStyle = `rgba(80,255,140,${alpha})`;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
+
+  // cleanse wave VFX
+  if(cleanseWaveTime > 0){
+    cleanseWaveTime--;
+    cleanseWaveRadius += 22;
+    ctx.strokeStyle = `rgba(255,255,255,${cleanseWaveTime/18})`;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, cleanseWaveRadius,0,Math.PI*2);
+    ctx.stroke();
   }
 
   // cooldown overlays for active ability slots
@@ -1341,6 +1456,20 @@ function animate(){
     ctx.stroke();
   }
 
+  // speed boost visual
+  if(player.speedBoostTime > 0){
+    ctx.save();
+    ctx.strokeStyle = 'rgba(150,200,255,0.8)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(player.x - player.size/2 - 16, player.y);
+    ctx.lineTo(player.x - player.size/2 - 4, player.y);
+    ctx.moveTo(player.x + player.size/2 + 4, player.y);
+    ctx.lineTo(player.x + player.size/2 + 16, player.y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   // player
   ctx.fillStyle = player.color;
   ctx.fillRect(player.x - player.size/2, player.y - player.size/2, player.size, player.size);
@@ -1354,6 +1483,7 @@ function animate(){
 function startGame(){
   resetGame();
   running = true;
+  lastFrameTime = performance.now();
   animate();
 }
 
