@@ -149,7 +149,8 @@ async function sendScore(game, score) {
 const games = [
     { name:"Aim Trainer", id:"aim", category:"skill" },
     { name:"Reaction Test", id:"react", category:"reflex" },
-    { name:"Memory Cards", id:"memory", category:"puzzle" }
+    { name:"Memory Cards", id:"memory", category:"puzzle" },
+    { name:"Stealth Google Browser", id:"stealthBrowser", category:"arcade" }
 ];
 
 /* =============================================================
@@ -220,6 +221,56 @@ const gameTemplates = {
                 alert("Memory Score: " + score);
                 await sendScore("Memory Cards", score);
                 exitGame();
+            };
+        }
+    }),
+
+    stealthBrowser: name => ({
+        html: `
+            <div class="game-container">
+                <h1>${name}</h1>
+                <p>Use this lightweight window to open Google without sharing your main browser session or extensions.</p>
+                <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:20px auto;max-width:640px;">
+                    <input id="stealthSearch" type="text" placeholder="Search the web or enter URL" style="flex:1;min-width:260px;padding:12px;border-radius:10px;border:none;" />
+                    <button id="stealthGo" class="back-btn" style="min-width:100px;">Go</button>
+                </div>
+                <iframe id="stealthFrame" title="Stealth Google" src="https://www.google.com/webhp?igu=1"
+                    style="width:90%;height:70vh;border-radius:18px;border:2px solid #141d37;background:white;"></iframe>
+                <div style="margin-top:18px;display:flex;justify-content:center;gap:12px;flex-wrap:wrap;">
+                    <button id="stealthHome" class="back-btn">Google Home</button>
+                    <button class="back-btn" onclick="exitGame()">Back</button>
+                </div>
+            </div>
+        `,
+        script: function(){
+            const iframe = document.getElementById("stealthFrame");
+            const input = document.getElementById("stealthSearch");
+            const goBtn = document.getElementById("stealthGo");
+            const homeBtn = document.getElementById("stealthHome");
+
+            const openTarget = () => {
+                const query = input.value.trim();
+                if(!query){
+                    iframe.src = "https://www.google.com/webhp?igu=1";
+                    return;
+                }
+                const looksLikeUrl = /^(https?:\/\/)/i.test(query) || query.includes(".");
+                const destination = looksLikeUrl
+                    ? (query.startsWith("http") ? query : `https://${query}`)
+                    : `https://www.google.com/search?igu=1&q=${encodeURIComponent(query)}`;
+                iframe.src = destination;
+            };
+
+            goBtn.onclick = openTarget;
+            input.addEventListener("keydown", e => {
+                if(e.key === "Enter") {
+                    e.preventDefault();
+                    openTarget();
+                }
+            });
+            homeBtn.onclick = () => {
+                iframe.src = "https://www.google.com/webhp?igu=1";
+                input.value = "";
             };
         }
     })
