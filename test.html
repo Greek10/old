@@ -205,6 +205,11 @@
     display: none;
     z-index: 1100;
   }
+  #infoPanel {
+    max-height: 85vh;
+    display: none;
+    overflow: hidden;
+  }
   .panel h2 {
     margin: 0 0 6px;
     font-size: 18px;
@@ -220,8 +225,47 @@
     padding-left: 20px;
     margin: 4px 0 0;
   }
+  .infoTabBar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 6px 0 10px;
+  }
+  .infoTab {
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-main);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+  .infoTab.active {
+    background: rgba(79,140,255,0.25);
+    border-color: rgba(79,140,255,0.55);
+    color: #fff;
+  }
+  .infoSections {
+    max-height: 58vh;
+    overflow-y: auto;
+    padding-right: 6px;
+  }
+  .infoSections::-webkit-scrollbar {
+    width: 6px;
+  }
+  .infoSections::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.18);
+    border-radius: 999px;
+  }
   .infoSection {
+    display: none;
     margin-bottom: 12px;
+  }
+  .infoSection.active {
+    display: block;
   }
   .infoSection h3 {
     margin: 8px 0 4px;
@@ -754,65 +798,72 @@
 <div class="panel glass-panel" id="infoPanel">
   <span class="closePanel" onclick="closePanel('infoPanel')">✕</span>
   <h2>Information</h2>
-  <div class="infoSection">
-    <h3>Controls</h3>
-    <ul>
-      <li><b>Move</b>: WASD / Arrow Keys or drag the on-screen joystick.</li>
-      <li><b>Dash</b>: Tap <b>B</b> or the Dash button for an instant burst (no cooldown).</li>
-      <li><b>Abilities</b>: Pick any 4 in the loadout, then press <b>1–4</b> (or tap the slot) to activate.</li>
-      <li><b>Menu</b>: Click a mode card, pick abilities, then confirm to dive in.</li>
-    </ul>
+  <div class="infoTabBar">
+    <button class="infoTab active" data-target="controls">Controls</button>
+    <button class="infoTab" data-target="abilities">Abilities</button>
+    <button class="infoTab" data-target="mechanics">Mechanics</button>
+    <button class="infoTab" data-target="enemies">Enemies</button>
   </div>
-  <div class="infoSection">
-    <h3>Abilities</h3>
-    <ul>
-      <li><b>Shield</b> – Temporary invulnerability (45s).</li>
-      <li><b>Time Slow</b> – Slows enemies and bullets around you (35s).</li>
-      <li><b>Shockwave</b> – Radial blast clears nearby threats (25s).</li>
-      <li><b>Freeze Field</b> – Freezes enemies in place (35s).</li>
-      <li><b>Clone Decoy</b> – Taunting hologram lasts 6 seconds (40s).</li>
-      <li><b>Heal Over Time</b> – Gradual regen ring (30s).</li>
-      <li><b>Mega Heal</b> – Big instant heal (25s).</li>
-      <li><b>Barrier</b> – Damage reduction bubble (25s).</li>
-      <li><b>Speed Boost</b> – Sprint-level movement (18s).</li>
-      <li><b>Cleanse</b> – Deletes every bullet on screen (20s).</li>
-      <li><b>Phase Blink</b> – Short teleport in your move direction (20s).</li>
-      <li><b>Guardian Turret</b> – Auto-firing ally (35s).</li>
-      <li><b>Orbitals</b> – Spinning shards block and shred (30s).</li>
-      <li><b>Gravity Well</b> – Singularities pull hazards inward (32s).</li>
-      <li><b>Arc Storm</b> – Expanding lightning ring (25s).</li>
-      <li><b>Nano Swarm</b> – Lingering dissolving field (30s).</li>
-    </ul>
-  </div>
-  <div class="infoSection">
-    <h3>Mechanics</h3>
-    <ul>
-      <li><b>Resonance</b>: Build the meter by surviving and dashing. At 100% an Echo Burst slows the arena, trims bullets, and hands you barrier + speed buffs.</li>
-      <li><b>Focus Chain</b>: Avoid damage to climb tiers that accelerate cooldowns, drip extra resonance, and add a global slow aura.</li>
-      <li><b>Momentum Drive</b>: New meter that fills while you move and dash. Max it out to trigger Overdrive pulses—auto Arc Storm bursts that chew through hazards while granting a burst of momentum.</li>
-      <li><b>Loadouts</b>: Each mode remembers your best time and expects a bespoke ability combo, so mix utility with offense.</li>
-    </ul>
-  </div>
-  <div class="infoSection">
-    <h3>Enemies</h3>
-    <ul>
-      <li><b>Orbiters & Homers</b> – Base shapes that drift or chase relentlessly.</li>
-      <li><b>Circle Traps</b> – Rings that shrink after priming; dash through before they snap shut.</li>
-      <li><b>Multi Nodes</b> – Floating turrets that volley pellets across lanes.</li>
-      <li><b>Dash Blockers</b> – Anchors that jam your dash if you clip their aura.</li>
-      <li><b>Beam Obelisks</b> – Telegraph sweeping lasers before carving the arena.</li>
-      <li><b>Saw Orbs</b> – Curving sawblades that arc toward you before spiraling away.</li>
-      <li><b>Laser Grids</b> – Wall-to-wall beam fences with bright telegraphs.</li>
-      <li><b>Meteor Shards</b> – Fast shards that splinter when they land.</li>
-      <li><b>Pulse Mines</b> – Stationary mines that explode into radial bullets.</li>
-      <li><b>Blade Runners</b> – Charged rails that dash in straight lethal bursts.</li>
-      <li><b>Emitter Pods</b> – Pods that spawn spiral bullet storms.</li>
-      <li><b>Seeker Swarms</b> – Packs of micro drones that home in together.</li>
-      <li><b>Vortex Eyes</b> – Gravity wells that bend projectiles and pull you off line.</li>
-    </ul>
+  <div class="infoSections">
+    <div class="infoSection active" data-section="controls">
+      <h3>Controls</h3>
+      <ul>
+        <li><b>Move</b>: WASD / Arrow Keys or drag the on-screen joystick.</li>
+        <li><b>Dash</b>: Tap <b>B</b> or the Dash button for an instant burst (no cooldown).</li>
+        <li><b>Abilities</b>: Pick any 4 in the loadout, then press <b>1–4</b> (or tap the slot) to activate.</li>
+        <li><b>Menu</b>: Click a mode card, pick abilities, then confirm to dive in.</li>
+      </ul>
+    </div>
+    <div class="infoSection" data-section="abilities">
+      <h3>Abilities</h3>
+      <ul>
+        <li><b>Shield</b> – Temporary invulnerability (45s).</li>
+        <li><b>Time Slow</b> – Slows enemies and bullets around you (35s).</li>
+        <li><b>Shockwave</b> – Radial blast clears nearby threats (25s).</li>
+        <li><b>Freeze Field</b> – Freezes enemies in place (35s).</li>
+        <li><b>Clone Decoy</b> – Taunting hologram lasts 6 seconds (40s).</li>
+        <li><b>Heal Over Time</b> – Gradual regen ring (30s).</li>
+        <li><b>Mega Heal</b> – Big instant heal (25s).</li>
+        <li><b>Barrier</b> – Damage reduction bubble (25s).</li>
+        <li><b>Speed Boost</b> – Sprint-level movement (18s).</li>
+        <li><b>Cleanse</b> – Deletes every bullet on screen (20s).</li>
+        <li><b>Phase Blink</b> – Short teleport in your move direction (20s).</li>
+        <li><b>Guardian Turret</b> – Auto-firing ally (35s).</li>
+        <li><b>Orbitals</b> – Spinning shards block and shred (30s).</li>
+        <li><b>Gravity Well</b> – Singularities pull hazards inward (32s).</li>
+        <li><b>Arc Storm</b> – Expanding lightning ring (25s).</li>
+        <li><b>Nano Swarm</b> – Lingering dissolving field (30s).</li>
+      </ul>
+    </div>
+    <div class="infoSection" data-section="mechanics">
+      <h3>Mechanics</h3>
+      <ul>
+        <li><b>Resonance</b>: Build the meter by surviving and dashing. At 100% an Echo Burst slows the arena, trims bullets, and hands you barrier + speed buffs.</li>
+        <li><b>Focus Chain</b>: Avoid damage to climb tiers that accelerate cooldowns, drip extra resonance, and add a global slow aura.</li>
+        <li><b>Momentum Drive</b>: Fills very slowly while you stay in motion. Maintain movement for ~15 seconds (dashes help a little) to unleash five Overdrive pulses before it fully resets.</li>
+        <li><b>Loadouts</b>: Each mode remembers your best time and expects a bespoke ability combo, so mix utility with offense.</li>
+      </ul>
+    </div>
+    <div class="infoSection" data-section="enemies">
+      <h3>Enemies</h3>
+      <ul>
+        <li><b>Orbiters &amp; Homers</b> – Base shapes that drift or chase relentlessly.</li>
+        <li><b>Circle Traps</b> – Rings that shrink after priming; dash through before they snap shut.</li>
+        <li><b>Multi Nodes</b> – Floating turrets that volley pellets across lanes.</li>
+        <li><b>Dash Blockers</b> – Anchors that jam your dash if you clip their aura.</li>
+        <li><b>Beam Obelisks</b> – Telegraph sweeping lasers before carving the arena.</li>
+        <li><b>Saw Orbs</b> – Curving sawblades that arc toward you before spiraling away.</li>
+        <li><b>Laser Grids</b> – Wall-to-wall beam fences with bright telegraphs.</li>
+        <li><b>Meteor Shards</b> – Fast shards that splinter when they land.</li>
+        <li><b>Pulse Mines</b> – Stationary mines that explode into radial bullets.</li>
+        <li><b>Blade Runners</b> – Charged rails that dash in straight lethal bursts.</li>
+        <li><b>Emitter Pods</b> – Pods that spawn spiral bullet storms.</li>
+        <li><b>Seeker Swarms</b> – Packs of micro drones that home in together.</li>
+        <li><b>Vortex Eyes</b> – Gravity wells that bend projectiles and pull you off line.</li>
+      </ul>
+    </div>
   </div>
 </div>
-
 <!-- Updates Panel -->
 <div class="panel glass-panel" id="updatesPanel">
   <span class="closePanel" onclick="closePanel('updatesPanel')">✕</span>
@@ -882,7 +933,7 @@
   <div id="momentumTrack">
     <div id="momentumFill"></div>
   </div>
-  <div id="momentumDetail">Move &amp; dash to charge auto Overdrive pulses.</div>
+  <div id="momentumDetail">Stay in motion ~15s to unleash five Overdrive pulses.</div>
 </div>
 
 <!-- Ability Bar with 4 slots -->
@@ -950,6 +1001,7 @@
 const openingScreen = document.getElementById('openingScreen');
 const infoBtn = document.getElementById('infoBtn');
 const updatesBtn = document.getElementById('updatesBtn');
+const infoPanelEl = document.getElementById('infoPanel');
 const modeLabel = document.getElementById('modeLabel');
 const timerLabel = document.getElementById('timerLabel');
 const loadoutPanel = document.getElementById('loadoutPanel');
@@ -979,8 +1031,25 @@ const momentumFill = document.getElementById('momentumFill');
 const momentumStatus = document.getElementById('momentumStatus');
 const momentumDetail = document.getElementById('momentumDetail');
 
+const infoTabs = infoPanelEl.querySelectorAll('.infoTab');
+const infoSections = infoPanelEl.querySelectorAll('.infoSection');
+let activeInfoSection = 'controls';
+
+function setActiveInfoSection(target){
+  activeInfoSection = target;
+  infoTabs.forEach(tab => tab.classList.toggle('active', tab.dataset.target === target));
+  infoSections.forEach(section => section.classList.toggle('active', section.dataset.section === target));
+}
+
+infoTabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    setActiveInfoSection(tab.dataset.target);
+  });
+});
+
 infoBtn.addEventListener('click', () => {
-  document.getElementById('infoPanel').style.display = 'block';
+  setActiveInfoSection(activeInfoSection || 'controls');
+  infoPanelEl.style.display = 'block';
 });
 updatesBtn.addEventListener('click', () => {
   document.getElementById('updatesPanel').style.display = 'block';
@@ -1398,30 +1467,39 @@ resetFocusChain();
 
 /* --------- Momentum Drive mechanic --------- */
 const MOMENTUM_MAX = 100;
+const MOMENTUM_REQUIRED_FRAMES = 15 * 60;
+const MOMENTUM_GAIN_PER_FRAME = MOMENTUM_MAX / MOMENTUM_REQUIRED_FRAMES;
+const MOMENTUM_DASH_BONUS = MOMENTUM_MAX / 60;
+const MOMENTUM_DECAY_DELAY_FRAMES = Math.floor(1.5 * 60);
+const MOMENTUM_RESET_FRAMES = Math.floor(3 * 60);
+const MOMENTUM_DECAY_PER_FRAME = MOMENTUM_MAX / (6 * 60);
+const MOMENTUM_PULSES = 5;
+const MOMENTUM_PULSE_COOLDOWN = 18;
+
 let momentum = 0;
-let momentumDecayDelay = 0;
-let momentumOverdriveTime = 0;
+let momentumIdleFrames = 0;
+let momentumPulsesRemaining = 0;
 let momentumPulseTimer = 0;
 
 function updateMomentumHud(){
   if(!momentumFill) return;
-  const pct = momentumOverdriveTime > 0 ? 1 : Math.min(momentum / MOMENTUM_MAX, 1);
+  const pct = momentumPulsesRemaining > 0 ? 1 : Math.min(momentum / MOMENTUM_MAX, 1);
   momentumFill.style.width = (pct*100) + '%';
   if(momentumStatus){
-    if(momentumOverdriveTime > 0) momentumStatus.textContent = 'Overdrive';
+    if(momentumPulsesRemaining > 0) momentumStatus.textContent = 'Overdrive';
     else if(pct > 0.75) momentumStatus.textContent = 'Primed';
     else if(pct > 0.3) momentumStatus.textContent = 'Building';
     else momentumStatus.textContent = 'Idle';
   }
   if(momentumPanel){
-    momentumPanel.classList.toggle('charged', momentumOverdriveTime > 0 || pct >= 0.95);
+    momentumPanel.classList.toggle('charged', momentumPulsesRemaining > 0 || pct >= 0.95);
   }
 }
 
 function resetMomentum(message){
   momentum = 0;
-  momentumDecayDelay = 0;
-  momentumOverdriveTime = 0;
+  momentumIdleFrames = 0;
+  momentumPulsesRemaining = 0;
   momentumPulseTimer = 0;
   if(message && momentumDetail){
     momentumDetail.textContent = message;
@@ -1430,9 +1508,8 @@ function resetMomentum(message){
 }
 
 function gainMomentum(amount){
-  if(amount <= 0 || momentumOverdriveTime > 0) return;
+  if(amount <= 0 || momentumPulsesRemaining > 0) return;
   momentum = Math.min(MOMENTUM_MAX, momentum + amount);
-  momentumDecayDelay = 45;
   updateMomentumHud();
   if(momentum >= MOMENTUM_MAX){
     triggerMomentumOverdrive();
@@ -1440,43 +1517,51 @@ function gainMomentum(amount){
 }
 
 function triggerMomentumOverdrive(){
-  momentumOverdriveTime = 6*60;
+  momentum = MOMENTUM_MAX;
+  momentumPulsesRemaining = MOMENTUM_PULSES;
   momentumPulseTimer = 0;
   if(momentumDetail){
-    momentumDetail.textContent = 'Overdrive pulses are carving a path for you.';
+    momentumDetail.textContent = 'Five Overdrive pulses are carving a path for you.';
   }
   updateMomentumHud();
 }
 
 function tickMomentum(isMoving){
-  if(momentumOverdriveTime > 0){
-    momentumOverdriveTime--;
+  if(momentumPulsesRemaining > 0){
     if(momentumPulseTimer-- <= 0){
-      momentumPulseTimer = 18;
+      momentumPulseTimer = MOMENTUM_PULSE_COOLDOWN;
+      momentumPulsesRemaining--;
       arcBursts.push({ radius: 18, life: 48, x: player.x, y: player.y });
       destroyClosestThreat(player.x, player.y, 30);
       gainResonance(0.8);
       player.speedBoostTime = Math.max(player.speedBoostTime, 10);
-    }
-    if(momentumOverdriveTime <= 0){
-      resetMomentum('Drive drained. Keep moving to rebuild it.');
-    } else {
-      updateMomentumHud();
+      if(momentumPulsesRemaining <= 0){
+        resetMomentum('Drive drained. Keep moving to rebuild it.');
+      } else {
+        updateMomentumHud();
+      }
     }
     return;
   }
+
   if(isMoving){
-    const bonus = player.speedBoostTime > 0 ? 0.4 : 0;
-    gainMomentum(0.7 + bonus);
-  } else if(momentumDecayDelay > 0){
-    momentumDecayDelay--;
-  } else if(momentum > 0){
-    momentum = Math.max(0, momentum - 0.4);
-    updateMomentumHud();
+    momentumIdleFrames = 0;
+    const bonus = player.speedBoostTime > 0 ? MOMENTUM_GAIN_PER_FRAME * 0.4 : 0;
+    gainMomentum(MOMENTUM_GAIN_PER_FRAME + bonus);
+  } else {
+    momentumIdleFrames++;
+    if(momentumIdleFrames >= MOMENTUM_RESET_FRAMES){
+      resetMomentum('Momentum lost! Stay evasive to build it again.');
+      return;
+    }
+    if(momentumIdleFrames >= MOMENTUM_DECAY_DELAY_FRAMES && momentum > 0){
+      momentum = Math.max(0, momentum - MOMENTUM_DECAY_PER_FRAME);
+      updateMomentumHud();
+    }
   }
 }
 
-resetMomentum('Move & dash to charge auto Overdrive pulses.');
+resetMomentum('Stay in motion ~15s to unleash five Overdrive pulses.');
 
 /* --------- Ability definitions & loadout --------- */
 const ALL_ABILITIES = {
@@ -2604,7 +2689,8 @@ function tryDash(){
 
   dashFlashTime = 12;
   gainResonance(3);
-  gainMomentum(12);
+  momentumIdleFrames = 0;
+  gainMomentum(MOMENTUM_DASH_BONUS);
 }
 
 /* --------- Movement & health --------- */
@@ -2763,7 +2849,7 @@ function resetGame(){
   resonancePulseTime = 0;
   if(resonanceText) resonanceText.textContent = 'Survive and dash to build Echo energy.';
   updateResonanceBar();
-  resetMomentum('Move & dash to charge auto Overdrive pulses.');
+  resetMomentum('Stay in motion ~15s to unleash five Overdrive pulses.');
   resetFocusChain();
   elapsedMs = 0;
   lastFrameTime = null;
