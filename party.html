@@ -2,799 +2,477 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>party.web — 3D Prototype (Jumpscare)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+  <title>party.exe — liminal lobby</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      height: 100%;
-      background: radial-gradient(circle at top, #1a1a2e, #050509, #000);
-      font-family: system-ui, sans-serif;
-      color: #fff;
+    :root {
+      color-scheme: dark;
+      --bg: #05010a;
+      --bg-secondary: #13021b;
+      --pink: #ff5adf;
+      --blue: #6ac8ff;
+      --yellow: #ffe179;
+      --text: #f8f5ff;
+      --muted: #b4a8c7;
     }
 
-    canvas { display: block; }
+    * {
+      box-sizing: border-box;
+    }
 
-    /* Start overlay */
-    #startOverlay {
+    body {
+      margin: 0;
+      font-family: "Space Grotesk", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, rgba(255, 90, 223, 0.2), transparent 50%),
+                  radial-gradient(circle at 20% 60%, rgba(255, 225, 121, 0.1), transparent 40%),
+                  linear-gradient(145deg, #030107, #120019 65%, #020205);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
       position: fixed;
       inset: 0;
-      z-index: 10;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0,0,0,0.6);
-      backdrop-filter: blur(8px);
+      background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 90px 90px;
+      opacity: 0.35;
+      pointer-events: none;
+      mix-blend-mode: screen;
+      z-index: 0;
     }
 
-    .card {
-      background: rgba(0,0,0,0.55);
-      padding: 24px;
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,0.12);
-      width: 360px;
-      text-align: center;
-      box-shadow: 0 0 30px rgba(0,0,0,0.8);
+    .noise {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      mix-blend-mode: screen;
+      opacity: 0.08;
+      z-index: 0;
+    }
+
+    main {
+      position: relative;
+      z-index: 1;
+      padding: 3rem clamp(1rem, 4vw, 4rem) 4rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .logo {
+      letter-spacing: 0.2rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .pill {
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 0.6rem 1.4rem;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 2.5rem;
+      align-items: center;
+      margin-bottom: 4rem;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 8vw, 4.5rem);
+      margin: 0 0 1rem;
+      text-transform: lowercase;
+      line-height: 1.05;
+    }
+
+    .hero h1 span {
+      display: inline-block;
+      color: var(--pink);
+      filter: drop-shadow(0 0 18px rgba(255, 90, 223, 0.4));
+    }
+
+    .hero p {
+      max-width: 32ch;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .cta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 2rem;
     }
 
     .btn {
-      margin-top: 14px;
-      padding: 10px 22px;
-      border-radius: 999px;
       border: none;
-      background: #ff5c9a;
-      color: #fff;
+      font-size: 1rem;
+      padding: 0.9rem 1.9rem;
+      border-radius: 999px;
       font-weight: 600;
       cursor: pointer;
-      font-size: 15px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
-    .btn:hover { filter: brightness(1.1); }
-
-    /* Crosshair */
-    #crosshair {
-      position: fixed;
-      left: 50%;
-      top: 50%;
-      width: 12px;
-      height: 12px;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-      opacity: 0.7;
-      z-index: 2;
+    .btn-primary {
+      background: linear-gradient(120deg, var(--pink), var(--blue));
+      box-shadow: 0 15px 35px rgba(255, 90, 223, 0.35);
+      color: #05010a;
     }
 
-    #crosshair::before,
-    #crosshair::after {
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.3);
+      color: var(--text);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .window {
+      background: rgba(15, 3, 22, 0.9);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 18px;
+      padding: 1.8rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.45);
+    }
+
+    .window::before {
       content: "";
       position: absolute;
-      background: rgba(255,255,255,0.8);
-    }
-
-    #crosshair::before {
-      left: 50%; top: 0;
-      width: 2px; height: 12px;
-      transform: translateX(-50%);
-    }
-
-    #crosshair::after {
-      top: 50%; left: 0;
-      width: 12px; height: 2px;
-      transform: translateY(-50%);
-    }
-
-    /* Hint text */
-    #hintOverlayText {
-      position: fixed;
-      left: 50%;
-      bottom: 28px;
-      transform: translateX(-50%);
-      padding: 6px 12px;
-      background: rgba(0,0,0,0.6);
-      border-radius: 8px;
-      font-size: 0.75rem;
-      z-index: 2;
-    }
-
-    /* Ending overlay */
-    #endingOverlayInner {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0,0,0,0.8);
-      opacity: 0;
+      inset: 1px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.06);
       pointer-events: none;
-      transition: opacity 0.25s ease;
-      z-index: 9;
     }
 
-    #endingOverlayInner.visible {
-      opacity: 1;
-      pointer-events: auto;
+    .window .title {
+      font-size: 0.85rem;
+      letter-spacing: 0.2rem;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.8rem;
     }
 
-    /* Jumpscare overlay */
-    #jumpscareOverlay {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: radial-gradient(circle at center, #ffffff 0, #fce4ff 35%, #190010 70%, #000 100%);
-      opacity: 0;
-      pointer-events: none;
-      transform: scale(1);
-      transition: opacity 0.08s ease, transform 0.08s ease;
-      z-index: 9999;
-    }
-
-    #jumpscareOverlay.active {
-      opacity: 1;
-      transform: scale(1.12);
-    }
-
-    #jumpscareFace {
-      width: 60vmin;
-      height: 60vmin;
-      border-radius: 50%;
-      background: radial-gradient(circle at center, #ffffff 0, #f5f5f5 40%, #e0d0ff 65%, #000 100%);
+    .monitor {
+      border-radius: 12px;
+      background: #030108;
+      padding: 1.5rem;
+      min-height: 200px;
       position: relative;
-      box-shadow: 0 0 60px rgba(255,255,255,0.9);
       overflow: hidden;
     }
 
-    #jumpscareFace::before {
-      /* eyes */
+    .monitor::after {
       content: "";
       position: absolute;
-      left: 50%;
-      top: 30%;
-      width: 52%;
-      height: 24%;
-      transform: translateX(-50%);
-      background:
-        radial-gradient(circle at 25% 50%, #000 0, #000 30%, transparent 32%),
-        radial-gradient(circle at 75% 50%, #000 0, #000 30%, transparent 32%);
+      inset: 0;
+      background: repeating-linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.04),
+        rgba(255, 255, 255, 0.04) 2px,
+        transparent 2px,
+        transparent 4px
+      );
+      mix-blend-mode: screen;
+      opacity: 0.4;
+      animation: scan 8s linear infinite;
     }
 
-    #jumpscareFace::after {
-      /* mouth */
+    @keyframes scan {
+      0% { transform: translateY(-100%); }
+      100% { transform: translateY(100%); }
+    }
+
+    .monitor .line {
+      display: flex;
+      justify-content: space-between;
+      font-family: "Share Tech Mono", "Fira Code", monospace;
+      font-size: 0.95rem;
+      margin-bottom: 0.7rem;
+    }
+
+    .monitor .line span:last-child {
+      color: var(--blue);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .card {
+      padding: 1.5rem;
+      border-radius: 16px;
+      background: rgba(10, 0, 18, 0.85);
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+
+    .card h3 {
+      margin: 0;
+      font-size: 1.3rem;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2rem;
+      color: var(--yellow);
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+    }
+
+    .gallery figure {
+      border-radius: 16px;
+      margin: 0;
+      padding: 1rem;
+      background: radial-gradient(circle at top, rgba(255, 90, 223, 0.25), rgba(10,0,18,0.9));
+      border: 1px solid rgba(255,255,255,0.08);
+      aspect-ratio: 1 / 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      color: var(--text);
+      font-size: 0.9rem;
+      letter-spacing: 0.05rem;
+      text-transform: uppercase;
+    }
+
+    .timeline {
+      border-left: 1px solid rgba(255,255,255,0.2);
+      margin: 3rem 0;
+      padding-left: 1.5rem;
+    }
+
+    .timeline li {
+      list-style: none;
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .timeline li::before {
       content: "";
       position: absolute;
-      left: 50%;
-      top: 62%;
-      width: 60%;
-      height: 35%;
-      transform: translateX(-50%);
-      border-bottom: 14px solid #000;
+      left: -1.85rem;
+      top: 0.3rem;
+      width: 10px;
+      height: 10px;
       border-radius: 50%;
+      background: var(--pink);
+      box-shadow: 0 0 12px rgba(255,90,223,0.5);
+    }
+
+    footer {
+      margin-top: 4rem;
+      text-align: center;
+      color: rgba(255,255,255,0.5);
+      font-size: 0.85rem;
+    }
+
+    .scanline {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: repeating-linear-gradient(180deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px);
+      opacity: 0.25;
+      mix-blend-mode: screen;
+      animation: flicker 6s steps(2) infinite;
+      z-index: 1;
+    }
+
+    @keyframes flicker {
+      0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 0.35; }
+      20%, 24%, 55% { opacity: 0.1; }
+    }
+
+    @media (max-width: 640px) {
+      .cta {
+        flex-direction: column;
+      }
+
+      .monitor .line {
+        flex-direction: column;
+        gap: 0.3rem;
+      }
     }
   </style>
 </head>
 <body>
+  <canvas class="noise" id="noise"></canvas>
+  <div class="scanline"></div>
+  <main>
+    <header>
+      <div class="logo">party.exe</div>
+      <div class="pill">build 0.7.3 &bull; safe room</div>
+    </header>
 
-  <!-- Start Screen -->
-  <div id="startOverlay">
-    <div class="card">
-      <h1><span style="color:#ff5c9a">party</span>.web</h1>
-      <p>Walk to the house… or leave.</p>
-      <p><strong>Controls:</strong> Left-drag to look, WASD to move, Shift to sprint, R to restart.</p>
-      <button id="startButton" class="btn">Enter Party</button>
-    </div>
-  </div>
+    <section class="hero">
+      <div>
+        <p class="pill" style="margin-bottom: 1rem; border-color: rgba(255,90,223,0.35); color: var(--pink);">status: unstable</p>
+        <h1><span>party.exe</span><br />liminal lobby</h1>
+        <p>The fan-favorite nightmare social hub reborn for the browser. Neon confetti, endless hallways, off-brand mascots, and that feeling that something else is logged in.</p>
+        <div class="cta">
+          <button class="btn btn-primary">Join session</button>
+          <button class="btn btn-ghost">watch trailer</button>
+        </div>
+      </div>
+      <div class="window">
+        <div class="title">session diagnostics</div>
+        <div class="monitor" aria-live="polite">
+          <div class="line"><span>Room seed</span><span>#726-VOID</span></div>
+          <div class="line"><span>Confetti stream</span><span>looped</span></div>
+          <div class="line"><span>Strangers detected</span><span id="strangers">03</span></div>
+          <div class="line"><span>Music layer</span><span>crushed eurodance</span></div>
+          <div class="line"><span>Last party</span><span>02:17 ago</span></div>
+        </div>
+      </div>
+    </section>
 
-  <!-- Crosshair -->
-  <div id="crosshair"></div>
+    <section class="grid">
+      <article class="card">
+        <span class="badge">01</span>
+        <h3>Lobby</h3>
+        <p>Infinite balloons tied to invisible tables, a dance floor that mirrors you wrong, and a host that never looks directly at you.</p>
+      </article>
+      <article class="card">
+        <span class="badge">02</span>
+        <h3>Arcade</h3>
+        <p>Token machines dispense memories you forgot. Beat the high score before the power cuts to blacklight.</p>
+      </article>
+      <article class="card">
+        <span class="badge">03</span>
+        <h3>Back driveway</h3>
+        <p>Wet asphalt, a sedan idling with no driver, and bass leaking from the basement window.</p>
+      </article>
+      <article class="card">
+        <span class="badge">04</span>
+        <h3>VIP corridor</h3>
+        <p>Access granted if you carry at least 3 wristbands. The corridor hums when you whisper.</p>
+      </article>
+    </section>
 
-  <!-- Hint -->
-  <div id="hintOverlayText">Left-drag to look around. Find the house.</div>
+    <section class="window" style="margin-bottom:3rem;">
+      <div class="title">snapshot feed</div>
+      <div class="gallery">
+        <figure>room 01 — lobby blur</figure>
+        <figure>room 12 — projector fog</figure>
+        <figure>room 44 — cake altar</figure>
+        <figure>room 08 — carpark static</figure>
+      </div>
+    </section>
 
-  <!-- Ending Screen -->
-  <div id="endingOverlayInner">
-    <div class="card">
-      <h2 id="endingCardTitle"></h2>
-      <p id="endingCardSubtitle"></p>
-      <p id="endingDetails"></p>
-      <p style="color:#ff5c9a; margin-top:10px;">Press R to restart</p>
-    </div>
-  </div>
+    <section class="window" style="margin-bottom:3rem;">
+      <div class="title">party directives</div>
+      <ul class="timeline">
+        <li>
+          <h4>22:00 — doors unlock</h4>
+          <p>Press E to accept the invitation. Check your wristwatch for flicker warnings.</p>
+        </li>
+        <li>
+          <h4>22:05 — confetti storm</h4>
+          <p>Visibility drops to 35%. Follow the synth bass; ignore the whispers from the DJ booth.</p>
+        </li>
+        <li>
+          <h4>22:17 — mirror sync</h4>
+          <p>Your reflection asks you to leave. Decline politely to continue the run.</p>
+        </li>
+        <li>
+          <h4>22:23 — final loop</h4>
+          <p>Locate the sedan outside. If headlights blink three times, the session resets.</p>
+        </li>
+      </ul>
+    </section>
 
-  <!-- Jumpscare Screen -->
-  <div id="jumpscareOverlay">
-    <div id="jumpscareFace"></div>
-  </div>
+    <section class="grid">
+      <article class="card">
+        <h3>System requirements</h3>
+        <p>Chrome 117+, headphones mandatory, lights off recommended. Supports keyboard, controller, and anxious breathing.</p>
+      </article>
+      <article class="card">
+        <h3>Bonus content</h3>
+        <p>Unlock "Void Streamers" cosmetic pack by touching the forbidden tickets hidden around the lot.</p>
+      </article>
+      <article class="card">
+        <h3>Multiplayer beta</h3>
+        <p>Drop-in sessions up to 6 guests. The seventh slot is occupied even when no one joins.</p>
+      </article>
+    </section>
 
-  <!-- 3D Scene -->
-  <script type="module">
-    import * as THREE from "https://unpkg.com/three@0.161.0/build/three.module.js";
+    <footer>
+      built by nightshift.exe &nbsp;•&nbsp; fan project inspired by the myth of party.exe
+    </footer>
+  </main>
 
-    let scene, camera, renderer;
-    let player;          // container for camera position + yaw
-    let pitch = 0;       // camera pitch
-    let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, sprint = false;
-    let ended = false;
+  <script>
+    const noiseCanvas = document.getElementById('noise');
+    const ctx = noiseCanvas.getContext('2d');
 
-    const velocity = new THREE.Vector3();
-    const direction = new THREE.Vector3();
-    const clock = new THREE.Clock();
-    const startPos = new THREE.Vector3(0, 0, 18);
-
-    let tixMesh;
-    const triggers = [];
-
-    // stalking / jumpscare
-    let stalker;
-    let stalkActive = false;
-    let stalkStarted = false;
-    let stalkJumpscareDone = false;
-
-    // mouse look
-    let mouseDown = false;
-    let lastMouseX = 0, lastMouseY = 0;
-    const lookSensitivity = 0.003;
-
-    // audio
-    let audioCtx = null;
-
-    const endingOverlayInner = document.getElementById("endingOverlayInner");
-    const endingTitle = document.getElementById("endingCardTitle");
-    const endingSubtitle = document.getElementById("endingCardSubtitle");
-    const endingDetails = document.getElementById("endingDetails");
-    const hintText = document.getElementById("hintOverlayText");
-    const startOverlay = document.getElementById("startOverlay");
-    const jumpscareOverlay = document.getElementById("jumpscareOverlay");
-
-    init();
-    animate();
-
-    function init() {
-      // Scene & camera
-      scene = new THREE.Scene();
-      scene.fog = new THREE.FogExp2(0x050509, 0.045);
-
-      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-
-      // Player object
-      player = new THREE.Object3D();
-      player.position.copy(startPos);
-      scene.add(player);
-
-      camera.position.set(0, 1.7, 0);
-      player.add(camera);
-
-      renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(window.devicePixelRatio);
-      document.body.appendChild(renderer.domElement);
-
-      // Lights
-      scene.add(new THREE.AmbientLight(0x8888aa, 0.9));
-      const moon = new THREE.DirectionalLight(0x99bbff, 0.8);
-      moon.position.set(20, 40, 10);
-      scene.add(moon);
-
-      // World
-      createGround();
-      createHouse();
-      createTrees();
-      createSubject();
-      createStalker();
-      createCar();
-      createTix();
-      setupTriggers();
-
-      // Start
-      document.getElementById("startButton").addEventListener("click", () => {
-        startOverlay.style.display = "none";
-        hintText.textContent = "Left-drag to look, WASD to move. Enter the house… if you dare.";
-      });
-
-      // Keyboard
-      document.addEventListener("keydown", onKeyDown);
-      document.addEventListener("keyup", onKeyUp);
-
-      // Mouse
-      renderer.domElement.addEventListener("mousedown", onMouseDown);
-      renderer.domElement.addEventListener("mouseup", onMouseUp);
-      renderer.domElement.addEventListener("mouseleave", onMouseUp);
-      renderer.domElement.addEventListener("mousemove", onMouseMove);
-
-      // Resize
-      window.addEventListener("resize", onResize);
+    function resizeNoise() {
+      noiseCanvas.width = window.innerWidth;
+      noiseCanvas.height = window.innerHeight;
     }
 
-    /* WORLD CREATION */
-
-    function createGround() {
-      const ground = new THREE.Mesh(
-        new THREE.PlaneGeometry(80, 80),
-        new THREE.MeshStandardMaterial({ color: 0x0b0f16, roughness: 1 })
-      );
-      ground.rotation.x = -Math.PI / 2;
-      scene.add(ground);
-
-      const path = new THREE.Mesh(
-        new THREE.PlaneGeometry(4, 20),
-        new THREE.MeshStandardMaterial({ color: 0x1c1f2b, roughness: 0.8 })
-      );
-      path.rotation.x = -Math.PI / 2;
-      path.position.set(0, 0.01, 4);
-      scene.add(path);
-    }
-
-    function createHouse() {
-      const body = new THREE.Mesh(
-        new THREE.BoxGeometry(16, 8, 16),
-        new THREE.MeshStandardMaterial({ color: 0x141421, roughness: 0.8 })
-      );
-      body.position.set(0, 4, -10);
-      scene.add(body);
-
-      const roof = new THREE.Mesh(
-        new THREE.ConeGeometry(10, 4, 4),
-        new THREE.MeshStandardMaterial({ color: 0x1f1b3a, roughness: 0.9 })
-      );
-      roof.position.set(0, 9, -10);
-      roof.rotation.y = Math.PI / 4;
-      scene.add(roof);
-
-      const door = new THREE.Mesh(
-        new THREE.PlaneGeometry(3, 4),
-        new THREE.MeshBasicMaterial({ color: 0xff5c9a, transparent: true, opacity: 0.5 })
-      );
-      door.position.set(0, 2, -2);
-      scene.add(door);
-
-      const partyLight = new THREE.PointLight(0xff99cc, 2, 20);
-      partyLight.position.set(0, 4, -12);
-      scene.add(partyLight);
-    }
-
-    function createTrees() {
-      const trunkMat = new THREE.MeshStandardMaterial({ color: 0x382626 });
-      const leafMat = new THREE.MeshStandardMaterial({ color: 0x13281c });
-
-      const positions = [
-        [-10, -4],
-        [-14, -8],
-        [10, -3],
-        [14, -7],
-        [-16, 2],
-        [16, 4]
-      ];
-
-      positions.forEach(([x, z]) => {
-        const trunk = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.4, 0.7, 4),
-          trunkMat
-        );
-        trunk.position.set(x, 2, z);
-        scene.add(trunk);
-
-        const leaves = new THREE.Mesh(
-          new THREE.SphereGeometry(2.2),
-          leafMat
-        );
-        leaves.position.set(x, 5, z);
-        scene.add(leaves);
-      });
-    }
-
-    function createSubject() {
-      // Static watcher outside
-      const subject = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.8, 1.8, 8, 16),
-        new THREE.MeshStandardMaterial({
-          color: 0xffffff,
-          emissive: 0xffffff,
-          emissiveIntensity: 0.08
-        })
-      );
-      subject.position.set(-4, 2.3, 8);
-      subject.userData.subject = true;
-      scene.add(subject);
-    }
-
-    function createStalker() {
-      // Stalker used for behind-you jumpscare
-      stalker = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.9, 2.2, 8, 16),
-        new THREE.MeshStandardMaterial({
-          color: 0xfdfdfd,
-          emissive: 0xffffff,
-          emissiveIntensity: 0.2
-        })
-      );
-      stalker.visible = false;
-      scene.add(stalker);
-    }
-
-    function createCar() {
-      const body = new THREE.Mesh(
-        new THREE.BoxGeometry(4, 1, 2),
-        new THREE.MeshStandardMaterial({ color: 0x30353f, roughness: 0.8 })
-      );
-      body.position.set(0, 0.6, 24);
-      scene.add(body);
-    }
-
-    function createTix() {
-      tixMesh = new THREE.Mesh(
-        new THREE.BoxGeometry(0.8, 0.2, 0.5),
-        new THREE.MeshStandardMaterial({
-          color: 0xffd15c,
-          emissive: 0xffd15c,
-          emissiveIntensity: 0.6
-        })
-      );
-      tixMesh.position.set(6, 0.3, 10);
-      scene.add(tixMesh);
-    }
-
-    /* TRIGGERS / ENDINGS */
-
-    function setupTriggers() {
-      // Enter house → start stalk sequence
-      triggers.push({
-        name: "house_stalk_start",
-        type: "volume",
-        min: new THREE.Vector3(-7, 0, -6),
-        max: new THREE.Vector3(7, 5, -20),
-        done: false
-      });
-
-      // Car ending
-      triggers.push({
-        name: "car",
-        type: "volume",
-        min: new THREE.Vector3(-2, 0, 22),
-        max: new THREE.Vector3(2, 3, 27),
-        done: false
-      });
-
-      // Tix ending
-      triggers.push({
-        name: "tix",
-        type: "tix",
-        radius: 1.4,
-        done: false
-      });
-    }
-
-    function triggerEnding(id) {
-      let title = "", sub = "", det = "";
-
-      if (id === "car") {
-        ended = true;
-        title = "Refusal";
-        sub = "You chose to go home.";
-        det = "In the distance, the house is still there. Watching.";
-      } else if (id === "tix") {
-        ended = true;
-        title = "Tix Ending";
-        sub = "You touched the forbidden ticket.";
-        det = "Nostalgia has a price. You just paid it.";
-      } else if (id === "house_jumpscare") {
-        title = "It Was Behind You";
-        sub = "You finally turned around.";
-        det = "For a second, you saw its face clearly. That was enough.";
+    function renderNoise() {
+      const imageData = ctx.createImageData(noiseCanvas.width, noiseCanvas.height);
+      const buffer32 = new Uint32Array(imageData.data.buffer);
+      const len = buffer32.length;
+      for (let i = 0; i < len; i++) {
+        buffer32[i] = ((Math.random() * 255) | 0) << 24;
       }
-
-      endingTitle.textContent = title + " Ending";
-      endingSubtitle.textContent = sub;
-      endingDetails.textContent = det;
-      endingOverlayInner.classList.add("visible");
+      ctx.putImageData(imageData, 0, 0);
+      requestAnimationFrame(renderNoise);
     }
 
-    function startStalkSequence() {
-      if (stalkStarted) return;
-      stalkStarted = true;
-      stalkActive = true;
-      stalkJumpscareDone = false;
-      stalker.visible = true;
+    resizeNoise();
+    renderNoise();
+    window.addEventListener('resize', resizeNoise);
 
-      hintText.textContent = "Something feels wrong. You’re not alone in here.";
-
-      // place stalker behind player
-      const yaw = player.rotation.y;
-      const distance = 5;
-      const offsetX = Math.sin(yaw) * distance;
-      const offsetZ = Math.cos(yaw) * distance; // behind relative to facing
-
-      stalker.position.set(
-        player.position.x + offsetX,
-        1.5,
-        player.position.z + offsetZ
-      );
-    }
-
-    function triggerJumpscare() {
-      if (stalkJumpscareDone) return;
-      stalkJumpscareDone = true;
-      stalkActive = false;
-      ended = true;
-
-      // hide stalker in the world
-      stalker.visible = false;
-
-      // Screen jumpscare overlay
-      jumpscareOverlay.classList.add("active");
-      hintText.textContent = "";
-
-      // Play harsh synthetic scream
-      playJumpscareSound();
-
-      // Camera / screen shake
-      shakeScreen(500);
-
-      // After short delay, go to ending screen
-      setTimeout(() => {
-        jumpscareOverlay.classList.remove("active");
-        triggerEnding("house_jumpscare");
-      }, 700);
-    }
-
-    function playJumpscareSound() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      const now = audioCtx.currentTime;
-
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-
-      osc.type = "square";
-      osc.frequency.setValueAtTime(650, now);
-      osc.frequency.linearRampToValueAtTime(300, now + 0.5);
-
-      gain.gain.setValueAtTime(1.0, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-
-      osc.start(now);
-      osc.stop(now + 0.6);
-    }
-
-    function shakeScreen(durationMs) {
-      const canvas = renderer.domElement;
-      let start = null;
-      const original = canvas.style.transform || "";
-
-      function step(timestamp) {
-        if (!start) start = timestamp;
-        const elapsed = timestamp - start;
-        const progress = Math.min(elapsed / durationMs, 1);
-        const intensity = (1 - progress) * 8;
-
-        const x = (Math.random() - 0.5) * intensity;
-        const y = (Math.random() - 0.5) * intensity;
-        canvas.style.transform = `translate(${x}px, ${y}px)`;
-
-        if (elapsed < durationMs) {
-          requestAnimationFrame(step);
-        } else {
-          canvas.style.transform = original;
-        }
-      }
-
-      requestAnimationFrame(step);
-    }
-
-    function resetGame() {
-      ended = false;
-      stalkActive = false;
-      stalkStarted = false;
-      stalkJumpscareDone = false;
-      stalker.visible = false;
-
-      // reset triggers
-      for (const t of triggers) {
-        t.done = false;
-      }
-
-      endingOverlayInner.classList.remove("visible");
-      jumpscareOverlay.classList.remove("active");
-
-      player.position.copy(startPos);
-      player.rotation.set(0, 0, 0);
-      pitch = 0;
-      camera.rotation.set(0, 0, 0);
-
-      hintText.textContent = "Left-drag to look around. Find the house.";
-    }
-
-    /* INPUT */
-
-    function onKeyDown(e) {
-      if (ended && e.code === "KeyR") {
-        resetGame();
-        return;
-      }
-
-      switch (e.code) {
-        case "KeyW": moveForward = true; break;
-        case "KeyA": moveLeft = true; break;
-        case "KeyS": moveBackward = true; break;
-        case "KeyD": moveRight = true; break;
-        case "ShiftLeft":
-        case "ShiftRight":
-          sprint = true; break;
-      }
-    }
-
-    function onKeyUp(e) {
-      switch (e.code) {
-        case "KeyW": moveForward = false; break;
-        case "KeyA": moveLeft = false; break;
-        case "KeyS": moveBackward = false; break;
-        case "KeyD": moveRight = false; break;
-        case "ShiftLeft":
-        case "ShiftRight":
-          sprint = false; break;
-      }
-    }
-
-    function onMouseDown(e) {
-      if (e.button === 0) {
-        mouseDown = true;
-        lastMouseX = e.clientX;
-        lastMouseY = e.clientY;
-      }
-    }
-
-    function onMouseUp(e) {
-      if (e.button === 0) {
-        mouseDown = false;
-      }
-    }
-
-    function onMouseMove(e) {
-      if (!mouseDown || ended) return;
-
-      const dx = e.clientX - lastMouseX;
-      const dy = e.clientY - lastMouseY;
-      lastMouseX = e.clientX;
-      lastMouseY = e.clientY;
-
-      // yaw
-      player.rotation.y -= dx * lookSensitivity;
-
-      // pitch
-      pitch -= dy * lookSensitivity;
-      const maxPitch = Math.PI / 3;
-      const minPitch = -Math.PI / 3;
-      pitch = Math.max(minPitch, Math.min(maxPitch, pitch));
-      camera.rotation.x = pitch;
-    }
-
-    /* TRIGGERS CHECK */
-
-    function checkTriggers() {
-      const camPos = new THREE.Vector3();
-      camera.getWorldPosition(camPos);
-
-      for (const t of triggers) {
-        if (t.done) continue;
-
-        if (t.type === "volume") {
-          if (
-            camPos.x >= t.min.x && camPos.x <= t.max.x &&
-            camPos.y >= t.min.y && camPos.y <= t.max.y &&
-            camPos.z >= t.min.z && camPos.z <= t.max.z
-          ) {
-            t.done = true;
-            if (t.name === "house_stalk_start") {
-              startStalkSequence();
-            } else if (t.name === "car") {
-              triggerEnding("car");
-            }
-            return;
-          }
-        }
-
-        if (t.type === "tix") {
-          if (camPos.distanceTo(tixMesh.position) <= t.radius) {
-            t.done = true;
-            triggerEnding("tix");
-            return;
-          }
-        }
-      }
-    }
-
-    /* STALKER UPDATE */
-
-    function updateStalker(dt) {
-      if (!stalkActive || !stalker.visible || ended) return;
-
-      const playerPos = player.position.clone();
-      const camPos = new THREE.Vector3();
-      camera.getWorldPosition(camPos);
-
-      const toStalker = stalker.position.clone().sub(camPos);
-      const dist = toStalker.length();
-
-      const forward = new THREE.Vector3();
-      camera.getWorldDirection(forward);
-
-      const lookDir = toStalker.clone().normalize().negate(); // from stalker to camera
-      const angle = forward.angleTo(toStalker.clone().normalize());
-
-      // If close enough and you're looking at it → jumpscare
-      if (dist < 2.2 && angle < 0.4) {
-        triggerJumpscare();
-        return;
-      }
-
-      // If you're NOT looking at it (angle big) → it creeps closer
-      if (angle > 0.85 && dist > 1.2) {
-        const dirToPlayer = playerPos.clone().sub(stalker.position).normalize();
-        const speed = 2.8; // creep speed
-        stalker.position.addScaledVector(dirToPlayer, speed * dt);
-      }
-
-      // Make it face you horizontally
-      stalker.lookAt(camPos.x, stalker.position.y + 0.4, camPos.z);
-    }
-
-    /* RESIZE */
-
-    function onResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    /* MAIN LOOP */
-
-    function animate() {
-      requestAnimationFrame(animate);
-
-      const dt = clock.getDelta();
-
-      if (!ended) {
-        const speed = sprint ? 8 : 4;
-
-        direction.set(0, 0, 0);
-        if (moveForward) direction.z -= 1;
-        if (moveBackward) direction.z += 1;
-        if (moveLeft) direction.x -= 1;
-        if (moveRight) direction.x += 1;
-
-        if (direction.lengthSq() > 0) {
-          direction.normalize();
-
-          const yaw = player.rotation.y;
-          const sin = Math.sin(yaw);
-          const cos = Math.cos(yaw);
-
-          const moveX = direction.x * cos - direction.z * sin;
-          const moveZ = direction.x * sin + direction.z * cos;
-
-          player.position.x += moveX * speed * dt;
-          player.position.z += moveZ * speed * dt;
-          player.position.y = 0;
-        }
-
-        // bounds
-        const limit = 36;
-        player.position.x = THREE.MathUtils.clamp(player.position.x, -limit, limit);
-        player.position.z = THREE.MathUtils.clamp(player.position.z, -limit, limit);
-
-        checkTriggers();
-        updateStalker(dt);
-      }
-
-      renderer.render(scene, camera);
-    }
+    const strangers = document.getElementById('strangers');
+    setInterval(() => {
+      const value = 2 + Math.floor(Math.random() * 5);
+      strangers.textContent = `0${value}`.slice(-2);
+    }, 4000);
   </script>
-
 </body>
 </html>
