@@ -114,10 +114,11 @@
   #modeGrid {
     display: grid;
     gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   }
   @media (min-width: 700px) {
     #modeGrid {
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     }
   }
   .mode-card {
@@ -419,6 +420,52 @@
     border-color: rgba(79,140,255,0.7);
     box-shadow: 0 0 18px rgba(79,140,255,0.4);
   }
+  #focusPanel {
+    position: absolute;
+    top: 150px;
+    right: 12px;
+    width: 220px;
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    background: rgba(8,12,24,0.78);
+    border: 1px solid rgba(255,255,255,0.2);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.6);
+    font-size: 12px;
+    z-index: 10;
+  }
+  #focusPanel.charged {
+    border-color: rgba(255,230,140,0.8);
+    box-shadow: 0 0 18px rgba(255,200,120,0.35);
+  }
+  #focusHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-size: 11px;
+    margin-bottom: 6px;
+  }
+  #focusTrack {
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  #focusFill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg,#ffd86f,#ffac4f);
+    transition: width 0.15s ease-out;
+  }
+  #focusDetail {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.3;
+  }
   #resonanceHeader {
     display: flex;
     justify-content: space-between;
@@ -575,6 +622,30 @@
         <div class="mode-name">2X Speed</div>
         <div class="mode-tag">Everything is faster. Including you.</div>
       </div>
+      <div class="mode-card" data-mode="zen">
+        <div class="mode-name">Zen Marathon</div>
+        <div class="mode-tag">Slow flow, Focus Chain charges quicker.</div>
+      </div>
+      <div class="mode-card" data-mode="maelstrom">
+        <div class="mode-name">Maelstrom</div>
+        <div class="mode-tag">Beam storms and vortex pulls everywhere.</div>
+      </div>
+      <div class="mode-card" data-mode="minefield">
+        <div class="mode-name">Minefield</div>
+        <div class="mode-tag">Pulse mines and traps flood the arena.</div>
+      </div>
+      <div class="mode-card" data-mode="swarm">
+        <div class="mode-name">Swarm</div>
+        <div class="mode-tag">Constant rushers & seeker packs.</div>
+      </div>
+      <div class="mode-card" data-mode="rift">
+        <div class="mode-name">Rift Hunter</div>
+        <div class="mode-tag">Vortex eyes bend the battlefield.</div>
+      </div>
+      <div class="mode-card" data-mode="echoField">
+        <div class="mode-name">Echo Field</div>
+        <div class="mode-tag">Resonance builds faster but hazards sync up.</div>
+      </div>
     </div>
     <div style="margin-top:12px; display:flex; gap:8px; justify-content:center;">
       <button class="glass-button" id="infoBtn">Info</button>
@@ -621,11 +692,11 @@
   <h2>Updates</h2>
   <ul>
     <li>Ability loadouts: pick 4 abilities before each run.</li>
+    <li>Focus Chain mechanic: avoid damage to tier up cooldown speed, resonance drip, and a global slow aura.</li>
+    <li>Gamemodes massively expanded: Zen Marathon, Maelstrom, Minefield, Swarm, Rift Hunter, Echo Field plus retuned classics like Bullet Hell &amp; Boss Rush.</li>
     <li>New enemies: dash traps, pellet nodes, saw orbs, laser grids, meteor shards, blade runners, emitter pods, seeker swarms, vortex eyes, and pulse mines.</li>
     <li>Dash is now a core move (B / dash button) with no cooldown and a revamped trail effect.</li>
-    <li>Resonance mechanic: fill the meter by surviving & dashing to auto-trigger an Echo Burst that slows the arena.</li>
-    <li>2X Speed mode: faster player & faster game.</li>
-    <li>Spin lasers nerfed: slower sweep.</li>
+    <li>Resonance mechanic: fill the meter by surviving &amp; dashing to auto-trigger an Echo Burst that slows the arena.</li>
   </ul>
 </div>
 
@@ -663,6 +734,17 @@
     <div id="resonanceFill"></div>
   </div>
   <div id="resonanceText">Survive and dash to build Echo energy.</div>
+</div>
+
+<div id="focusPanel">
+  <div id="focusHeader">
+    <span>Focus Chain</span>
+    <span id="focusTier">Calm</span>
+  </div>
+  <div id="focusTrack">
+    <div id="focusFill"></div>
+  </div>
+  <div id="focusDetail">Avoid damage to rank up cooldown and resonance bonuses.</div>
 </div>
 
 <!-- Ability Bar with 4 slots -->
@@ -750,6 +832,10 @@ const resonanceMeter = document.getElementById('resonanceMeter');
 const resonanceFill = document.getElementById('resonanceFill');
 const resonanceText = document.getElementById('resonanceText');
 const resonancePercent = document.getElementById('resonancePercent');
+const focusPanel = document.getElementById('focusPanel');
+const focusFill = document.getElementById('focusFill');
+const focusTier = document.getElementById('focusTier');
+const focusDetail = document.getElementById('focusDetail');
 
 infoBtn.addEventListener('click', () => {
   document.getElementById('infoPanel').style.display = 'block';
@@ -764,7 +850,10 @@ const RUN_TIPS = [
   'Shockwave deletes bullets—combo it with Cleanse for breathing room.',
   'Freeze Field makes homing shapes harmless for a moment.',
   'Time Slow buys seconds to reposition before chaos hits.',
-  'Speed Boost + Dash lets you cross the map instantly.'
+  'Speed Boost + Dash lets you cross the map instantly.',
+  'Focus Chain tiers speed up ability cooldowns—stay perfect to reach Mythic.',
+  'Echo Field rewards aggressive dashing; bursts land quicker with resonance boosts.',
+  'Maelstrom lasers telegraph before firing—slide parallel until they sweep.'
 ];
 
 const bestTimes = (() => {
@@ -821,78 +910,251 @@ const MODES = {
   chill: {
     name: 'CHILL',
     spawnInterval: 80,
+    spawnIntervalRange: [70, 90],
     pelletSpeed: 3,
     shapeSpeed: 1.0,
     damageMultiplier: 0.6,
-    beamChance: 0.03,
-    pelletChance: 0.25,
-    playerSpeedMult: 1
+    beamChance: 0.025,
+    pelletChance: 0.2,
+    playerSpeedMult: 1,
+    homingChance: 0.22,
+    hazards: { circleTrap: 0.7, pulseMine: 0.6, sawOrb: 0.6, meteorShard: 0.7 }
   },
   normal: {
     name: 'NORMAL',
     spawnInterval: 55,
+    spawnIntervalRange: [50, 60],
     pelletSpeed: 3.8,
     shapeSpeed: 1.3,
     damageMultiplier: 1.0,
     beamChance: 0.06,
     pelletChance: 0.35,
-    playerSpeedMult: 1
+    playerSpeedMult: 1,
+    hazards: {}
   },
   chaos: {
     name: 'CHAOS',
     spawnInterval: 35,
-    pelletSpeed: 4.8,
-    shapeSpeed: 1.7,
+    spawnIntervalRange: [25, 35],
+    pelletSpeed: 4.9,
+    shapeSpeed: 1.8,
     damageMultiplier: 1.4,
-    beamChance: 0.1,
+    beamChance: 0.12,
     pelletChance: 0.45,
-    playerSpeedMult: 1.1
+    playerSpeedMult: 1.1,
+    homingChance: 0.45,
+    shapeBurst: () => (Math.random() < 0.4 ? 2 : 1),
+    pelletVolley: 2,
+    pelletSpread: 0.1,
+    hazards: { circleTrap: 1.4, pulseMine: 1.4, beamObject: 1.3, emitterPod: 1.2, seekerSwarm: 1.3 }
   },
   bulletHell: {
     name: 'BULLET HELL',
     spawnInterval: 60,
+    spawnIntervalRange: [45, 55],
     pelletSpeed: 5.5,
     shapeSpeed: 1.2,
     damageMultiplier: 1.2,
     beamChance: 0.08,
-    pelletChance: 0.8,
-    playerSpeedMult: 1
+    pelletChance: 0.85,
+    playerSpeedMult: 1,
+    pelletVolley: 4,
+    pelletSpread: 0.12,
+    pelletRing: { count: 12, speedMult: 0.65 },
+    hazards: { multiNode: 1.8, emitterPod: 1.5, circleTrap: 1.2, bladeRunner: 0.8 }
   },
   sniper: {
     name: 'SNIPER',
     spawnInterval: 70,
+    spawnIntervalRange: [60, 75],
     pelletSpeed: 7,
     shapeSpeed: 1.0,
     damageMultiplier: 1.5,
     beamChance: 0.05,
-    pelletChance: 0.5,
-    playerSpeedMult: 1
+    pelletChance: 0.45,
+    playerSpeedMult: 1,
+    homingChance: 0.25,
+    pelletVolley: 1,
+    pelletSpread: 0.02,
+    pelletRandom: 0.01,
+    hazards: { dashBlocker: 1.4, circleTrap: 1.2, pulseMine: 0.8, seekerSwarm: 0.8 }
   },
   bossRush: {
     name: 'BOSS RUSH',
     spawnInterval: 110,
+    spawnIntervalRange: [95, 125],
     pelletSpeed: 4,
     shapeSpeed: 1.1,
     damageMultiplier: 1.7,
     beamChance: 0.12,
     pelletChance: 0.3,
-    playerSpeedMult: 1
+    playerSpeedMult: 1,
+    shapeBurst: () => (Math.random() < 0.5 ? 2 : 1),
+    bigShapeChance: 0.6,
+    hazards: { sawOrb: 1.7, laserGrid: 1.5, meteorShard: 1.8, bladeRunner: 1.5 },
+    customCycle: () => { if(Math.random() < 0.35) spawnBeamObject(); }
   },
   doubleSpeed: {
     name: '2X SPEED',
     spawnInterval: 30,
+    spawnIntervalRange: [28, 34],
     pelletSpeed: 7.5,
     shapeSpeed: 2.2,
     damageMultiplier: 1.2,
     beamChance: 0.10,
     pelletChance: 0.55,
-    playerSpeedMult: 2
+    playerSpeedMult: 2,
+    pelletVolley: 2,
+    pelletSpread: 0.15,
+    hazards: { bladeRunner: 1.4, meteorShard: 1.2, circleTrap: 1.2, seekerSwarm: 1.3 }
+  },
+  zen: {
+    name: 'ZEN MARATHON',
+    spawnInterval: 95,
+    spawnIntervalRange: [90, 110],
+    pelletSpeed: 3.2,
+    shapeSpeed: 0.9,
+    damageMultiplier: 0.7,
+    beamChance: 0.02,
+    pelletChance: 0.18,
+    playerSpeedMult: 1.05,
+    homingChance: 0.2,
+    focusBoost: 0.75,
+    hazards: { circleTrap: 0.5, pulseMine: 0.4, meteorShard: 0.5, vortexEye: 0.4 }
+  },
+  maelstrom: {
+    name: 'MAELSTROM',
+    spawnInterval: 48,
+    spawnIntervalRange: [40, 55],
+    pelletSpeed: 4.5,
+    shapeSpeed: 1.4,
+    damageMultiplier: 1.3,
+    beamChance: 0.14,
+    pelletChance: 0.4,
+    playerSpeedMult: 1,
+    hazards: { laserGrid: 2.0, vortexEye: 1.8, sawOrb: 1.3, pulseMine: 1.2 },
+    customCycle: () => { if(Math.random() < 0.35) spawnLaserGrid(); }
+  },
+  minefield: {
+    name: 'MINEFIELD',
+    spawnInterval: 58,
+    spawnIntervalRange: [50, 65],
+    pelletSpeed: 3.6,
+    shapeSpeed: 1.2,
+    damageMultiplier: 1.3,
+    beamChance: 0.07,
+    pelletChance: 0.3,
+    playerSpeedMult: 1,
+    hazards: { pulseMine: 2.4, circleTrap: 1.8, dashBlocker: 1.5, emitterPod: 1.2, seekerSwarm: 0.8 },
+    customCycle: () => { if(Math.random() < 0.25) spawnPulseMine(); }
+  },
+  swarm: {
+    name: 'SWARM',
+    spawnInterval: 28,
+    spawnIntervalRange: [22, 30],
+    pelletSpeed: 4.2,
+    shapeSpeed: 1.7,
+    damageMultiplier: 1.4,
+    beamChance: 0.08,
+    pelletChance: 0.28,
+    playerSpeedMult: 1.1,
+    homingChance: 0.6,
+    shapeBurst: () => (Math.random() < 0.6 ? 3 : 2),
+    pelletVolley: 2,
+    pelletSpread: 0.08,
+    hazards: { seekerSwarm: 2.6, emitterPod: 1.8, bladeRunner: 1.4, sawOrb: 1.2 }
+  },
+  rift: {
+    name: 'RIFT HUNTER',
+    spawnInterval: 55,
+    spawnIntervalRange: [48, 62],
+    pelletSpeed: 4.2,
+    shapeSpeed: 1.3,
+    damageMultiplier: 1.4,
+    beamChance: 0.09,
+    pelletChance: 0.4,
+    playerSpeedMult: 1,
+    hazards: { vortexEye: 2.6, laserGrid: 1.3, beamObject: 1.3 },
+    resonanceBonus: 1.1,
+    customCycle: () => { if(Math.random() < 0.3) spawnVortexEye(); }
+  },
+  echoField: {
+    name: 'ECHO FIELD',
+    spawnInterval: 60,
+    spawnIntervalRange: [52, 68],
+    pelletSpeed: 4.0,
+    shapeSpeed: 1.2,
+    damageMultiplier: 1.2,
+    beamChance: 0.08,
+    pelletChance: 0.45,
+    playerSpeedMult: 1,
+    pelletVolley: 2,
+    pelletSpread: 0.1,
+    pelletRing: { count: 6, speedMult: 0.8 },
+    resonanceBonus: 1.35,
+    focusBoost: 0.9,
+    hazards: { beamObject: 1.6, multiNode: 1.4, laserGrid: 1.1 }
   }
 };
 
 let selectedMode = null;
 let currentModeKey = 'normal';
 let modeConfig = MODES.normal;
+
+const BASE_HAZARD_CHANCE = {
+  circleTrap: 0.06,
+  multiNode: 0.05,
+  dashBlocker: 0.04,
+  beamObject: 0.04,
+  sawOrb: 0.05,
+  laserGrid: 0.025,
+  meteorShard: 0.06,
+  pulseMine: 0.04,
+  bladeRunner: 0.035,
+  emitterPod: 0.05,
+  seekerSwarm: 0.05,
+  vortexEye: 0.03
+};
+
+function getNextSpawnInterval(){
+  const range = modeConfig.spawnIntervalRange;
+  if(Array.isArray(range) && range.length === 2){
+    const min = Math.max(10, Math.min(range[0], range[1]));
+    const max = Math.max(min, Math.max(range[0], range[1]));
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+  const base = modeConfig.spawnInterval || 55;
+  const jitter = modeConfig.spawnJitter || 0;
+  if(jitter > 0){
+    return Math.max(10, Math.floor(base + (Math.random()*jitter*2 - jitter)));
+  }
+  return base;
+}
+
+function rollHazard(key, fn){
+  const base = BASE_HAZARD_CHANCE[key];
+  if(!base) return;
+  const mult = modeConfig?.hazards?.[key];
+  const chance = base * (mult === undefined ? 1 : mult);
+  if(Math.random() < chance){
+    fn();
+  }
+}
+
+function runHazardRolls(){
+  rollHazard('circleTrap', spawnCircleTrap);
+  rollHazard('multiNode', spawnMultiNode);
+  rollHazard('dashBlocker', spawnDashBlocker);
+  rollHazard('beamObject', spawnBeamObject);
+  rollHazard('sawOrb', spawnSawOrb);
+  rollHazard('laserGrid', spawnLaserGrid);
+  rollHazard('meteorShard', spawnMeteorShard);
+  rollHazard('pulseMine', spawnPulseMine);
+  rollHazard('bladeRunner', spawnBladeRunner);
+  rollHazard('emitterPod', spawnEmitterPod);
+  rollHazard('seekerSwarm', spawnSeekerSwarm);
+  rollHazard('vortexEye', spawnVortexEye);
+}
 
 refreshBestCallout();
 
@@ -916,8 +1178,10 @@ function updateResonanceBar(){
 }
 
 function gainResonance(amount){
-  if(resonanceBurstTime > 0) return;
-  resonance = Math.min(RESONANCE_MAX, resonance + amount);
+  if(resonanceBurstTime > 0 || amount <= 0) return;
+  const modeBonus = modeConfig?.resonanceBonus || 1;
+  const focusBonus = 1 + focusLevel * 0.15;
+  resonance = Math.min(RESONANCE_MAX, resonance + amount * modeBonus * focusBonus);
   updateResonanceBar();
   if(resonance >= RESONANCE_MAX){
     triggerResonanceBurst();
@@ -936,6 +1200,59 @@ function triggerResonanceBurst(){
 }
 
 updateResonanceBar();
+
+/* --------- Focus chain mechanic --------- */
+const FOCUS_THRESHOLDS = [0, 8*60, 16*60, 28*60];
+const FOCUS_TITLES = ['Calm','Honed','Ascended','Mythic'];
+const FOCUS_DESCRIPTIONS = [
+  'Calm: baseline state. Build momentum by avoiding hits.',
+  '+20% ability cooldown speed. Keep weaving to stay sharp.',
+  '+40% cooldown speed & resonance drip ramps up.',
+  'Mythic: +60% cooldowns and arena slow aura.'
+];
+let focusTime = 0;
+let focusLevel = 0;
+let focusGlowTime = 0;
+
+function getFocusThreshold(level){
+  const factor = modeConfig?.focusBoost || 1;
+  return Math.floor((FOCUS_THRESHOLDS[level] || 0) * factor);
+}
+
+function updateFocusHud(){
+  if(!focusPanel) return;
+  focusPanel.classList.toggle('charged', focusLevel > 0 || focusGlowTime > 0);
+  if(focusTier) focusTier.textContent = FOCUS_TITLES[focusLevel] || 'Calm';
+  if(focusDetail) focusDetail.textContent = FOCUS_DESCRIPTIONS[focusLevel] || '';
+  const nextLevel = Math.min(FOCUS_THRESHOLDS.length-1, focusLevel+1);
+  const currentTarget = getFocusThreshold(focusLevel);
+  const nextTarget = getFocusThreshold(nextLevel);
+  let progress = 1;
+  if(nextTarget > currentTarget){
+    progress = Math.max(0, Math.min(1, (focusTime - currentTarget) / (nextTarget - currentTarget)));
+  }
+  if(focusFill) focusFill.style.width = (progress*100) + '%';
+}
+
+function resetFocusChain(){
+  focusTime = 0;
+  focusLevel = 0;
+  focusGlowTime = 0;
+  updateFocusHud();
+}
+
+function tickFocusChain(){
+  focusTime++;
+  const nextLevel = Math.min(FOCUS_THRESHOLDS.length-1, focusLevel+1);
+  const nextTarget = getFocusThreshold(nextLevel);
+  if(focusLevel < FOCUS_THRESHOLDS.length-1 && focusTime >= nextTarget){
+    focusLevel++;
+    focusGlowTime = 40;
+  }
+  updateFocusHud();
+}
+
+resetFocusChain();
 
 /* --------- Ability definitions & loadout --------- */
 const ALL_ABILITIES = {
@@ -1025,6 +1342,7 @@ document.querySelectorAll('.mode-card').forEach(card => {
     currentModeKey = modeKey;
     modeConfig = MODES[modeKey];
     modeLabel.textContent = 'MODE: ' + modeConfig.name;
+    resetFocusChain();
 
     selectedAbilityIds = [];
     for(const id in abilityCardEls){
@@ -1636,20 +1954,24 @@ function randomColor(){
 }
 
 function spawnShape(){
-  const edge = Math.floor(Math.random()*4);
-  let x, y;
-  if(edge === 0){ x = Math.random()*canvas.width; y = -30; }
-  else if(edge === 1){ x = canvas.width+30; y = Math.random()*canvas.height; }
-  else if(edge === 2){ x = Math.random()*canvas.width; y = canvas.height+30; }
-  else { x = -30; y = Math.random()*canvas.height; }
+  const burstRaw = typeof modeConfig.shapeBurst === 'function' ? modeConfig.shapeBurst() : (modeConfig.shapeBurst || 1);
+  const burstCount = Math.max(1, Math.round(burstRaw));
+  for(let i=0;i<burstCount;i++){
+    const edge = Math.floor(Math.random()*4);
+    let x, y;
+    if(edge === 0){ x = Math.random()*canvas.width; y = -30; }
+    else if(edge === 1){ x = canvas.width+30; y = Math.random()*canvas.height; }
+    else if(edge === 2){ x = Math.random()*canvas.width; y = canvas.height+30; }
+    else { x = -30; y = Math.random()*canvas.height; }
 
-  let size = 10 + Math.random()*18;
-  const kind = Math.random()<0.35 ? 'homing' : 'normal';
-
-  if(selectedMode === 'bossRush' && Math.random() < 0.3){
-    size *= 1.8;
+    let size = (10 + Math.random()*18) * (modeConfig.shapeSizeMult || 1);
+    if(modeConfig.bigShapeChance && Math.random() < modeConfig.bigShapeChance){
+      size *= 1.6;
+    }
+    const homingChance = modeConfig.homingChance ?? 0.35;
+    const kind = Math.random() < homingChance ? 'homing' : 'normal';
+    shapes.push(new Shape(x,y,size,kind,randomColor()));
   }
-  shapes.push(new Shape(x,y,size,kind,randomColor()));
 }
 
 function spawnPelletsFrom(shape){
@@ -1658,9 +1980,25 @@ function spawnPelletsFrom(shape){
   const dy = target.y - shape.y;
   const dist = Math.sqrt(dx*dx + dy*dy) || 1;
   const speed = modeConfig.pelletSpeed;
-  const vx = dx/dist*speed;
-  const vy = dy/dist*speed;
-  pellets.push(new Pellet(shape.x, shape.y, vx, vy, shape.color));
+  const baseAngle = Math.atan2(dy, dx);
+  const volley = Math.max(1, Math.round(modeConfig.pelletVolley || 1));
+  const spread = modeConfig.pelletSpread || 0;
+  const jitter = modeConfig.pelletRandom || 0;
+  for(let i=0;i<volley;i++){
+    const offset = volley === 1 ? 0 : (i - (volley-1)/2) * spread;
+    const angle = baseAngle + offset + (jitter ? (Math.random()-0.5)*jitter : 0);
+    const vx = Math.cos(angle) * speed;
+    const vy = Math.sin(angle) * speed;
+    pellets.push(new Pellet(shape.x, shape.y, vx, vy, shape.color));
+  }
+  if(modeConfig.pelletRing){
+    const ringCount = modeConfig.pelletRing.count || 8;
+    const ringSpeed = speed * (modeConfig.pelletRing.speedMult || 0.7);
+    for(let i=0;i<ringCount;i++){
+      const angle = (Math.PI*2*i)/ringCount;
+      pellets.push(new Pellet(shape.x, shape.y, Math.cos(angle)*ringSpeed, Math.sin(angle)*ringSpeed, shape.color));
+    }
+  }
 }
 
 /* circle trap spawner around player */
@@ -2096,6 +2434,7 @@ function applyDamage(base){
   resonancePulseTime = 0;
   if(resonanceText) resonanceText.textContent = 'Interrupted! Build it back up.';
   updateResonanceBar();
+  resetFocusChain();
   player.health -= dmg;
   if(player.health <= 0){
     player.health = 0;
@@ -2195,6 +2534,7 @@ function resetGame(){
   resonancePulseTime = 0;
   if(resonanceText) resonanceText.textContent = 'Survive and dash to build Echo energy.';
   updateResonanceBar();
+  resetFocusChain();
   elapsedMs = 0;
   lastFrameTime = null;
   updateTimerLabel();
@@ -2224,6 +2564,7 @@ function animate(){
   lastFrameTime = now;
   elapsedMs += dt;
   updateTimerLabel();
+  tickFocusChain();
 
   if(resonanceBurstTime > 0){
     resonanceBurstTime--;
@@ -2235,13 +2576,15 @@ function animate(){
       resonanceText.textContent = 'Survive and dash to build Echo energy.';
     }
   } else {
-    gainResonance(0.08);
+    const passiveBase = 0.08 + focusLevel * 0.01;
+    gainResonance(passiveBase);
   }
   if(resonancePulseTime > 0) resonancePulseTime--;
 
   const baseSpeedScale = getSpeedScale();
   const resonanceSlow = resonanceBurstTime > 0 ? 0.7 : 1;
-  const enemySpeedScale = player.freezeTime > 0 ? 0 : baseSpeedScale * resonanceSlow;
+  const focusSlow = Math.max(0.6, 1 - focusLevel*0.07);
+  const enemySpeedScale = player.freezeTime > 0 ? 0 : baseSpeedScale * resonanceSlow * focusSlow;
 
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
@@ -2273,26 +2616,19 @@ function animate(){
   spawnTimer--;
   if(spawnTimer <= 0){
     spawnShape();
-    if(Math.random() < modeConfig.pelletChance && shapes.length>0){
+    const pelletChance = modeConfig.pelletChance ?? 0.35;
+    if(Math.random() < pelletChance && shapes.length>0){
       const s = shapes[Math.floor(Math.random()*shapes.length)];
       spawnPelletsFrom(s);
     }
-    if(Math.random() < modeConfig.beamChance){
+    if(Math.random() < (modeConfig.beamChance || 0)){
       spinBeams.push(new SpinBeam());
     }
-    if(Math.random() < 0.06) spawnCircleTrap();
-    if(Math.random() < 0.05) spawnMultiNode();
-    if(Math.random() < 0.04) spawnDashBlocker();
-    if(Math.random() < 0.04) spawnBeamObject();
-    if(Math.random() < 0.05) spawnSawOrb();
-    if(Math.random() < 0.025) spawnLaserGrid();
-    if(Math.random() < 0.06) spawnMeteorShard();
-    if(Math.random() < 0.04) spawnPulseMine();
-    if(Math.random() < 0.035) spawnBladeRunner();
-    if(Math.random() < 0.05) spawnEmitterPod();
-    if(Math.random() < 0.05) spawnSeekerSwarm();
-    if(Math.random() < 0.03) spawnVortexEye();
-    spawnTimer = modeConfig.spawnInterval;
+    runHazardRolls();
+    if(typeof modeConfig.customCycle === 'function'){
+      modeConfig.customCycle();
+    }
+    spawnTimer = getNextSpawnInterval();
   }
 
   // circle traps
@@ -2857,13 +3193,23 @@ function animate(){
     ctx.arc(player.x, player.y, ring, 0, Math.PI*2);
     ctx.stroke();
   }
+  if(focusGlowTime > 0){
+    focusGlowTime--;
+    ctx.strokeStyle = `rgba(255,220,150,${focusGlowTime/40})`;
+    ctx.lineWidth = 4;
+    const halo = player.size*2.4 + (40 - focusGlowTime) * 4;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, halo, 0, Math.PI*2);
+    ctx.stroke();
+  }
 
+  const cooldownAccel = 1 + focusLevel*0.35;
   for(let i=0;i<activeAbilities.length;i++){
     const id = activeAbilities[i];
     const cdEl = document.getElementById('slot'+i+'CD');
     if(!id || !cdEl) continue;
     if(abilities[id] > 0){
-      abilities[id]--;
+      abilities[id] = Math.max(0, abilities[id] - cooldownAccel);
       const max = abilityMax[id] || 60;
       const percent = (abilities[id]/max)*100;
       cdEl.style.width = percent + '%';
