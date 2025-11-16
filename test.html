@@ -143,6 +143,27 @@
     color: var(--text-muted);
   }
 
+  #bestTimeCallout {
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    border: 1px dashed rgba(255,255,255,0.25);
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    background: rgba(10,12,28,0.5);
+  }
+
+  #bestTimeCallout strong {
+    color: #fff;
+    letter-spacing: 0.04em;
+  }
+
+  #bestTimeCallout span {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
   /* Info / Updates Panel / Loadout Panel */
   .panel {
     position: absolute;
@@ -183,6 +204,89 @@
   .closePanel:hover {
     color: #fff;
     transform: scale(1.08);
+  }
+
+  #gameOverPanel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(90%, 520px);
+    display: none;
+    text-align: center;
+    padding: 24px 24px 26px;
+    z-index: 2000;
+  }
+
+  #gameOverPanel h2 {
+    font-size: 22px;
+    letter-spacing: 0.25em;
+    margin-bottom: 10px;
+  }
+
+  .statGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 14px;
+    margin: 18px 0;
+  }
+
+  .statLabel {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .statValue {
+    font-size: 20px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  #summaryBadge {
+    font-size: 11px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    display: inline-block;
+    margin-bottom: 4px;
+    color: #9ff3ff;
+  }
+
+  #summaryBadge.muted {
+    opacity: 0.45;
+    color: var(--text-muted);
+    letter-spacing: 0.2em;
+  }
+
+  #summaryTip {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 6px 0 0;
+  }
+
+  .summaryButtons {
+    margin-top: 18px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .ghost-button {
+    border-radius: var(--radius-md);
+    padding: 10px 20px;
+    border: 1px solid rgba(255,255,255,0.35);
+    background: transparent;
+    color: var(--text-main);
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .ghost-button:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
   }
 
   /* Loadout grid */
@@ -427,6 +531,7 @@
       <button class="glass-button" id="infoBtn">Info</button>
       <button class="glass-button" id="updatesBtn">Updates</button>
     </div>
+    <div id="bestTimeCallout">No personal best yet – survive a run to log your first time.</div>
   </div>
 </div>
 
@@ -519,6 +624,31 @@
   </div>
 </div>
 
+<!-- Run Summary Panel -->
+<div id="gameOverPanel" class="panel glass-panel">
+  <h2>RUN SUMMARY</h2>
+  <div id="summaryBadge" class="muted">Personal Best</div>
+  <div class="statGrid">
+    <div>
+      <div class="statLabel">Mode</div>
+      <div class="statValue" id="summaryMode">---</div>
+    </div>
+    <div>
+      <div class="statLabel">Survived</div>
+      <div class="statValue" id="summaryTime">00:00.00</div>
+    </div>
+    <div>
+      <div class="statLabel">Best</div>
+      <div class="statValue" id="summaryBest">--:--.--</div>
+    </div>
+  </div>
+  <div id="summaryTip">Tip: Dash (B) can slip through hazards.</div>
+  <div class="summaryButtons">
+    <button class="glass-button" id="playAgainBtn">Queue New Run</button>
+    <button class="ghost-button" id="closeSummaryBtn">Back to Menu</button>
+  </div>
+</div>
+
 <!-- Dash button -->
 <button class="glass-button" id="dashButton">Dash (B)</button>
 
@@ -540,6 +670,15 @@ const loadoutGrid = document.getElementById('loadoutGrid');
 const loadoutStatus = document.getElementById('loadoutStatus');
 const confirmLoadoutBtn = document.getElementById('confirmLoadoutBtn');
 const dashButton = document.getElementById('dashButton');
+const bestTimeCallout = document.getElementById('bestTimeCallout');
+const gameOverPanel = document.getElementById('gameOverPanel');
+const summaryModeEl = document.getElementById('summaryMode');
+const summaryTimeEl = document.getElementById('summaryTime');
+const summaryBestEl = document.getElementById('summaryBest');
+const summaryBadge = document.getElementById('summaryBadge');
+const summaryTip = document.getElementById('summaryTip');
+const playAgainBtn = document.getElementById('playAgainBtn');
+const closeSummaryBtn = document.getElementById('closeSummaryBtn');
 
 infoBtn.addEventListener('click', () => {
   document.getElementById('infoPanel').style.display = 'block';
@@ -548,6 +687,64 @@ updatesBtn.addEventListener('click', () => {
   document.getElementById('updatesPanel').style.display = 'block';
 });
 function closePanel(id){ document.getElementById(id).style.display = 'none'; }
+
+const RUN_TIPS = [
+  'Dash (B) right as a beam fires to avoid damage.',
+  'Shockwave deletes bullets—combo it with Cleanse for breathing room.',
+  'Freeze Field makes homing shapes harmless for a moment.',
+  'Time Slow buys seconds to reposition before chaos hits.',
+  'Speed Boost + Dash lets you cross the map instantly.'
+];
+
+const bestTimes = (() => {
+  try {
+    return JSON.parse(localStorage.getItem('sb_bestTimes')) || {};
+  } catch (e) {
+    return {};
+  }
+})();
+
+function formatMs(ms){
+  if(ms === undefined || ms === null) return '--:--.--';
+  const total = Math.floor(ms);
+  const minutes = Math.floor(total / 60000);
+  const seconds = Math.floor((total % 60000) / 1000);
+  const centis  = Math.floor((total % 1000) / 10);
+  const mm = String(minutes).padStart(2,'0');
+  const ss = String(seconds).padStart(2,'0');
+  const cc = String(centis).padStart(2,'0');
+  return `${mm}:${ss}.${cc}`;
+}
+
+function recordBestTime(modeKey, timeMs){
+  if(!modeKey || !Number.isFinite(timeMs)){
+    return { best: null, updated: false };
+  }
+  const prev = bestTimes[modeKey] || 0;
+  const current = Math.floor(timeMs);
+  if(current > prev){
+    bestTimes[modeKey] = current;
+    try {
+      localStorage.setItem('sb_bestTimes', JSON.stringify(bestTimes));
+    } catch (e) {}
+    refreshBestCallout();
+    return { best: current, updated: true };
+  }
+  return { best: prev || null, updated: false };
+}
+
+function refreshBestCallout(){
+  if(!bestTimeCallout) return;
+  const entries = Object.entries(bestTimes);
+  if(entries.length === 0){
+    bestTimeCallout.textContent = 'No personal best yet – survive a run to log your first time.';
+    return;
+  }
+  entries.sort((a,b) => b[1]-a[1]);
+  const [bestMode, bestTime] = entries[0];
+  const modeName = MODES[bestMode]?.name || bestMode.toUpperCase();
+  bestTimeCallout.innerHTML = `Personal best: <strong>${formatMs(bestTime)}</strong> in <span>${modeName}</span>`;
+}
 
 const MODES = {
   chill: {
@@ -623,7 +820,10 @@ const MODES = {
 };
 
 let selectedMode = null;
+let currentModeKey = 'normal';
 let modeConfig = MODES.normal;
+
+refreshBestCallout();
 
 /* --------- Ability definitions & loadout --------- */
 const ALL_ABILITIES = {
@@ -697,6 +897,7 @@ document.querySelectorAll('.mode-card').forEach(card => {
   card.addEventListener('click', () => {
     const modeKey = card.getAttribute('data-mode');
     selectedMode = modeKey;
+    currentModeKey = modeKey;
     modeConfig = MODES[modeKey];
     modeLabel.textContent = 'MODE: ' + modeConfig.name;
 
@@ -718,6 +919,14 @@ confirmLoadoutBtn.addEventListener('click', () => {
   openingScreen.style.display = 'none';
   startGame();
 });
+
+function returnToMenu(){
+  resetGame();
+  openingScreen.style.display = 'flex';
+}
+
+playAgainBtn.addEventListener('click', returnToMenu);
+closeSummaryBtn.addEventListener('click', returnToMenu);
 
 /* configure bottom ability UI from activeAbilities */
 function configureAbilitySlots(){
@@ -1306,29 +1515,33 @@ function updateHealthBar(){
 
 /* --------- Timer --------- */
 function updateTimerLabel(){
-  const total = Math.floor(elapsedMs);
-  const minutes = Math.floor(total / 60000);
-  const seconds = Math.floor((total % 60000) / 1000);
-  const centis  = Math.floor((total % 1000) / 10);
-  const mm = String(minutes).padStart(2,'0');
-  const ss = String(seconds).padStart(2,'0');
-  const cc = String(centis).padStart(2,'0');
-  timerLabel.textContent = `${mm}:${ss}.${cc}`;
+  timerLabel.textContent = formatMs(elapsedMs);
 }
 
 /* --------- Game Over & Restart --------- */
+function hideGameOverPanel(){
+  if(gameOverPanel) gameOverPanel.style.display = 'none';
+}
+
+function showGameOverSummary(finalTime){
+  if(!gameOverPanel) return;
+  summaryModeEl.textContent = modeConfig.name;
+  summaryTimeEl.textContent = formatMs(finalTime);
+  const { best, updated } = recordBestTime(currentModeKey, finalTime);
+  summaryBestEl.textContent = formatMs(best);
+  summaryBadge.textContent = updated ? 'NEW PERSONAL BEST!' : 'Personal Best';
+  summaryBadge.classList.toggle('muted', !updated);
+  summaryTip.textContent = 'Tip: ' + RUN_TIPS[Math.floor(Math.random()*RUN_TIPS.length)];
+  gameOverPanel.style.display = 'block';
+}
+
 function gameOver(){
   running = false;
   cancelAnimationFrame(animationId);
-  setTimeout(() => {
-    alert('Game Over! Time: ' + timerLabel.textContent + '  – Click Restart to play again.');
-  }, 50);
+  showGameOverSummary(elapsedMs);
 }
 
-document.getElementById('restartBtn').addEventListener('click', () => {
-  resetGame();
-  openingScreen.style.display = 'flex';
-});
+document.getElementById('restartBtn').addEventListener('click', returnToMenu);
 
 function resetGame(){
   shapes = [];
@@ -1361,6 +1574,9 @@ function resetGame(){
   lastFrameTime = null;
   updateTimerLabel();
   updateHealthBar();
+  hideGameOverPanel();
+  summaryBadge.classList.add('muted');
+  summaryBadge.textContent = 'Personal Best';
   for(let k in abilities) abilities[k] = 0;
   for(let i=0;i<4;i++){
     const el = document.getElementById('slot'+i+'CD');
