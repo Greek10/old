@@ -2,799 +2,677 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>party.web — 3D Prototype (Jumpscare)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+  <title>party.exe — lobby breach</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      height: 100%;
-      background: radial-gradient(circle at top, #1a1a2e, #050509, #000);
-      font-family: system-ui, sans-serif;
-      color: #fff;
+    :root {
+      color-scheme: dark;
+      --bg: #030207;
+      --accent: #ff6be6;
+      --accent-2: #6ad5ff;
+      --warn: #ffd86b;
+      --danger: #ff4b5c;
+      --text: #f6f3ff;
+      --muted: #b6acc7;
     }
 
-    canvas { display: block; }
+    * {
+      box-sizing: border-box;
+    }
 
-    /* Start overlay */
-    #startOverlay {
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Space Grotesk", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 25% 20%, rgba(255, 107, 230, 0.2), transparent 45%),
+                  radial-gradient(circle at 70% 10%, rgba(106, 213, 255, 0.25), transparent 50%),
+                  linear-gradient(160deg, #010104, #0a0418 70%, #020205);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    canvas {
       position: fixed;
       inset: 0;
-      z-index: 10;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      background: transparent;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    .overlay.scanlines::before,
+    .overlay.scanlines::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0.12;
+    }
+
+    .overlay.scanlines::before {
+      background-image: linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px);
+      background-size: 100% 3px;
+    }
+
+    .overlay.scanlines::after {
+      background-image: linear-gradient(120deg, rgba(255,107,230,0.07) 0%, transparent 55%);
+    }
+
+    .noise-layer {
+      position: fixed;
+      inset: 0;
+      mix-blend-mode: lighten;
+      pointer-events: none;
+      opacity: 0.1;
+    }
+
+    .ui {
+      position: fixed;
+      inset: 0;
       display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: clamp(1rem, 3vw, 2.5rem);
+      z-index: 5;
+    }
+
+    .ui header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
       align-items: center;
-      justify-content: center;
-      background: rgba(0,0,0,0.6);
-      backdrop-filter: blur(8px);
+      justify-content: space-between;
     }
 
-    .card {
-      background: rgba(0,0,0,0.55);
-      padding: 24px;
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,0.12);
-      width: 360px;
-      text-align: center;
-      box-shadow: 0 0 30px rgba(0,0,0,0.8);
+    .logo {
+      text-transform: uppercase;
+      letter-spacing: 0.3rem;
+      font-weight: 700;
     }
 
-    .btn {
-      margin-top: 14px;
-      padding: 10px 22px;
+    .status {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      border: 1px solid rgba(255,255,255,0.25);
       border-radius: 999px;
+      padding: 0.45rem 1.2rem;
+      font-size: 0.85rem;
+      letter-spacing: 0.1rem;
+      text-transform: uppercase;
+      display: inline-flex;
+      gap: 0.4rem;
+      align-items: center;
+    }
+
+    .bottom-row {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .instructions {
+      max-width: 540px;
+      line-height: 1.5;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .start-btn {
+      width: fit-content;
       border: none;
-      background: #ff5c9a;
-      color: #fff;
+      border-radius: 999px;
+      padding: 0.85rem 1.8rem;
+      font-size: 0.95rem;
       font-weight: 600;
       cursor: pointer;
-      font-size: 15px;
+      background: linear-gradient(120deg, var(--accent), var(--accent-2));
+      color: #05010a;
+      box-shadow: 0 15px 35px rgba(255, 107, 230, 0.35);
+      transition: transform 0.15s ease;
     }
 
-    .btn:hover { filter: brightness(1.1); }
-
-    /* Crosshair */
-    #crosshair {
-      position: fixed;
-      left: 50%;
-      top: 50%;
-      width: 12px;
-      height: 12px;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-      opacity: 0.7;
-      z-index: 2;
+    .start-btn:active {
+      transform: scale(0.96);
     }
 
-    #crosshair::before,
-    #crosshair::after {
-      content: "";
-      position: absolute;
-      background: rgba(255,255,255,0.8);
+    .message,
+    .fear-meter {
+      font-size: 0.95rem;
+      letter-spacing: 0.05rem;
     }
 
-    #crosshair::before {
-      left: 50%; top: 0;
-      width: 2px; height: 12px;
-      transform: translateX(-50%);
+    .message {
+      color: var(--warn);
     }
 
-    #crosshair::after {
-      top: 50%; left: 0;
-      width: 12px; height: 2px;
-      transform: translateY(-50%);
+    .fear-meter span {
+      display: inline-block;
+      min-width: 6ch;
+      color: var(--danger);
     }
 
-    /* Hint text */
-    #hintOverlayText {
-      position: fixed;
-      left: 50%;
-      bottom: 28px;
-      transform: translateX(-50%);
-      padding: 6px 12px;
-      background: rgba(0,0,0,0.6);
-      border-radius: 8px;
-      font-size: 0.75rem;
-      z-index: 2;
-    }
-
-    /* Ending overlay */
-    #endingOverlayInner {
+    .jumpscare {
       position: fixed;
       inset: 0;
+      background: radial-gradient(circle, rgba(255,0,32,0.85), rgba(0,0,0,0.98));
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(0,0,0,0.8);
+      font-size: clamp(2rem, 8vw, 5rem);
+      text-transform: uppercase;
+      letter-spacing: 0.4rem;
+      font-weight: 700;
+      color: #fff;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.25s ease;
+      transition: opacity 0.15s ease;
+      z-index: 10;
+      text-shadow: 0 0 30px rgba(255,255,255,0.9);
+    }
+
+    .jumpscare.active {
+      opacity: 1;
+    }
+
+    .win-screen {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 2, 7, 0.95);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
       z-index: 9;
+      text-align: center;
+      padding: 2rem;
     }
 
-    #endingOverlayInner.visible {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    /* Jumpscare overlay */
-    #jumpscareOverlay {
-      position: fixed;
-      inset: 0;
+    .win-screen.active {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      background: radial-gradient(circle at center, #ffffff 0, #fce4ff 35%, #190010 70%, #000 100%);
-      opacity: 0;
-      pointer-events: none;
-      transform: scale(1);
-      transition: opacity 0.08s ease, transform 0.08s ease;
-      z-index: 9999;
     }
 
-    #jumpscareOverlay.active {
-      opacity: 1;
-      transform: scale(1.12);
+    .win-screen h2 {
+      font-size: clamp(2rem, 6vw, 3.5rem);
+      margin-bottom: 1rem;
+      color: var(--accent-2);
     }
 
-    #jumpscareFace {
-      width: 60vmin;
-      height: 60vmin;
-      border-radius: 50%;
-      background: radial-gradient(circle at center, #ffffff 0, #f5f5f5 40%, #e0d0ff 65%, #000 100%);
-      position: relative;
-      box-shadow: 0 0 60px rgba(255,255,255,0.9);
-      overflow: hidden;
-    }
-
-    #jumpscareFace::before {
-      /* eyes */
-      content: "";
-      position: absolute;
-      left: 50%;
-      top: 30%;
-      width: 52%;
-      height: 24%;
-      transform: translateX(-50%);
-      background:
-        radial-gradient(circle at 25% 50%, #000 0, #000 30%, transparent 32%),
-        radial-gradient(circle at 75% 50%, #000 0, #000 30%, transparent 32%);
-    }
-
-    #jumpscareFace::after {
-      /* mouth */
-      content: "";
-      position: absolute;
-      left: 50%;
-      top: 62%;
-      width: 60%;
-      height: 35%;
-      transform: translateX(-50%);
-      border-bottom: 14px solid #000;
-      border-radius: 50%;
+    .win-screen p {
+      max-width: 420px;
+      color: var(--muted);
+      line-height: 1.5;
     }
   </style>
 </head>
 <body>
-
-  <!-- Start Screen -->
-  <div id="startOverlay">
-    <div class="card">
-      <h1><span style="color:#ff5c9a">party</span>.web</h1>
-      <p>Walk to the house… or leave.</p>
-      <p><strong>Controls:</strong> Left-drag to look, WASD to move, Shift to sprint, R to restart.</p>
-      <button id="startButton" class="btn">Enter Party</button>
+  <canvas id="scene"></canvas>
+  <canvas id="noise" class="noise-layer"></canvas>
+  <div class="overlay scanlines"></div>
+  <div class="ui">
+    <header>
+      <div class="logo">party.exe // lobby breach</div>
+      <div class="status">
+        <div class="pill">keys <span id="keyCount">0 / 3</span></div>
+        <div class="pill">distance <span id="distance">???</span></div>
+        <div class="pill">state <span id="state">idle</span></div>
+      </div>
+    </header>
+    <div class="bottom-row">
+      <div class="instructions">
+        Navigate the liminal ballroom and collect <strong>3 invitation bands</strong>. Once secured, reach the exit door to force a shutdown.
+        The partygoer hunts by scent—keep moving, sprint with <kbd>Shift</kbd>, and avoid the spotlight. <em>Headphones recommended.</em>
+      </div>
+      <button class="start-btn" id="start">Initiate lobby</button>
+      <div class="message" id="message">Awaiting operator input…</div>
+      <div class="fear-meter">fear-level <span id="fear">000%</span></div>
     </div>
   </div>
-
-  <!-- Crosshair -->
-  <div id="crosshair"></div>
-
-  <!-- Hint -->
-  <div id="hintOverlayText">Left-drag to look around. Find the house.</div>
-
-  <!-- Ending Screen -->
-  <div id="endingOverlayInner">
-    <div class="card">
-      <h2 id="endingCardTitle"></h2>
-      <p id="endingCardSubtitle"></p>
-      <p id="endingDetails"></p>
-      <p style="color:#ff5c9a; margin-top:10px;">Press R to restart</p>
-    </div>
+  <div class="jumpscare" id="jumpscare">run!</div>
+  <div class="win-screen" id="winScreen">
+    <h2>Extraction complete</h2>
+    <p>You severed the music feed, slipped past the host, and escaped the neon labyrinth. Reload the lobby to dive back into the nightmare.</p>
   </div>
+  <audio id="ambient" src="Blaze.mp3" preload="auto" loop></audio>
+  <script>
+    const canvas = document.getElementById('scene');
+    const ctx = canvas.getContext('2d');
+    const noiseCanvas = document.getElementById('noise');
+    const noiseCtx = noiseCanvas.getContext('2d');
+    const startBtn = document.getElementById('start');
+    const messageEl = document.getElementById('message');
+    const keyCountEl = document.getElementById('keyCount');
+    const stateEl = document.getElementById('state');
+    const distanceEl = document.getElementById('distance');
+    const fearEl = document.getElementById('fear');
+    const jumpscareEl = document.getElementById('jumpscare');
+    const winScreen = document.getElementById('winScreen');
+    const ambient = document.getElementById('ambient');
 
-  <!-- Jumpscare Screen -->
-  <div id="jumpscareOverlay">
-    <div id="jumpscareFace"></div>
-  </div>
+    const world = { width: 1900, height: 1200 };
+    let lastTime = 0;
+    let running = false;
+    let gameOver = false;
 
-  <!-- 3D Scene -->
-  <script type="module">
-    import * as THREE from "https://unpkg.com/three@0.161.0/build/three.module.js";
+    const player = {
+      x: 240,
+      y: world.height - 260,
+      radius: 16,
+      speed: 220,
+      stamina: 1,
+      fear: 0
+    };
 
-    let scene, camera, renderer;
-    let player;          // container for camera position + yaw
-    let pitch = 0;       // camera pitch
-    let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, sprint = false;
-    let ended = false;
+    const enemy = {
+      x: world.width - 280,
+      y: 220,
+      radius: 22,
+      speed: 140,
+      chaseSpeed: 200,
+      state: 'idle',
+      jitter: 0
+    };
 
-    const velocity = new THREE.Vector3();
-    const direction = new THREE.Vector3();
-    const clock = new THREE.Clock();
-    const startPos = new THREE.Vector3(0, 0, 18);
+    const exit = { x: world.width - 160, y: 120, radius: 40 };
+    const totalKeys = 3;
+    const keys = [];
+    const balloons = [];
+    const trails = [];
 
-    let tixMesh;
-    const triggers = [];
+    const pressed = new Set();
 
-    // stalking / jumpscare
-    let stalker;
-    let stalkActive = false;
-    let stalkStarted = false;
-    let stalkJumpscareDone = false;
-
-    // mouse look
-    let mouseDown = false;
-    let lastMouseX = 0, lastMouseY = 0;
-    const lookSensitivity = 0.003;
-
-    // audio
-    let audioCtx = null;
-
-    const endingOverlayInner = document.getElementById("endingOverlayInner");
-    const endingTitle = document.getElementById("endingCardTitle");
-    const endingSubtitle = document.getElementById("endingCardSubtitle");
-    const endingDetails = document.getElementById("endingDetails");
-    const hintText = document.getElementById("hintOverlayText");
-    const startOverlay = document.getElementById("startOverlay");
-    const jumpscareOverlay = document.getElementById("jumpscareOverlay");
-
-    init();
-    animate();
-
-    function init() {
-      // Scene & camera
-      scene = new THREE.Scene();
-      scene.fog = new THREE.FogExp2(0x050509, 0.045);
-
-      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-
-      // Player object
-      player = new THREE.Object3D();
-      player.position.copy(startPos);
-      scene.add(player);
-
-      camera.position.set(0, 1.7, 0);
-      player.add(camera);
-
-      renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(window.devicePixelRatio);
-      document.body.appendChild(renderer.domElement);
-
-      // Lights
-      scene.add(new THREE.AmbientLight(0x8888aa, 0.9));
-      const moon = new THREE.DirectionalLight(0x99bbff, 0.8);
-      moon.position.set(20, 40, 10);
-      scene.add(moon);
-
-      // World
-      createGround();
-      createHouse();
-      createTrees();
-      createSubject();
-      createStalker();
-      createCar();
-      createTix();
-      setupTriggers();
-
-      // Start
-      document.getElementById("startButton").addEventListener("click", () => {
-        startOverlay.style.display = "none";
-        hintText.textContent = "Left-drag to look, WASD to move. Enter the house… if you dare.";
-      });
-
-      // Keyboard
-      document.addEventListener("keydown", onKeyDown);
-      document.addEventListener("keyup", onKeyUp);
-
-      // Mouse
-      renderer.domElement.addEventListener("mousedown", onMouseDown);
-      renderer.domElement.addEventListener("mouseup", onMouseUp);
-      renderer.domElement.addEventListener("mouseleave", onMouseUp);
-      renderer.domElement.addEventListener("mousemove", onMouseMove);
-
-      // Resize
-      window.addEventListener("resize", onResize);
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      noiseCanvas.width = window.innerWidth;
+      noiseCanvas.height = window.innerHeight;
     }
 
-    /* WORLD CREATION */
+    window.addEventListener('resize', resize);
+    resize();
 
-    function createGround() {
-      const ground = new THREE.Mesh(
-        new THREE.PlaneGeometry(80, 80),
-        new THREE.MeshStandardMaterial({ color: 0x0b0f16, roughness: 1 })
-      );
-      ground.rotation.x = -Math.PI / 2;
-      scene.add(ground);
-
-      const path = new THREE.Mesh(
-        new THREE.PlaneGeometry(4, 20),
-        new THREE.MeshStandardMaterial({ color: 0x1c1f2b, roughness: 0.8 })
-      );
-      path.rotation.x = -Math.PI / 2;
-      path.position.set(0, 0.01, 4);
-      scene.add(path);
+    function rand(min, max) {
+      return Math.random() * (max - min) + min;
     }
 
-    function createHouse() {
-      const body = new THREE.Mesh(
-        new THREE.BoxGeometry(16, 8, 16),
-        new THREE.MeshStandardMaterial({ color: 0x141421, roughness: 0.8 })
-      );
-      body.position.set(0, 4, -10);
-      scene.add(body);
-
-      const roof = new THREE.Mesh(
-        new THREE.ConeGeometry(10, 4, 4),
-        new THREE.MeshStandardMaterial({ color: 0x1f1b3a, roughness: 0.9 })
-      );
-      roof.position.set(0, 9, -10);
-      roof.rotation.y = Math.PI / 4;
-      scene.add(roof);
-
-      const door = new THREE.Mesh(
-        new THREE.PlaneGeometry(3, 4),
-        new THREE.MeshBasicMaterial({ color: 0xff5c9a, transparent: true, opacity: 0.5 })
-      );
-      door.position.set(0, 2, -2);
-      scene.add(door);
-
-      const partyLight = new THREE.PointLight(0xff99cc, 2, 20);
-      partyLight.position.set(0, 4, -12);
-      scene.add(partyLight);
+    function initWorld() {
+      keys.length = 0;
+      balloons.length = 0;
+      trails.length = 0;
+      for (let i = 0; i < totalKeys; i++) {
+        keys.push({
+          x: rand(200, world.width - 200),
+          y: rand(200, world.height - 200),
+          collected: false,
+          pulse: rand(0, Math.PI * 2)
+        });
+      }
+      for (let i = 0; i < 14; i++) {
+        balloons.push({
+          x: rand(120, world.width - 120),
+          y: rand(120, world.height - 120),
+          hue: rand(280, 340),
+          float: rand(0, Math.PI * 2)
+        });
+      }
     }
 
-    function createTrees() {
-      const trunkMat = new THREE.MeshStandardMaterial({ color: 0x382626 });
-      const leafMat = new THREE.MeshStandardMaterial({ color: 0x13281c });
-
-      const positions = [
-        [-10, -4],
-        [-14, -8],
-        [10, -3],
-        [14, -7],
-        [-16, 2],
-        [16, 4]
-      ];
-
-      positions.forEach(([x, z]) => {
-        const trunk = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.4, 0.7, 4),
-          trunkMat
-        );
-        trunk.position.set(x, 2, z);
-        scene.add(trunk);
-
-        const leaves = new THREE.Mesh(
-          new THREE.SphereGeometry(2.2),
-          leafMat
-        );
-        leaves.position.set(x, 5, z);
-        scene.add(leaves);
-      });
+    function startGame() {
+      running = true;
+      gameOver = false;
+      player.x = 240;
+      player.y = world.height - 260;
+      player.fear = 0;
+      player.stamina = 1;
+      enemy.x = world.width - 280;
+      enemy.y = 220;
+      enemy.state = 'idle';
+      keysCollected = 0;
+      initWorld();
+      winScreen.classList.remove('active');
+      messageEl.textContent = 'Collect the bands and avoid the host.';
+      stateEl.textContent = 'tracking';
+      ambient.volume = 0.5;
+      ambient.play().catch(() => {});
+      if (!audioStarted) {
+        setupAudio();
+      }
     }
 
-    function createSubject() {
-      // Static watcher outside
-      const subject = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.8, 1.8, 8, 16),
-        new THREE.MeshStandardMaterial({
-          color: 0xffffff,
-          emissive: 0xffffff,
-          emissiveIntensity: 0.08
-        })
-      );
-      subject.position.set(-4, 2.3, 8);
-      subject.userData.subject = true;
-      scene.add(subject);
-    }
+    startBtn.addEventListener('click', () => {
+      if (!running) {
+        startGame();
+      }
+    });
 
-    function createStalker() {
-      // Stalker used for behind-you jumpscare
-      stalker = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.9, 2.2, 8, 16),
-        new THREE.MeshStandardMaterial({
-          color: 0xfdfdfd,
-          emissive: 0xffffff,
-          emissiveIntensity: 0.2
-        })
-      );
-      stalker.visible = false;
-      scene.add(stalker);
-    }
+    const keysDown = new Set();
+    window.addEventListener('keydown', (e) => {
+      keysDown.add(e.key.toLowerCase());
+      if (e.key === ' ' && !running) {
+        startGame();
+      }
+    });
+    window.addEventListener('keyup', (e) => keysDown.delete(e.key.toLowerCase()));
 
-    function createCar() {
-      const body = new THREE.Mesh(
-        new THREE.BoxGeometry(4, 1, 2),
-        new THREE.MeshStandardMaterial({ color: 0x30353f, roughness: 0.8 })
-      );
-      body.position.set(0, 0.6, 24);
-      scene.add(body);
-    }
+    let keysCollected = 0;
 
-    function createTix() {
-      tixMesh = new THREE.Mesh(
-        new THREE.BoxGeometry(0.8, 0.2, 0.5),
-        new THREE.MeshStandardMaterial({
-          color: 0xffd15c,
-          emissive: 0xffd15c,
-          emissiveIntensity: 0.6
-        })
-      );
-      tixMesh.position.set(6, 0.3, 10);
-      scene.add(tixMesh);
-    }
+    function update(dt) {
+      if (!running || gameOver) return;
+      const move = { x: 0, y: 0 };
+      if (keysDown.has('w') || keysDown.has('arrowup')) move.y -= 1;
+      if (keysDown.has('s') || keysDown.has('arrowdown')) move.y += 1;
+      if (keysDown.has('a') || keysDown.has('arrowleft')) move.x -= 1;
+      if (keysDown.has('d') || keysDown.has('arrowright')) move.x += 1;
 
-    /* TRIGGERS / ENDINGS */
+      let magnitude = Math.hypot(move.x, move.y) || 1;
+      move.x /= magnitude;
+      move.y /= magnitude;
 
-    function setupTriggers() {
-      // Enter house → start stalk sequence
-      triggers.push({
-        name: "house_stalk_start",
-        type: "volume",
-        min: new THREE.Vector3(-7, 0, -6),
-        max: new THREE.Vector3(7, 5, -20),
-        done: false
-      });
+      const sprinting = keysDown.has('shift') && player.stamina > 0.15;
+      const speed = sprinting ? player.speed * 1.4 : player.speed;
 
-      // Car ending
-      triggers.push({
-        name: "car",
-        type: "volume",
-        min: new THREE.Vector3(-2, 0, 22),
-        max: new THREE.Vector3(2, 3, 27),
-        done: false
-      });
+      player.x += move.x * speed * dt;
+      player.y += move.y * speed * dt;
+      player.x = Math.max(player.radius, Math.min(world.width - player.radius, player.x));
+      player.y = Math.max(player.radius, Math.min(world.height - player.radius, player.y));
 
-      // Tix ending
-      triggers.push({
-        name: "tix",
-        type: "tix",
-        radius: 1.4,
-        done: false
-      });
-    }
-
-    function triggerEnding(id) {
-      let title = "", sub = "", det = "";
-
-      if (id === "car") {
-        ended = true;
-        title = "Refusal";
-        sub = "You chose to go home.";
-        det = "In the distance, the house is still there. Watching.";
-      } else if (id === "tix") {
-        ended = true;
-        title = "Tix Ending";
-        sub = "You touched the forbidden ticket.";
-        det = "Nostalgia has a price. You just paid it.";
-      } else if (id === "house_jumpscare") {
-        title = "It Was Behind You";
-        sub = "You finally turned around.";
-        det = "For a second, you saw its face clearly. That was enough.";
+      if (sprinting && (move.x || move.y)) {
+        player.stamina = Math.max(0, player.stamina - dt * 0.5);
+      } else {
+        player.stamina = Math.min(1, player.stamina + dt * 0.25);
       }
 
-      endingTitle.textContent = title + " Ending";
-      endingSubtitle.textContent = sub;
-      endingDetails.textContent = det;
-      endingOverlayInner.classList.add("visible");
+      // enemy logic
+      const toPlayerX = player.x - enemy.x;
+      const toPlayerY = player.y - enemy.y;
+      const dist = Math.hypot(toPlayerX, toPlayerY);
+      const normalizedX = toPlayerX / (dist || 1);
+      const normalizedY = toPlayerY / (dist || 1);
+      const detected = dist < 420;
+      const enemySpeed = detected ? enemy.chaseSpeed : enemy.speed;
+      enemy.state = detected ? 'hunt' : 'patrol';
+      enemy.x += normalizedX * enemySpeed * dt;
+      enemy.y += normalizedY * enemySpeed * dt;
+
+      distanceEl.textContent = dist.toFixed(0) + 'u';
+      stateEl.textContent = enemy.state;
+
+      // fear meter
+      const fearDelta = detected ? (1 - Math.min(dist / 420, 1)) * 55 * dt : -15 * dt;
+      player.fear = Math.min(100, Math.max(0, player.fear + fearDelta));
+      fearEl.textContent = player.fear.toFixed(0).padStart(3, '0') + '%';
+
+      // trails for motion blur
+      trails.push({ x: player.x, y: player.y, life: 1 });
+      while (trails.length > 25) trails.shift();
+      trails.forEach((t) => (t.life -= dt * 0.6));
+
+      // collect keys
+      keys.forEach((key) => {
+        if (key.collected) return;
+        const d = Math.hypot(player.x - key.x, player.y - key.y);
+        if (d < player.radius + 24) {
+          key.collected = true;
+          keysCollected += 1;
+          messageEl.textContent = `Band secured (${keysCollected}/${totalKeys})`;
+        }
+      });
+      keyCountEl.textContent = `${keysCollected} / ${totalKeys}`;
+
+      // check exit
+      const exitDist = Math.hypot(player.x - exit.x, player.y - exit.y);
+      if (exitDist < exit.radius && keysCollected === totalKeys) {
+        running = false;
+        winScreen.classList.add('active');
+        messageEl.textContent = 'Lobby silenced. Breathe.';
+      }
+
+      // enemy collision
+      if (dist < player.radius + enemy.radius) {
+        triggerJumpscare();
+      }
+
+      balloons.forEach((balloon) => {
+        balloon.float += dt * 0.6;
+      });
     }
 
-    function startStalkSequence() {
-      if (stalkStarted) return;
-      stalkStarted = true;
-      stalkActive = true;
-      stalkJumpscareDone = false;
-      stalker.visible = true;
+    function drawBackground(cameraX, cameraY) {
+      ctx.save();
+      ctx.translate(cameraX, cameraY);
+      const gradient = ctx.createLinearGradient(0, 0, world.width, world.height);
+      gradient.addColorStop(0, '#050109');
+      gradient.addColorStop(1, '#14011f');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, world.width, world.height);
 
-      hintText.textContent = "Something feels wrong. You’re not alone in here.";
+      ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < world.width; x += 80) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, world.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < world.height; y += 80) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(world.width, y);
+        ctx.stroke();
+      }
 
-      // place stalker behind player
-      const yaw = player.rotation.y;
-      const distance = 5;
-      const offsetX = Math.sin(yaw) * distance;
-      const offsetZ = Math.cos(yaw) * distance; // behind relative to facing
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      for (let i = 0; i < world.width; i += 260) {
+        ctx.fillRect(i + 40, 0, 30, world.height);
+      }
 
-      stalker.position.set(
-        player.position.x + offsetX,
-        1.5,
-        player.position.z + offsetZ
-      );
+      ctx.strokeStyle = 'rgba(255, 122, 224, 0.4)';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(80, 80, world.width - 160, world.height - 160);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      ctx.fillRect(exit.x - 50, exit.y - 50, 100, 100);
+      ctx.restore();
+    }
+
+    function drawPlayer(cameraX, cameraY) {
+      ctx.save();
+      ctx.translate(cameraX, cameraY);
+      trails.forEach((trail) => {
+        ctx.globalAlpha = Math.max(0, trail.life);
+        ctx.fillStyle = 'rgba(255,107,230,0.35)';
+        ctx.beginPath();
+        ctx.arc(trail.x, trail.y, player.radius * (1 + (1 - trail.life) * 0.5), 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+      ctx.shadowColor = 'rgba(255,107,230,0.8)';
+      ctx.shadowBlur = 25;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+
+    function drawEnemy(cameraX, cameraY) {
+      ctx.save();
+      ctx.translate(cameraX, cameraY);
+      ctx.shadowColor = 'rgba(255,75,92,0.7)';
+      ctx.shadowBlur = 35;
+      ctx.fillStyle = '#ff4b5c';
+      ctx.beginPath();
+      ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.font = '600 14px "Space Grotesk"';
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.fillText('host', enemy.x - 18, enemy.y - enemy.radius - 12);
+      ctx.restore();
+    }
+
+    function drawExit(cameraX, cameraY) {
+      ctx.save();
+      ctx.translate(cameraX, cameraY);
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(exit.x - 40, exit.y - 60, 80, 120);
+      ctx.fillStyle = keysCollected === totalKeys ? 'rgba(106,213,255,0.25)' : 'rgba(255,255,255,0.05)';
+      ctx.fillRect(exit.x - 40, exit.y - 60, 80, 120);
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fillText('exit', exit.x - 17, exit.y + 4);
+      ctx.restore();
+    }
+
+    function drawKeys(cameraX, cameraY) {
+      ctx.save();
+      ctx.translate(cameraX, cameraY);
+      keys.forEach((key) => {
+        if (key.collected) return;
+        key.pulse += 0.08;
+        const size = 18 + Math.sin(key.pulse) * 4;
+        ctx.fillStyle = '#ffe179';
+        ctx.shadowColor = '#ffe179';
+        ctx.shadowBlur = 20;
+        ctx.beginPath();
+        ctx.roundRect(key.x - size / 2, key.y - size / 3, size, size / 1.5, 4);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.strokeRect(key.x - size / 2, key.y - size / 3, size, size / 1.5);
+      });
+      ctx.restore();
+    }
+
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+      CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+        const radius = typeof r === 'number' ? r : 4;
+        this.beginPath();
+        this.moveTo(x + radius, y);
+        this.lineTo(x + w - radius, y);
+        this.quadraticCurveTo(x + w, y, x + w, y + radius);
+        this.lineTo(x + w, y + h - radius);
+        this.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+        this.lineTo(x + radius, y + h);
+        this.quadraticCurveTo(x, y + h, x, y + h - radius);
+        this.lineTo(x, y + radius);
+        this.quadraticCurveTo(x, y, x + radius, y);
+        this.closePath();
+        return this;
+      };
+    }
+
+    function drawBalloons(cameraX, cameraY) {
+      ctx.save();
+      ctx.translate(cameraX, cameraY);
+      balloons.forEach((balloon) => {
+        const offset = Math.sin(balloon.float) * 6;
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.beginPath();
+        ctx.moveTo(balloon.x, balloon.y);
+        ctx.lineTo(balloon.x, balloon.y + 40);
+        ctx.stroke();
+        ctx.fillStyle = `hsl(${balloon.hue}, 70%, 60%)`;
+        ctx.globalAlpha = 0.7;
+        ctx.beginPath();
+        ctx.ellipse(balloon.x + offset, balloon.y, 18, 26, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+      ctx.restore();
+    }
+
+    function render(time = 0) {
+      const dt = (time - lastTime) / 1000;
+      lastTime = time;
+      update(dt);
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const cameraX = canvas.width / 2 - player.x;
+      const cameraY = canvas.height / 2 - player.y;
+
+      drawBackground(cameraX, cameraY);
+      drawBalloons(cameraX, cameraY);
+      drawKeys(cameraX, cameraY);
+      drawExit(cameraX, cameraY);
+      drawEnemy(cameraX, cameraY);
+      drawPlayer(cameraX, cameraY);
+
+      requestAnimationFrame(render);
+    }
+
+    function updateNoise() {
+      const imageData = noiseCtx.createImageData(noiseCanvas.width, noiseCanvas.height);
+      for (let i = 0; i < imageData.data.length; i += 4) {
+        const value = Math.random() * 255;
+        imageData.data[i] = value;
+        imageData.data[i + 1] = value;
+        imageData.data[i + 2] = value;
+        imageData.data[i + 3] = Math.random() * 35;
+      }
+      noiseCtx.putImageData(imageData, 0, 0);
+      requestAnimationFrame(updateNoise);
     }
 
     function triggerJumpscare() {
-      if (stalkJumpscareDone) return;
-      stalkJumpscareDone = true;
-      stalkActive = false;
-      ended = true;
-
-      // hide stalker in the world
-      stalker.visible = false;
-
-      // Screen jumpscare overlay
-      jumpscareOverlay.classList.add("active");
-      hintText.textContent = "";
-
-      // Play harsh synthetic scream
+      if (gameOver) return;
+      gameOver = true;
+      running = false;
+      jumpscareEl.classList.add('active');
+      messageEl.textContent = 'connection lost — host found you';
       playJumpscareSound();
-
-      // Camera / screen shake
-      shakeScreen(500);
-
-      // After short delay, go to ending screen
       setTimeout(() => {
-        jumpscareOverlay.classList.remove("active");
-        triggerEnding("house_jumpscare");
-      }, 700);
+        jumpscareEl.classList.remove('active');
+      }, 1800);
+    }
+
+    let audioCtx;
+    let audioStarted = false;
+
+    function setupAudio() {
+      if (audioStarted) return;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      audioStarted = true;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.value = 42;
+      gain.gain.value = 0.05;
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start();
     }
 
     function playJumpscareSound() {
       if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        setupAudio();
       }
-      const now = audioCtx.currentTime;
-
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
-
-      osc.type = "square";
-      osc.frequency.setValueAtTime(650, now);
-      osc.frequency.linearRampToValueAtTime(300, now + 0.5);
-
-      gain.gain.setValueAtTime(1.0, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-
-      osc.start(now);
-      osc.stop(now + 0.6);
+      osc.type = 'square';
+      osc.frequency.value = 460;
+      gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 1.2);
     }
 
-    function shakeScreen(durationMs) {
-      const canvas = renderer.domElement;
-      let start = null;
-      const original = canvas.style.transform || "";
-
-      function step(timestamp) {
-        if (!start) start = timestamp;
-        const elapsed = timestamp - start;
-        const progress = Math.min(elapsed / durationMs, 1);
-        const intensity = (1 - progress) * 8;
-
-        const x = (Math.random() - 0.5) * intensity;
-        const y = (Math.random() - 0.5) * intensity;
-        canvas.style.transform = `translate(${x}px, ${y}px)`;
-
-        if (elapsed < durationMs) {
-          requestAnimationFrame(step);
-        } else {
-          canvas.style.transform = original;
-        }
-      }
-
-      requestAnimationFrame(step);
-    }
-
-    function resetGame() {
-      ended = false;
-      stalkActive = false;
-      stalkStarted = false;
-      stalkJumpscareDone = false;
-      stalker.visible = false;
-
-      // reset triggers
-      for (const t of triggers) {
-        t.done = false;
-      }
-
-      endingOverlayInner.classList.remove("visible");
-      jumpscareOverlay.classList.remove("active");
-
-      player.position.copy(startPos);
-      player.rotation.set(0, 0, 0);
-      pitch = 0;
-      camera.rotation.set(0, 0, 0);
-
-      hintText.textContent = "Left-drag to look around. Find the house.";
-    }
-
-    /* INPUT */
-
-    function onKeyDown(e) {
-      if (ended && e.code === "KeyR") {
-        resetGame();
-        return;
-      }
-
-      switch (e.code) {
-        case "KeyW": moveForward = true; break;
-        case "KeyA": moveLeft = true; break;
-        case "KeyS": moveBackward = true; break;
-        case "KeyD": moveRight = true; break;
-        case "ShiftLeft":
-        case "ShiftRight":
-          sprint = true; break;
-      }
-    }
-
-    function onKeyUp(e) {
-      switch (e.code) {
-        case "KeyW": moveForward = false; break;
-        case "KeyA": moveLeft = false; break;
-        case "KeyS": moveBackward = false; break;
-        case "KeyD": moveRight = false; break;
-        case "ShiftLeft":
-        case "ShiftRight":
-          sprint = false; break;
-      }
-    }
-
-    function onMouseDown(e) {
-      if (e.button === 0) {
-        mouseDown = true;
-        lastMouseX = e.clientX;
-        lastMouseY = e.clientY;
-      }
-    }
-
-    function onMouseUp(e) {
-      if (e.button === 0) {
-        mouseDown = false;
-      }
-    }
-
-    function onMouseMove(e) {
-      if (!mouseDown || ended) return;
-
-      const dx = e.clientX - lastMouseX;
-      const dy = e.clientY - lastMouseY;
-      lastMouseX = e.clientX;
-      lastMouseY = e.clientY;
-
-      // yaw
-      player.rotation.y -= dx * lookSensitivity;
-
-      // pitch
-      pitch -= dy * lookSensitivity;
-      const maxPitch = Math.PI / 3;
-      const minPitch = -Math.PI / 3;
-      pitch = Math.max(minPitch, Math.min(maxPitch, pitch));
-      camera.rotation.x = pitch;
-    }
-
-    /* TRIGGERS CHECK */
-
-    function checkTriggers() {
-      const camPos = new THREE.Vector3();
-      camera.getWorldPosition(camPos);
-
-      for (const t of triggers) {
-        if (t.done) continue;
-
-        if (t.type === "volume") {
-          if (
-            camPos.x >= t.min.x && camPos.x <= t.max.x &&
-            camPos.y >= t.min.y && camPos.y <= t.max.y &&
-            camPos.z >= t.min.z && camPos.z <= t.max.z
-          ) {
-            t.done = true;
-            if (t.name === "house_stalk_start") {
-              startStalkSequence();
-            } else if (t.name === "car") {
-              triggerEnding("car");
-            }
-            return;
-          }
-        }
-
-        if (t.type === "tix") {
-          if (camPos.distanceTo(tixMesh.position) <= t.radius) {
-            t.done = true;
-            triggerEnding("tix");
-            return;
-          }
-        }
-      }
-    }
-
-    /* STALKER UPDATE */
-
-    function updateStalker(dt) {
-      if (!stalkActive || !stalker.visible || ended) return;
-
-      const playerPos = player.position.clone();
-      const camPos = new THREE.Vector3();
-      camera.getWorldPosition(camPos);
-
-      const toStalker = stalker.position.clone().sub(camPos);
-      const dist = toStalker.length();
-
-      const forward = new THREE.Vector3();
-      camera.getWorldDirection(forward);
-
-      const lookDir = toStalker.clone().normalize().negate(); // from stalker to camera
-      const angle = forward.angleTo(toStalker.clone().normalize());
-
-      // If close enough and you're looking at it → jumpscare
-      if (dist < 2.2 && angle < 0.4) {
-        triggerJumpscare();
-        return;
-      }
-
-      // If you're NOT looking at it (angle big) → it creeps closer
-      if (angle > 0.85 && dist > 1.2) {
-        const dirToPlayer = playerPos.clone().sub(stalker.position).normalize();
-        const speed = 2.8; // creep speed
-        stalker.position.addScaledVector(dirToPlayer, speed * dt);
-      }
-
-      // Make it face you horizontally
-      stalker.lookAt(camPos.x, stalker.position.y + 0.4, camPos.z);
-    }
-
-    /* RESIZE */
-
-    function onResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    /* MAIN LOOP */
-
-    function animate() {
-      requestAnimationFrame(animate);
-
-      const dt = clock.getDelta();
-
-      if (!ended) {
-        const speed = sprint ? 8 : 4;
-
-        direction.set(0, 0, 0);
-        if (moveForward) direction.z -= 1;
-        if (moveBackward) direction.z += 1;
-        if (moveLeft) direction.x -= 1;
-        if (moveRight) direction.x += 1;
-
-        if (direction.lengthSq() > 0) {
-          direction.normalize();
-
-          const yaw = player.rotation.y;
-          const sin = Math.sin(yaw);
-          const cos = Math.cos(yaw);
-
-          const moveX = direction.x * cos - direction.z * sin;
-          const moveZ = direction.x * sin + direction.z * cos;
-
-          player.position.x += moveX * speed * dt;
-          player.position.z += moveZ * speed * dt;
-          player.position.y = 0;
-        }
-
-        // bounds
-        const limit = 36;
-        player.position.x = THREE.MathUtils.clamp(player.position.x, -limit, limit);
-        player.position.z = THREE.MathUtils.clamp(player.position.z, -limit, limit);
-
-        checkTriggers();
-        updateStalker(dt);
-      }
-
-      renderer.render(scene, camera);
-    }
+    updateNoise();
+    render();
   </script>
-
 </body>
 </html>
