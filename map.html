@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -323,7 +322,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3" onerror="(function(){const s=document.createElement('script');s.src='https://unpkg.com/topojson-client@3';document.head.appendChild(s);}())"></script>
   <script>
     const mapSvg = d3.select('#map');
     const guessesList = document.getElementById('guesses');
@@ -473,10 +472,36 @@
         .attr('d', path);
     };
 
+    const fetchWithFallback = async (sources, loader) => {
+      const errors = [];
+      for (const url of sources) {
+        try {
+          return await loader(url);
+        } catch (err) {
+          errors.push(`${url}: ${err}`);
+        }
+      }
+      throw new Error(errors.join(' | '));
+    };
+
     const init = async () => {
+      const worldSources = [
+        'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json',
+        'https://unpkg.com/world-atlas@2/countries-110m.json',
+        'https://cdn.jsdelivr.net/gh/topojson/world-atlas@2/countries-110m.json'
+      ];
+
+      const nameSources = [
+        'https://cdn.jsdelivr.net/npm/world-atlas@2/world/110m.tsv',
+        'https://unpkg.com/world-atlas@2/world/110m.tsv',
+        'https://cdn.jsdelivr.net/gh/topojson/world-atlas@2/world/110m.tsv'
+      ];
+
       try {
-        const world = await d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json');
-        const names = await d3.tsv('https://cdn.jsdelivr.net/npm/world-atlas@2/world/110m.tsv');
+        const [world, names] = await Promise.all([
+          fetchWithFallback(worldSources, (url) => d3.json(url)),
+          fetchWithFallback(nameSources, (url) => d3.tsv(url))
+        ]);
 
         names.forEach((d) => {
           idToName.set(d.id, d.name);
@@ -497,7 +522,7 @@
         guessInput.placeholder = 'Type a country name and hit Enter';
       } catch (error) {
         console.error('Failed to load map data', error);
-        guessInput.placeholder = 'Unable to load map data right now';
+        guessInput.placeholder = 'Unable to load map data right now — please check your connection and refresh';
       }
     };
 
