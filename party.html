@@ -1,22 +1,23 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>party.exe — liminal lobby</title>
+  <title>party.exe — lobby breach</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       color-scheme: dark;
-      --bg: #05010a;
-      --bg-secondary: #13021b;
-      --pink: #ff5adf;
-      --blue: #6ac8ff;
-      --yellow: #ffe179;
-      --text: #f8f5ff;
-      --muted: #b4a8c7;
+      --bg: #030207;
+      --accent: #ff6be6;
+      --accent-2: #6ad5ff;
+      --warn: #ffd86b;
+      --danger: #ff4b5c;
+      --text: #f6f3ff;
+      --muted: #b6acc7;
     }
 
     * {
@@ -25,454 +26,654 @@
 
     body {
       margin: 0;
-      font-family: "Space Grotesk", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top, rgba(255, 90, 223, 0.2), transparent 50%),
-                  radial-gradient(circle at 20% 60%, rgba(255, 225, 121, 0.1), transparent 40%),
-                  linear-gradient(145deg, #030107, #120019 65%, #020205);
-      color: var(--text);
       min-height: 100vh;
-      overflow-x: hidden;
+      font-family: "Space Grotesk", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 25% 20%, rgba(255, 107, 230, 0.2), transparent 45%),
+                  radial-gradient(circle at 70% 10%, rgba(106, 213, 255, 0.25), transparent 50%),
+                  linear-gradient(160deg, #010104, #0a0418 70%, #020205);
+      color: var(--text);
+      overflow: hidden;
     }
 
-    body::before {
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      background: transparent;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    .overlay.scanlines::before,
+    .overlay.scanlines::after {
       content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0.12;
+    }
+
+    .overlay.scanlines::before {
+      background-image: linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px);
+      background-size: 100% 3px;
+    }
+
+    .overlay.scanlines::after {
+      background-image: linear-gradient(120deg, rgba(255,107,230,0.07) 0%, transparent 55%);
+    }
+
+    .noise-layer {
       position: fixed;
       inset: 0;
-      background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-      background-size: 90px 90px;
-      opacity: 0.35;
+      mix-blend-mode: lighten;
       pointer-events: none;
-      mix-blend-mode: screen;
-      z-index: 0;
+      opacity: 0.1;
     }
 
-    .noise {
+    .ui {
       position: fixed;
       inset: 0;
-      pointer-events: none;
-      mix-blend-mode: screen;
-      opacity: 0.08;
-      z-index: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: clamp(1rem, 3vw, 2.5rem);
+      z-index: 5;
     }
 
-    main {
-      position: relative;
-      z-index: 1;
-      padding: 3rem clamp(1rem, 4vw, 4rem) 4rem;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    header {
+    .ui header {
       display: flex;
       flex-wrap: wrap;
-      justify-content: space-between;
       gap: 1rem;
       align-items: center;
-      margin-bottom: 2rem;
+      justify-content: space-between;
     }
 
     .logo {
-      letter-spacing: 0.2rem;
-      font-weight: 700;
       text-transform: uppercase;
+      letter-spacing: 0.3rem;
+      font-weight: 700;
+    }
+
+    .status {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
     }
 
     .pill {
-      border: 1px solid rgba(255,255,255,0.2);
-      padding: 0.6rem 1.4rem;
+      border: 1px solid rgba(255,255,255,0.25);
       border-radius: 999px;
-      font-size: 0.9rem;
-      text-transform: uppercase;
+      padding: 0.45rem 1.2rem;
+      font-size: 0.85rem;
       letter-spacing: 0.1rem;
+      text-transform: uppercase;
       display: inline-flex;
+      gap: 0.4rem;
       align-items: center;
-      gap: 0.5rem;
     }
 
-    .hero {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 2.5rem;
-      align-items: center;
-      margin-bottom: 4rem;
-    }
-
-    .hero h1 {
-      font-size: clamp(2.5rem, 8vw, 4.5rem);
-      margin: 0 0 1rem;
-      text-transform: lowercase;
-      line-height: 1.05;
-    }
-
-    .hero h1 span {
-      display: inline-block;
-      color: var(--pink);
-      filter: drop-shadow(0 0 18px rgba(255, 90, 223, 0.4));
-    }
-
-    .hero p {
-      max-width: 32ch;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-
-    .cta {
+    .bottom-row {
       display: flex;
-      flex-wrap: wrap;
+      flex-direction: column;
       gap: 1rem;
-      margin-top: 2rem;
     }
 
-    .btn {
+    .instructions {
+      max-width: 540px;
+      line-height: 1.5;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .start-btn {
+      width: fit-content;
       border: none;
-      font-size: 1rem;
-      padding: 0.9rem 1.9rem;
       border-radius: 999px;
+      padding: 0.85rem 1.8rem;
+      font-size: 0.95rem;
       font-weight: 600;
       cursor: pointer;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .btn-primary {
-      background: linear-gradient(120deg, var(--pink), var(--blue));
-      box-shadow: 0 15px 35px rgba(255, 90, 223, 0.35);
+      background: linear-gradient(120deg, var(--accent), var(--accent-2));
       color: #05010a;
+      box-shadow: 0 15px 35px rgba(255, 107, 230, 0.35);
+      transition: transform 0.15s ease;
     }
 
-    .btn-ghost {
-      background: transparent;
-      border: 1px solid rgba(255,255,255,0.3);
-      color: var(--text);
+    .start-btn:active {
+      transform: scale(0.96);
     }
 
-    .btn:active {
-      transform: scale(0.98);
-    }
-
-    .window {
-      background: rgba(15, 3, 22, 0.9);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 18px;
-      padding: 1.8rem;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.45);
-    }
-
-    .window::before {
-      content: "";
-      position: absolute;
-      inset: 1px;
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,0.06);
-      pointer-events: none;
-    }
-
-    .window .title {
-      font-size: 0.85rem;
-      letter-spacing: 0.2rem;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 0.8rem;
-    }
-
-    .monitor {
-      border-radius: 12px;
-      background: #030108;
-      padding: 1.5rem;
-      min-height: 200px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .monitor::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: repeating-linear-gradient(
-        180deg,
-        rgba(255, 255, 255, 0.04),
-        rgba(255, 255, 255, 0.04) 2px,
-        transparent 2px,
-        transparent 4px
-      );
-      mix-blend-mode: screen;
-      opacity: 0.4;
-      animation: scan 8s linear infinite;
-    }
-
-    @keyframes scan {
-      0% { transform: translateY(-100%); }
-      100% { transform: translateY(100%); }
-    }
-
-    .monitor .line {
-      display: flex;
-      justify-content: space-between;
-      font-family: "Share Tech Mono", "Fira Code", monospace;
+    .message,
+    .fear-meter {
       font-size: 0.95rem;
-      margin-bottom: 0.7rem;
-    }
-
-    .monitor .line span:last-child {
-      color: var(--blue);
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 3rem;
-    }
-
-    .card {
-      padding: 1.5rem;
-      border-radius: 16px;
-      background: rgba(10, 0, 18, 0.85);
-      border: 1px solid rgba(255,255,255,0.1);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
-      min-height: 180px;
-      display: flex;
-      flex-direction: column;
-      gap: 0.8rem;
-    }
-
-    .card h3 {
-      margin: 0;
-      font-size: 1.3rem;
-    }
-
-    .card p {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-
-    .badge {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.2rem;
-      color: var(--yellow);
-    }
-
-    .gallery {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 1rem;
-    }
-
-    .gallery figure {
-      border-radius: 16px;
-      margin: 0;
-      padding: 1rem;
-      background: radial-gradient(circle at top, rgba(255, 90, 223, 0.25), rgba(10,0,18,0.9));
-      border: 1px solid rgba(255,255,255,0.08);
-      aspect-ratio: 1 / 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      color: var(--text);
-      font-size: 0.9rem;
       letter-spacing: 0.05rem;
-      text-transform: uppercase;
     }
 
-    .timeline {
-      border-left: 1px solid rgba(255,255,255,0.2);
-      margin: 3rem 0;
-      padding-left: 1.5rem;
+    .message {
+      color: var(--warn);
     }
 
-    .timeline li {
-      list-style: none;
-      margin-bottom: 1.5rem;
-      position: relative;
+    .fear-meter span {
+      display: inline-block;
+      min-width: 6ch;
+      color: var(--danger);
     }
 
-    .timeline li::before {
-      content: "";
-      position: absolute;
-      left: -1.85rem;
-      top: 0.3rem;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--pink);
-      box-shadow: 0 0 12px rgba(255,90,223,0.5);
-    }
-
-    footer {
-      margin-top: 4rem;
-      text-align: center;
-      color: rgba(255,255,255,0.5);
-      font-size: 0.85rem;
-    }
-
-    .scanline {
+    .jumpscare {
       position: fixed;
       inset: 0;
+      background: radial-gradient(circle, rgba(255,0,32,0.85), rgba(0,0,0,0.98));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(2rem, 8vw, 5rem);
+      text-transform: uppercase;
+      letter-spacing: 0.4rem;
+      font-weight: 700;
+      color: #fff;
+      opacity: 0;
       pointer-events: none;
-      background: repeating-linear-gradient(180deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px);
-      opacity: 0.25;
-      mix-blend-mode: screen;
-      animation: flicker 6s steps(2) infinite;
-      z-index: 1;
+      transition: opacity 0.15s ease;
+      z-index: 10;
+      text-shadow: 0 0 30px rgba(255,255,255,0.9);
     }
 
-    @keyframes flicker {
-      0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 0.35; }
-      20%, 24%, 55% { opacity: 0.1; }
+    .jumpscare.active {
+      opacity: 1;
     }
 
-    @media (max-width: 640px) {
-      .cta {
-        flex-direction: column;
-      }
+    .win-screen {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 2, 7, 0.95);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 9;
+      text-align: center;
+      padding: 2rem;
+    }
 
-      .monitor .line {
-        flex-direction: column;
-        gap: 0.3rem;
-      }
+    .win-screen.active {
+      display: flex;
+    }
+
+    .win-screen h2 {
+      font-size: clamp(2rem, 6vw, 3.5rem);
+      margin-bottom: 1rem;
+      color: var(--accent-2);
+    }
+
+    .win-screen p {
+      max-width: 420px;
+      color: var(--muted);
+      line-height: 1.5;
     }
   </style>
 </head>
 <body>
-  <canvas class="noise" id="noise"></canvas>
-  <div class="scanline"></div>
-  <main>
+  <canvas id="scene"></canvas>
+  <canvas id="noise" class="noise-layer"></canvas>
+  <div class="overlay scanlines"></div>
+  <div class="ui">
     <header>
-      <div class="logo">party.exe</div>
-      <div class="pill">build 0.7.3 &bull; safe room</div>
+      <div class="logo">party.exe // lobby breach</div>
+      <div class="status">
+        <div class="pill">keys <span id="keyCount">0 / 3</span></div>
+        <div class="pill">distance <span id="distance">???</span></div>
+        <div class="pill">state <span id="state">idle</span></div>
+      </div>
     </header>
-
-    <section class="hero">
-      <div>
-        <p class="pill" style="margin-bottom: 1rem; border-color: rgba(255,90,223,0.35); color: var(--pink);">status: unstable</p>
-        <h1><span>party.exe</span><br />liminal lobby</h1>
-        <p>The fan-favorite nightmare social hub reborn for the browser. Neon confetti, endless hallways, off-brand mascots, and that feeling that something else is logged in.</p>
-        <div class="cta">
-          <button class="btn btn-primary">Join session</button>
-          <button class="btn btn-ghost">watch trailer</button>
-        </div>
+    <div class="bottom-row">
+      <div class="instructions">
+        Navigate the liminal ballroom and collect <strong>3 invitation bands</strong>. Once secured, reach the exit door to force a shutdown.
+        The partygoer hunts by scent—keep moving, sprint with <kbd>Shift</kbd>, and avoid the spotlight. <em>Headphones recommended.</em>
       </div>
-      <div class="window">
-        <div class="title">session diagnostics</div>
-        <div class="monitor" aria-live="polite">
-          <div class="line"><span>Room seed</span><span>#726-VOID</span></div>
-          <div class="line"><span>Confetti stream</span><span>looped</span></div>
-          <div class="line"><span>Strangers detected</span><span id="strangers">03</span></div>
-          <div class="line"><span>Music layer</span><span>crushed eurodance</span></div>
-          <div class="line"><span>Last party</span><span>02:17 ago</span></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="grid">
-      <article class="card">
-        <span class="badge">01</span>
-        <h3>Lobby</h3>
-        <p>Infinite balloons tied to invisible tables, a dance floor that mirrors you wrong, and a host that never looks directly at you.</p>
-      </article>
-      <article class="card">
-        <span class="badge">02</span>
-        <h3>Arcade</h3>
-        <p>Token machines dispense memories you forgot. Beat the high score before the power cuts to blacklight.</p>
-      </article>
-      <article class="card">
-        <span class="badge">03</span>
-        <h3>Back driveway</h3>
-        <p>Wet asphalt, a sedan idling with no driver, and bass leaking from the basement window.</p>
-      </article>
-      <article class="card">
-        <span class="badge">04</span>
-        <h3>VIP corridor</h3>
-        <p>Access granted if you carry at least 3 wristbands. The corridor hums when you whisper.</p>
-      </article>
-    </section>
-
-    <section class="window" style="margin-bottom:3rem;">
-      <div class="title">snapshot feed</div>
-      <div class="gallery">
-        <figure>room 01 — lobby blur</figure>
-        <figure>room 12 — projector fog</figure>
-        <figure>room 44 — cake altar</figure>
-        <figure>room 08 — carpark static</figure>
-      </div>
-    </section>
-
-    <section class="window" style="margin-bottom:3rem;">
-      <div class="title">party directives</div>
-      <ul class="timeline">
-        <li>
-          <h4>22:00 — doors unlock</h4>
-          <p>Press E to accept the invitation. Check your wristwatch for flicker warnings.</p>
-        </li>
-        <li>
-          <h4>22:05 — confetti storm</h4>
-          <p>Visibility drops to 35%. Follow the synth bass; ignore the whispers from the DJ booth.</p>
-        </li>
-        <li>
-          <h4>22:17 — mirror sync</h4>
-          <p>Your reflection asks you to leave. Decline politely to continue the run.</p>
-        </li>
-        <li>
-          <h4>22:23 — final loop</h4>
-          <p>Locate the sedan outside. If headlights blink three times, the session resets.</p>
-        </li>
-      </ul>
-    </section>
-
-    <section class="grid">
-      <article class="card">
-        <h3>System requirements</h3>
-        <p>Chrome 117+, headphones mandatory, lights off recommended. Supports keyboard, controller, and anxious breathing.</p>
-      </article>
-      <article class="card">
-        <h3>Bonus content</h3>
-        <p>Unlock "Void Streamers" cosmetic pack by touching the forbidden tickets hidden around the lot.</p>
-      </article>
-      <article class="card">
-        <h3>Multiplayer beta</h3>
-        <p>Drop-in sessions up to 6 guests. The seventh slot is occupied even when no one joins.</p>
-      </article>
-    </section>
-
-    <footer>
-      built by nightshift.exe &nbsp;•&nbsp; fan project inspired by the myth of party.exe
-    </footer>
-  </main>
-
+      <button class="start-btn" id="start">Initiate lobby</button>
+      <div class="message" id="message">Awaiting operator input…</div>
+      <div class="fear-meter">fear-level <span id="fear">000%</span></div>
+    </div>
+  </div>
+  <div class="jumpscare" id="jumpscare">run!</div>
+  <div class="win-screen" id="winScreen">
+    <h2>Extraction complete</h2>
+    <p>You severed the music feed, slipped past the host, and escaped the neon labyrinth. Reload the lobby to dive back into the nightmare.</p>
+  </div>
+  <audio id="ambient" src="Blaze.mp3" preload="auto" loop></audio>
   <script>
+    const canvas = document.getElementById('scene');
+    const ctx = canvas.getContext('2d');
     const noiseCanvas = document.getElementById('noise');
-    const ctx = noiseCanvas.getContext('2d');
+    const noiseCtx = noiseCanvas.getContext('2d');
+    const startBtn = document.getElementById('start');
+    const messageEl = document.getElementById('message');
+    const keyCountEl = document.getElementById('keyCount');
+    const stateEl = document.getElementById('state');
+    const distanceEl = document.getElementById('distance');
+    const fearEl = document.getElementById('fear');
+    const jumpscareEl = document.getElementById('jumpscare');
+    const winScreen = document.getElementById('winScreen');
+    const ambient = document.getElementById('ambient');
 
-    function resizeNoise() {
+    const world = { width: 1900, height: 1200 };
+    let lastTime = 0;
+    let running = false;
+    let gameOver = false;
+
+    const player = {
+      x: 240,
+      y: world.height - 260,
+      radius: 16,
+      speed: 220,
+      stamina: 1,
+      fear: 0
+    };
+
+    const enemy = {
+      x: world.width - 280,
+      y: 220,
+      radius: 22,
+      speed: 140,
+      chaseSpeed: 200,
+      state: 'idle',
+      jitter: 0
+    };
+
+    const exit = { x: world.width - 160, y: 120, radius: 40 };
+    const totalKeys = 3;
+    const keys = [];
+    const balloons = [];
+    const trails = [];
+
+    const pressed = new Set();
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
       noiseCanvas.width = window.innerWidth;
       noiseCanvas.height = window.innerHeight;
     }
 
-    function renderNoise() {
-      const imageData = ctx.createImageData(noiseCanvas.width, noiseCanvas.height);
-      const buffer32 = new Uint32Array(imageData.data.buffer);
-      const len = buffer32.length;
-      for (let i = 0; i < len; i++) {
-        buffer32[i] = ((Math.random() * 255) | 0) << 24;
-      }
-      ctx.putImageData(imageData, 0, 0);
-      requestAnimationFrame(renderNoise);
+    window.addEventListener('resize', resize);
+    resize();
+
+    function rand(min, max) {
+      return Math.random() * (max - min) + min;
     }
 
-    resizeNoise();
-    renderNoise();
-    window.addEventListener('resize', resizeNoise);
+    function initWorld() {
+      keys.length = 0;
+      balloons.length = 0;
+      trails.length = 0;
+      for (let i = 0; i < totalKeys; i++) {
+        keys.push({
+          x: rand(200, world.width - 200),
+          y: rand(200, world.height - 200),
+          collected: false,
+          pulse: rand(0, Math.PI * 2)
+        });
+      }
+      for (let i = 0; i < 14; i++) {
+        balloons.push({
+          x: rand(120, world.width - 120),
+          y: rand(120, world.height - 120),
+          hue: rand(280, 340),
+          float: rand(0, Math.PI * 2)
+        });
+      }
+    }
 
-    const strangers = document.getElementById('strangers');
-    setInterval(() => {
-      const value = 2 + Math.floor(Math.random() * 5);
-      strangers.textContent = `0${value}`.slice(-2);
-    }, 4000);
+    function startGame() {
+      running = true;
+      gameOver = false;
+      player.x = 240;
+      player.y = world.height - 260;
+      player.fear = 0;
+      player.stamina = 1;
+      enemy.x = world.width - 280;
+      enemy.y = 220;
+      enemy.state = 'idle';
+      keysCollected = 0;
+      initWorld();
+      winScreen.classList.remove('active');
+      messageEl.textContent = 'Collect the bands and avoid the host.';
+      stateEl.textContent = 'tracking';
+      ambient.volume = 0.5;
+      ambient.play().catch(() => {});
+      if (!audioStarted) {
+        setupAudio();
+      }
+    }
+
+    startBtn.addEventListener('click', () => {
+      if (!running) {
+        startGame();
+      }
+    });
+
+    const keysDown = new Set();
+    window.addEventListener('keydown', (e) => {
+      keysDown.add(e.key.toLowerCase());
+      if (e.key === ' ' && !running) {
+        startGame();
+      }
+    });
+    window.addEventListener('keyup', (e) => keysDown.delete(e.key.toLowerCase()));
+
+    let keysCollected = 0;
+
+    function update(dt) {
+      if (!running || gameOver) return;
+      const move = { x: 0, y: 0 };
+      if (keysDown.has('w') || keysDown.has('arrowup')) move.y -= 1;
+      if (keysDown.has('s') || keysDown.has('arrowdown')) move.y += 1;
+      if (keysDown.has('a') || keysDown.has('arrowleft')) move.x -= 1;
+      if (keysDown.has('d') || keysDown.has('arrowright')) move.x += 1;
+
+      let magnitude = Math.hypot(move.x, move.y) || 1;
+      move.x /= magnitude;
+      move.y /= magnitude;
+
+      const sprinting = keysDown.has('shift') && player.stamina > 0.15;
+      const speed = sprinting ? player.speed * 1.4 : player.speed;
+
+      player.x += move.x * speed * dt;
+      player.y += move.y * speed * dt;
+      player.x = Math.max(player.radius, Math.min(world.width - player.radius, player.x));
+      player.y = Math.max(player.radius, Math.min(world.height - player.radius, player.y));
+
+      if (sprinting && (move.x || move.y)) {
+        player.stamina = Math.max(0, player.stamina - dt * 0.5);
+      } else {
+        player.stamina = Math.min(1, player.stamina + dt * 0.25);
+      }
+
+      // enemy logic
+      const toPlayerX = player.x - enemy.x;
+      const toPlayerY = player.y - enemy.y;
+      const dist = Math.hypot(toPlayerX, toPlayerY);
+      const normalizedX = toPlayerX / (dist || 1);
+      const normalizedY = toPlayerY / (dist || 1);
+      const detected = dist < 420;
+      const enemySpeed = detected ? enemy.chaseSpeed : enemy.speed;
+      enemy.state = detected ? 'hunt' : 'patrol';
+      enemy.x += normalizedX * enemySpeed * dt;
+      enemy.y += normalizedY * enemySpeed * dt;
+
+      distanceEl.textContent = dist.toFixed(0) + 'u';
+      stateEl.textContent = enemy.state;
+
+      // fear meter
+      const fearDelta = detected ? (1 - Math.min(dist / 420, 1)) * 55 * dt : -15 * dt;
+      player.fear = Math.min(100, Math.max(0, player.fear + fearDelta));
+      fearEl.textContent = player.fear.toFixed(0).padStart(3, '0') + '%';
+
+      // trails for motion blur
+      trails.push({ x: player.x, y: player.y, life: 1 });
+      while (trails.length > 25) trails.shift();
+      trails.forEach((t) => (t.life -= dt * 0.6));
+
+      // collect keys
+      keys.forEach((key) => {
+        if (key.collected) return;
+        const d = Math.hypot(player.x - key.x, player.y - key.y);
+        if (d < player.radius + 24) {
+          key.collected = true;
+          keysCollected += 1;
+          messageEl.textContent = `Band secured (${keysCollected}/${totalKeys})`;
+        }
+      });
+      keyCountEl.textContent = `${keysCollected} / ${totalKeys}`;
+
+      // check exit
+      const exitDist = Math.hypot(player.x - exit.x, player.y - exit.y);
+      if (exitDist < exit.radius && keysCollected === totalKeys) {
+        running = false;
+        winScreen.classList.add('active');
+        messageEl.textContent = 'Lobby silenced. Breathe.';
+      }
+
+      // enemy collision
+      if (dist < player.radius + enemy.radius) {
+        triggerJumpscare();
+      }
+
+      balloons.forEach((balloon) => {
+        balloon.float += dt * 0.6;
+      });
+    }
+
+    function drawBackground(cameraX, cameraY) {
+      ctx.save();
+      ctx.translate(cameraX, cameraY);
+      const gradient = ctx.createLinearGradient(0, 0, world.width, world.height);
+      gradient.addColorStop(0, '#050109');
+      gradient.addColorStop(1, '#14011f');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, world.width, world.height);
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.02)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < world.width; x += 80) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, world.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < world.height; y += 80) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(world.width, y);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      for (let i = 0; i < world.width; i += 260) {
+        ctx.fillRect(i + 40, 0, 30, world.height);
+      }
+
+      ctx.strokeStyle = 'rgba(255, 122, 224, 0.4)';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(80, 80, world.width - 160, world.height - 160);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      ctx.fillRect(exit.x - 50, exit.y - 50, 100, 100);
+      ctx.restore();
+    }
+
+    function drawPlayer(cameraX, cameraY) {
+      ctx.save();
+      ctx.translate(cameraX, cameraY);
+      trails.forEach((trail) => {
+        ctx.globalAlpha = Math.max(0, trail.life);
+        ctx.fillStyle = 'rgba(255,107,230,0.35)';
+        ctx.beginPath();
+        ctx.arc(trail.x, trail.y, player.radius * (1 + (1 - trail.life) * 0.5), 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+      ctx.shadowColor = 'rgba(255,107,230,0.8)';
+      ctx.shadowBlur = 25;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+
+    function drawEnemy(cameraX, cameraY) {
+      ctx.save();
+      ctx.translate(cameraX, cameraY);
+      ctx.shadowColor = 'rgba(255,75,92,0.7)';
+      ctx.shadowBlur = 35;
+      ctx.fillStyle = '#ff4b5c';
+      ctx.beginPath();
+      ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.font = '600 14px "Space Grotesk"';
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.fillText('host', enemy.x - 18, enemy.y - enemy.radius - 12);
+      ctx.restore();
+    }
+
+    function drawExit(cameraX, cameraY) {
+      ctx.save();
+      ctx.translate(cameraX, cameraY);
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(exit.x - 40, exit.y - 60, 80, 120);
+      ctx.fillStyle = keysCollected === totalKeys ? 'rgba(106,213,255,0.25)' : 'rgba(255,255,255,0.05)';
+      ctx.fillRect(exit.x - 40, exit.y - 60, 80, 120);
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fillText('exit', exit.x - 17, exit.y + 4);
+      ctx.restore();
+    }
+
+    function drawKeys(cameraX, cameraY) {
+      ctx.save();
+      ctx.translate(cameraX, cameraY);
+      keys.forEach((key) => {
+        if (key.collected) return;
+        key.pulse += 0.08;
+        const size = 18 + Math.sin(key.pulse) * 4;
+        ctx.fillStyle = '#ffe179';
+        ctx.shadowColor = '#ffe179';
+        ctx.shadowBlur = 20;
+        ctx.beginPath();
+        ctx.roundRect(key.x - size / 2, key.y - size / 3, size, size / 1.5, 4);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.strokeRect(key.x - size / 2, key.y - size / 3, size, size / 1.5);
+      });
+      ctx.restore();
+    }
+
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+      CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+        const radius = typeof r === 'number' ? r : 4;
+        this.beginPath();
+        this.moveTo(x + radius, y);
+        this.lineTo(x + w - radius, y);
+        this.quadraticCurveTo(x + w, y, x + w, y + radius);
+        this.lineTo(x + w, y + h - radius);
+        this.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+        this.lineTo(x + radius, y + h);
+        this.quadraticCurveTo(x, y + h, x, y + h - radius);
+        this.lineTo(x, y + radius);
+        this.quadraticCurveTo(x, y, x + radius, y);
+        this.closePath();
+        return this;
+      };
+    }
+
+    function drawBalloons(cameraX, cameraY) {
+      ctx.save();
+      ctx.translate(cameraX, cameraY);
+      balloons.forEach((balloon) => {
+        const offset = Math.sin(balloon.float) * 6;
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.beginPath();
+        ctx.moveTo(balloon.x, balloon.y);
+        ctx.lineTo(balloon.x, balloon.y + 40);
+        ctx.stroke();
+        ctx.fillStyle = `hsl(${balloon.hue}, 70%, 60%)`;
+        ctx.globalAlpha = 0.7;
+        ctx.beginPath();
+        ctx.ellipse(balloon.x + offset, balloon.y, 18, 26, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+      ctx.restore();
+    }
+
+    function render(time = 0) {
+      const dt = (time - lastTime) / 1000;
+      lastTime = time;
+      update(dt);
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const cameraX = canvas.width / 2 - player.x;
+      const cameraY = canvas.height / 2 - player.y;
+
+      drawBackground(cameraX, cameraY);
+      drawBalloons(cameraX, cameraY);
+      drawKeys(cameraX, cameraY);
+      drawExit(cameraX, cameraY);
+      drawEnemy(cameraX, cameraY);
+      drawPlayer(cameraX, cameraY);
+
+      requestAnimationFrame(render);
+    }
+
+    function updateNoise() {
+      const imageData = noiseCtx.createImageData(noiseCanvas.width, noiseCanvas.height);
+      for (let i = 0; i < imageData.data.length; i += 4) {
+        const value = Math.random() * 255;
+        imageData.data[i] = value;
+        imageData.data[i + 1] = value;
+        imageData.data[i + 2] = value;
+        imageData.data[i + 3] = Math.random() * 35;
+      }
+      noiseCtx.putImageData(imageData, 0, 0);
+      requestAnimationFrame(updateNoise);
+    }
+
+    function triggerJumpscare() {
+      if (gameOver) return;
+      gameOver = true;
+      running = false;
+      jumpscareEl.classList.add('active');
+      messageEl.textContent = 'connection lost — host found you';
+      playJumpscareSound();
+      setTimeout(() => {
+        jumpscareEl.classList.remove('active');
+      }, 1800);
+    }
+
+    let audioCtx;
+    let audioStarted = false;
+
+    function setupAudio() {
+      if (audioStarted) return;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      audioStarted = true;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.value = 42;
+      gain.gain.value = 0.05;
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start();
+    }
+
+    function playJumpscareSound() {
+      if (!audioCtx) {
+        setupAudio();
+      }
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = 460;
+      gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 1.2);
+    }
+
+    updateNoise();
+    render();
   </script>
 </body>
 </html>
