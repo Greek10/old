@@ -3,100 +3,95 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Neon Multiverse Hub</title>
+<title>Neon Multiverse Hub - Portal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #050510;
-  --card: rgba(255, 255, 255, 0.06);
-  --glass: rgba(255,255,255,0.12);
-  --neon: #0ff7ff;
-  --pink: #ff1dd1;
-  --accent: linear-gradient(120deg, #0ff7ff, #8256ff, #ff1dd1);
+  --bg: #04050f;
+  --glass: rgba(255,255,255,0.08);
+  --panel: rgba(255,255,255,0.05);
+  --neon: #00fff7;
+  --pink: #ff2ed4;
 }
 * { box-sizing: border-box; }
 body {
   margin: 0;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background: radial-gradient(circle at 10% 20%, rgba(255, 29, 209, 0.2), transparent 22%),
-              radial-gradient(circle at 80% 0%, rgba(0, 247, 255, 0.15), transparent 26%),
-              radial-gradient(circle at 50% 80%, rgba(130, 86, 255, 0.17), transparent 35%),
+  font-family: 'Inter', system-ui, sans-serif;
+  background: radial-gradient(circle at 15% 20%, rgba(255,46,212,0.2), transparent 30%),
+              radial-gradient(circle at 80% 0%, rgba(0,255,247,0.18), transparent 32%),
+              radial-gradient(circle at 45% 75%, rgba(130,86,255,0.18), transparent 38%),
               var(--bg);
   color: #e8f7ff;
   min-height: 100vh;
   overflow-x: hidden;
 }
 header {
-  position: sticky; top:0; z-index: 20;
+  position: sticky; top: 0; z-index: 20;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 18px;
+  background: rgba(4,5,15,0.85);
   backdrop-filter: blur(12px);
-  background: rgba(5,5,16,0.85);
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 18px;
-  box-shadow: 0 10px 50px rgba(0,0,0,0.4);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.35);
 }
-h1 { font-family: 'Orbitron', sans-serif; letter-spacing: 2px; font-size: 20px; margin: 0; }
+h1 { margin: 0; font-family: 'Orbitron', sans-serif; letter-spacing: 1.5px; font-size: 20px; }
 nav { display: flex; gap: 10px; flex-wrap: wrap; }
-nav button {
-  background: var(--card);
+.button, nav button {
+  background: var(--panel);
   color: #e8f7ff;
-  border: 1px solid rgba(255,255,255,0.08);
-  padding: 8px 12px; border-radius: 10px;
-  cursor: pointer; transition: 0.25s ease;
-  font-weight: 600; letter-spacing: 0.5px;
-  text-shadow: 0 0 8px rgba(0,255,255,0.4);
+  border: 1px solid rgba(255,255,255,0.12);
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 10px rgba(0,255,255,0.35);
+  transition: 0.2s ease;
 }
-nav button:hover, nav button.active {
-  background: linear-gradient(135deg, rgba(0,255,255,0.25), rgba(255,29,209,0.25));
-  box-shadow: 0 8px 25px rgba(0,255,255,0.25);
+.button:hover, nav button:hover, nav button.active {
+  background: linear-gradient(135deg, rgba(0,255,255,0.2), rgba(255,46,212,0.2));
+  box-shadow: 0 10px 30px rgba(0,255,255,0.25);
   transform: translateY(-2px);
 }
 main { padding: 18px; }
 .section {
-  margin: 18px auto;
-  padding: 16px;
+  display: none;
   background: var(--glass);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-  display: none;
+  padding: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  margin: 16px auto;
 }
 .section.active { display: block; animation: fadeIn 0.4s ease; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: none; } }
-.neon-card {
-  background: rgba(255,255,255,0.06);
-  border-radius: 12px;
-  padding: 12px;
-  margin: 12px 0;
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.35), 0 0 20px rgba(0,255,255,0.15);
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: none;} }
+.portal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin: 14px 0;
 }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
-.badge { padding: 4px 8px; border-radius: 999px; background: rgba(0,255,255,0.12); border: 1px solid rgba(0,255,255,0.25); color: #9af7ff; font-weight: 700; font-size: 12px; }
+.portal-card {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.35), 0 0 22px rgba(0,255,255,0.2);
+}
+.badge { display: inline-block; padding: 4px 10px; border-radius: 999px; background: rgba(0,255,255,0.12); border: 1px solid rgba(0,255,255,0.3); font-weight: 700; color: #9cf5ff; }
 .control-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-.button { background: var(--card); color: #e8f7ff; border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 10px; cursor:pointer; transition:0.2s; }
-.button:hover { background: linear-gradient(135deg, rgba(255,29,209,0.3), rgba(0,247,255,0.25)); box-shadow: 0 8px 24px rgba(0,255,255,0.2); }
-input, select, textarea { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: #e8f7ff; padding: 8px 10px; border-radius: 10px; }
-canvas { max-width: 100%; border-radius: 12px; }
-#fpsCanvas, #backroomsCanvas, #chaosCanvas { width: 100%; height: 480px; background: radial-gradient(circle at 40% 30%, rgba(0,255,255,0.08), transparent 40%), #040410; display: block; }
-#rhythmCanvas { width: 100%; height: 360px; background: radial-gradient(circle at 20% 30%, rgba(255,29,209,0.25), transparent 35%), #060616; display: block; }
-#miniGameFrame { width: 100%; min-height: 260px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px; background: rgba(0,0,0,0.45); }
-#osDesktop { position: relative; min-height: 400px; background: radial-gradient(circle at 60% 20%, rgba(0,255,255,0.08), transparent 30%), rgba(0,0,0,0.3); border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); }
-.window { position: absolute; top: 60px; left: 40px; width: 280px; height: 200px; background: rgba(255,255,255,0.08); border: 1px solid rgba(0,255,255,0.35); border-radius: 14px; box-shadow: 0 15px 45px rgba(0,0,0,0.35); overflow: hidden; }
-.window header { position: relative; background: linear-gradient(135deg, rgba(0,255,255,0.3), rgba(255,29,209,0.3)); padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-.window header h4 { margin: 0; font-family: 'Orbitron'; font-size: 14px; }
-#taskbar { position: absolute; bottom: 0; left: 0; right: 0; height: 42px; background: rgba(255,255,255,0.07); border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 8px; padding: 6px 10px; }
-.os-icon { width: 52px; height: 52px; border-radius: 12px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); display: grid; place-items: center; margin: 12px; cursor: pointer; box-shadow: inset 0 0 20px rgba(0,255,255,0.15); transition: transform 0.2s; }
-.os-icon:hover { transform: translateY(-3px) scale(1.02); }
-#pythonArea { width: 100%; min-height: 320px; }
-#joystick { width: 90px; height: 90px; position: absolute; bottom: 70px; right: 10px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(0,255,255,0.3); display: none; align-items: center; justify-content: center; }
-#joystick::after { content: ''; width: 36px; height: 36px; border-radius: 50%; background: rgba(0,255,255,0.7); box-shadow: 0 0 20px rgba(0,255,255,0.7); }
-@media (max-width: 768px) {
-  nav { overflow-x: auto; }
-  #joystick { display: flex; }
+input, select, textarea {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #e8f7ff;
+  padding: 10px;
+  border-radius: 10px;
 }
+textarea { width: 100%; min-height: 240px; }
+canvas { width: 100%; max-width: 900px; height: 420px; border-radius: 12px; background: radial-gradient(circle at 40% 30%, rgba(0,255,255,0.12), transparent 40%), #050612; }
+.neon-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
 </style>
 </head>
 <body>
@@ -105,60 +100,75 @@ canvas { max-width: 100%; border-radius: 12px; }
   <nav id="nav"></nav>
 </header>
 <main>
-  <div id="fps" class="section active">
-    <h2>3D FPS Sandbox</h2>
-    <p>Click the viewport to lock pointer. WASD to move, mouse to look, left click to shoot, R to reload, F to inspect. Neon bloom applied.</p>
-    <div class="control-row">
-      <label>Sensitivity <input type="range" id="sens" min="0.2" max="2" step="0.05" value="1"></label>
-      <span class="badge">Crosshair active</span>
+  <div id="portal" class="section active">
+    <h2>Choose Your Dimension</h2>
+    <p>Use the neon portal buttons below to open a dedicated experience. Each portal loads its own tools instead of crowding one screen.</p>
+    <div class="portal-grid">
+      <div class="portal-card">
+        <h3>Roblox API Integrations</h3>
+        <p>Profile lookup, friends, groups, presence, and RAP calculator.</p>
+        <button class="button" data-target="roblox">Enter Roblox Tools</button>
+      </div>
+      <div class="portal-card">
+        <h3>Python Sandbox v6</h3>
+        <p>Pyodide-powered coding pad with save/load and neon themes.</p>
+        <button class="button" data-target="python">Enter Python Sandbox</button>
+      </div>
+      <div class="portal-card">
+        <h3>AI Code Terminal</h3>
+        <p>Neon faux terminal with animated replies and chaos hooks.</p>
+        <button class="button" data-target="terminal">Enter AI Terminal</button>
+      </div>
+      <div class="portal-card">
+        <h3>Chaos Simulator</h3>
+        <p>Trigger meteors, tornadoes, quakes, and neon explosions.</p>
+        <button class="button" data-target="chaos">Enter Chaos Simulator</button>
+      </div>
+      <div class="portal-card">
+        <h3>Backrooms Maze (Bird's Eye)</h3>
+        <p>Top-down maze with stalker AI, stamina, and an escape elevator.</p>
+        <button class="button" data-target="backrooms">Enter Backrooms</button>
+      </div>
     </div>
-    <canvas id="fpsCanvas"></canvas>
   </div>
 
-  <div id="rhythm" class="section">
-    <h2>Just Shapes & Beats Web Edition</h2>
-    <p>Arrow keys or joystick to move, Shift=Dash, Space=Shield, Z=Burst. Music sync uses Blaze.mp3. Endless and boss patterns rotate.</p>
+  <div id="roblox" class="section">
+    <h2>Roblox API Integrations</h2>
+    <p>Enter a username to fetch mock data (offline-friendly). Each card mirrors the live endpoints in neon form.</p>
     <div class="control-row">
-      <select id="difficulty">
-        <option value="easy">Easy</option>
-        <option value="normal" selected>Normal</option>
-        <option value="hard">Hard</option>
-        <option value="endless">Endless</option>
+      <input id="rbxUser" placeholder="Roblox username">
+      <button class="button" id="rbxFetch">Fetch Profile</button>
+      <button class="button" data-target="portal">Back to Portals</button>
+    </div>
+    <div id="rbxResults" class="portal-grid"></div>
+  </div>
+
+  <div id="python" class="section">
+    <h2>Python Sandbox v6</h2>
+    <p>Pyodide runs fully in your browser. Save and load code locally.</p>
+    <div class="control-row">
+      <select id="theme">
+        <option value="midnight" selected>Midnight</option>
+        <option value="dracula">Dracula</option>
+        <option value="light">Light</option>
       </select>
-      <button class="button" id="startRhythm">Start / Restart</button>
-      <span class="badge">Score <span id="rhythmScore">0</span></span>
-      <span class="badge">HP <span id="rhythmHp">100</span>%</span>
+      <button class="button" id="runPy">Execute</button>
+      <button class="button" id="saveCode">Save</button>
+      <button class="button" id="loadCode">Load</button>
+      <button class="button" data-target="portal">Back to Portals</button>
     </div>
-    <canvas id="rhythmCanvas"></canvas>
+    <textarea id="pythonArea">print('Hello from Neon Pyodide!')
+for i in range(3):
+    print('beat', i)
+</textarea>
+    <pre id="pyOutput" class="neon-card" style="min-height:140px;overflow:auto;"></pre>
   </div>
 
-  <div id="miniverse" class="section">
-    <h2>50+ Minigame Universe</h2>
-    <p>Select a neon microgame. Each lasts 15 seconds; leaderboard & webhook logging triggered after completion.</p>
-    <div class="control-row">
-      <select id="minigameSelect"></select>
-      <button class="button" id="startMini">Start Minigame</button>
-      <span class="badge">Leaderboard</span> <span id="leaderboard"></span>
-    </div>
-    <div id="miniGameFrame"></div>
-  </div>
-
-  <div id="os" class="section">
-    <h2>Virtual OS Desktop</h2>
-    <div id="osDesktop">
-      <div id="boot" style="position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,0.7);font-family:Orbitron;font-size:32px;letter-spacing:6px;animation:fadeIn 1s forwards;">BOOTING NEONOS...</div>
-      <div class="os-icon" data-app="explorer">📁</div>
-      <div class="os-icon" data-app="terminal">>_</div>
-      <div class="os-icon" data-app="store">🛍️</div>
-      <div class="os-icon" data-app="settings">⚙️</div>
-      <div id="taskbar"></div>
-    </div>
-  </div>
-
-  <div id="backrooms" class="section">
-    <h2>3D Backrooms Maze</h2>
-    <p>Navigate the maze, avoid the stalker, find the glowing elevator. Shift to sprint; F toggles flashlight.</p>
-    <canvas id="backroomsCanvas"></canvas>
+  <div id="terminal" class="section">
+    <h2>AI Code Terminal</h2>
+    <div class="neon-card" id="terminalDisplay" style="min-height:220px;font-family:monospace;background:rgba(0,0,0,0.45);"></div>
+    <input id="terminalInput" placeholder="Type command (help/hack/generate/music/wipe/chaos/admin)" style="width:100%;margin-top:8px;">
+    <div style="margin-top:10px;"><button class="button" data-target="portal">Back to Portals</button></div>
   </div>
 
   <div id="chaos" class="section">
@@ -172,223 +182,209 @@ canvas { max-width: 100%; border-radius: 12px; }
       <button class="button" id="randomChaos">Random</button>
       <button class="button" id="speedToggle">Toggle Slowmo</button>
       <button class="button" id="saveGif">Save GIF</button>
+      <button class="button" data-target="portal">Back to Portals</button>
     </div>
     <canvas id="chaosCanvas"></canvas>
   </div>
 
-  <div id="terminal" class="section">
-    <h2>AI Code Terminal</h2>
-    <div class="neon-card" id="terminalDisplay" style="min-height:220px;font-family:monospace;background:rgba(0,0,0,0.4);"></div>
-    <input id="terminalInput" placeholder="Type command (help/hack/generate/music/wipe/chaos/admin)" style="width:100%;margin-top:8px;">
-  </div>
-
-  <div id="python" class="section">
-    <h2>Python Sandbox v6</h2>
-    <div class="control-row">
-      <select id="theme">
-        <option value="dracula">Dracula</option>
-        <option value="light">Light</option>
-        <option value="midnight" selected>Midnight</option>
-      </select>
-      <button class="button" id="runPy">Execute</button>
-      <button class="button" id="saveCode">Save</button>
-      <button class="button" id="loadCode">Load</button>
-    </div>
-    <textarea id="pythonArea">print('Hello from Neon Pyodide!')
-for i in range(3):
-    print('beat', i)
-</textarea>
-    <pre id="pyOutput" class="neon-card" style="min-height:140px;overflow:auto;"></pre>
-  </div>
-
-  <div id="roblox" class="section">
-    <h2>Roblox API Integrations</h2>
-    <p>Enter a username to fetch mock data (offline-friendly). Neon cards mimic the live API format.</p>
-    <div class="control-row">
-      <input id="rbxUser" placeholder="Roblox username">
-      <button class="button" id="rbxFetch">Fetch Profile</button>
-    </div>
-    <div id="rbxResults" class="grid"></div>
+  <div id="backrooms" class="section">
+    <h2>Backrooms Maze (Bird's Eye)</h2>
+    <p>Navigate the yellow maze from above. WASD to move, Shift to sprint. Reach the neon elevator while avoiding the stalker.</p>
+    <button class="button" data-target="portal">Back to Portals</button>
+    <canvas id="backroomsCanvas"></canvas>
   </div>
 </main>
-<div id="joystick"></div>
-<script src="https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.161.0/examples/js/controls/PointerLockControls.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.161.0/examples/js/controls/OrbitControls.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.161.0/examples/js/postprocessing/EffectComposer.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.161.0/examples/js/postprocessing/RenderPass.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.161.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
 <script>
-// Navigation
-const sections = ['fps','rhythm','miniverse','os','backrooms','chaos','terminal','python','roblox'];
+const sections = ['portal','roblox','python','terminal','chaos','backrooms'];
 const nav = document.getElementById('nav');
-sections.forEach(id=>{
+sections.filter(id=>id!=='portal').forEach(id=>{
   const btn=document.createElement('button');
   btn.textContent=id.toUpperCase();
-  btn.onclick=()=>{
-    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    nav.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-  };
-  if(id==='fps') btn.classList.add('active');
+  btn.onclick=()=>showSection(id);
   nav.appendChild(btn);
 });
+function showSection(id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  nav.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.textContent===id.toUpperCase()));
+}
+document.querySelectorAll('button[data-target]').forEach(btn=>btn.onclick=()=>showSection(btn.dataset.target));
 
-// --- FPS Sandbox ---
-const fpsCanvas=document.getElementById('fpsCanvas');
-let fpsRenderer, fpsScene, fpsCamera, controls, fpsComposer, targets=[]; let bullets=[];
-function initFPS(){
-  fpsRenderer=new THREE.WebGLRenderer({canvas:fpsCanvas, antialias:true});
-  resizeFPS();
-  fpsScene=new THREE.Scene();
-  fpsScene.background=new THREE.Color(0x04060b);
-  fpsCamera=new THREE.PerspectiveCamera(75,fpsCanvas.clientWidth/fpsCanvas.clientHeight,0.1,1000);
-  fpsCamera.position.set(0,1.6,5);
-  controls=new THREE.PointerLockControls(fpsCamera,fpsCanvas);
-  fpsCanvas.addEventListener('click',()=>controls.lock());
-  const ambient=new THREE.AmbientLight(0x88ddff,0.8); fpsScene.add(ambient);
-  const dir=new THREE.DirectionalLight(0x55aaff,0.6); dir.position.set(5,10,2); fpsScene.add(dir);
-  const floor=new THREE.Mesh(new THREE.PlaneGeometry(100,100), new THREE.MeshStandardMaterial({color:0x0a1016, emissive:0x0a1016, metalness:0.6, roughness:0.2}));
-  floor.rotation.x=-Math.PI/2; fpsScene.add(floor);
-  for(let i=0;i<18;i++) addTarget();
-  fpsComposer=new THREE.EffectComposer(fpsRenderer);
-  fpsComposer.addPass(new THREE.RenderPass(fpsScene,fpsCamera));
-  const bloom=new THREE.UnrealBloomPass(new THREE.Vector2(fpsCanvas.clientWidth,fpsCanvas.clientHeight),0.6,0.4,0.85);
-  fpsComposer.addPass(bloom);
-  document.addEventListener('pointerlockchange',()=>{});
+// Roblox mock
+function renderRoblox(user){
+  const wrap=document.getElementById('rbxResults');
+  wrap.innerHTML='';
+  const cards=[
+    {title:'Profile',body:`User: ${user}<br>Followers: ${Math.floor(Math.random()*100000)}`},
+    {title:'Friends',body:'Friends list loaded (mock).'},
+    {title:'Groups',body:'Member of Neon Devs, GlassWorks.'},
+    {title:'Badges',body:'Sparkle, Speedrunner'},
+    {title:'Presence',body:'Online | In-Game'},
+    {title:'RAP',body:`${Math.floor(Math.random()*50000)} value`}
+  ];
+  cards.forEach(c=>{
+    const div=document.createElement('div');
+    div.className='portal-card';
+    div.innerHTML=`<h3>${c.title}</h3><p>${c.body}</p>`;
+    wrap.appendChild(div);
+  });
 }
-function addTarget(){
-  const geo=new THREE.BoxGeometry(1,1,1);
-  const mat=new THREE.MeshStandardMaterial({color:new THREE.Color(`hsl(${Math.random()*360},100%,60%)`), emissive:0x00f0ff, emissiveIntensity:0.2});
-  const mesh=new THREE.Mesh(geo,mat);
-  mesh.position.set((Math.random()*30-15), 1+Math.random()*2, (Math.random()*30-15));
-  mesh.userData.health=3;
-  fpsScene.add(mesh); targets.push(mesh);
+document.getElementById('rbxFetch').onclick=()=>{
+  const user=document.getElementById('rbxUser').value || 'Builderman';
+  renderRoblox(user);
+};
+
+// AI terminal
+const termDisplay=document.getElementById('terminalDisplay');
+const termInput=document.getElementById('terminalInput');
+function termPrint(text){
+  const line=document.createElement('div');
+  line.textContent=text;
+  line.style.padding='4px';
+  line.style.animation='fadeIn 0.3s';
+  termDisplay.appendChild(line);
+  termDisplay.scrollTop=termDisplay.scrollHeight;
 }
-const keys={};
-document.addEventListener('keydown',e=>{keys[e.code]=true; if(e.code==='KeyF') inspectGun(); if(e.code==='KeyR') reloadGun();});
-document.addEventListener('keyup',e=>{keys[e.code]=false;});
-function moveFPS(delta){
-  if(!controls.isLocked) return; const speed=6;
-  const sens=parseFloat(document.getElementById('sens').value);
-  controls.pointerSpeed=sens*0.5;
-  const dir=new THREE.Vector3();
-  if(keys['KeyW']) controls.moveForward(speed*delta);
-  if(keys['KeyS']) controls.moveForward(-speed*delta);
-  if(keys['KeyA']) controls.moveRight(-speed*delta);
-  if(keys['KeyD']) controls.moveRight(speed*delta);
+termPrint('NEOTERM ready. Type help.');
+termInput.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    const cmd=termInput.value.trim();
+    termInput.value='';
+    handleTerm(cmd);
+  }
+});
+function handleTerm(cmd){
+  termPrint('> '+cmd);
+  const replies={
+    help:'Commands: help, hack, generate, music, wipe, chaos, admin',
+    hack:'Attempting breach...ACCESS GRANTED',
+    generate:'Synthesizing code fractals...',
+    music:'Playing neon beat',
+    wipe:'Logs wiped',
+    chaos:'Triggering random disasters',
+    admin:'Secret mode unlocked!'
+  };
+  termPrint(replies[cmd]||'Unknown command');
+  if(cmd==='chaos') addChaos(['meteor','explosion'][Math.floor(Math.random()*2)]);
 }
-fpsCanvas.addEventListener('mousedown',shoot);
-function shoot(){
-  if(!controls.isLocked) return;
-  const ray=new THREE.Raycaster();
-  ray.setFromCamera(new THREE.Vector2(0,0), fpsCamera);
-  const hits=ray.intersectObjects(targets);
-  if(hits[0]){
-    const obj=hits[0].object; obj.userData.health--; obj.material.emissiveIntensity=0.8;
-    setTimeout(()=>obj.material.emissiveIntensity=0.2,150);
-    if(obj.userData.health<=0){
-      fpsScene.remove(obj); targets=targets.filter(t=>t!==obj); addTarget();
-    }
+
+// Python sandbox
+let pyReady=false; let pyodide;
+async function loadPy(){
+  pyodide=await loadPyodide();
+  pyReady=true;
+}
+loadPy();
+async function runPy(){
+  if(!pyReady){ document.getElementById('pyOutput').textContent='Loading Pyodide...'; return; }
+  const code=document.getElementById('pythonArea').value;
+  try {
+    const result=await pyodide.runPythonAsync(code);
+    document.getElementById('pyOutput').textContent=String(result);
+  } catch(err){
+    document.getElementById('pyOutput').textContent=err;
   }
 }
-function inspectGun(){ fpsCamera.rotation.z=0.1; setTimeout(()=>fpsCamera.rotation.z=0,150); }
-function reloadGun(){ const flash=new THREE.PointLight(0xff00ff,2,6); fpsCamera.add(flash); setTimeout(()=>flash.parent&&fpsCamera.remove(flash),250); }
-function resizeFPS(){
-  const w=fpsCanvas.clientWidth, h=480; fpsRenderer?.setSize(w,h,false); fpsCamera?.aspect=w/h; fpsCamera?.updateProjectionMatrix();
-}
-window.addEventListener('resize',()=>{resizeFPS(); fpsComposer?.setSize(fpsCanvas.clientWidth,480);});
-let last=performance.now();
-function fpsLoop(now){
-  const delta=(now-last)/1000; last=now; moveFPS(delta);
-  fpsComposer?.render(); requestAnimationFrame(fpsLoop);
-}
+document.getElementById('runPy').onclick=runPy;
+document.getElementById('saveCode').onclick=()=>localStorage.setItem('neon-code',document.getElementById('pythonArea').value);
+document.getElementById('loadCode').onclick=()=>{ const v=localStorage.getItem('neon-code'); if(v) document.getElementById('pythonArea').value=v; };
 
-// --- Rhythm Shooter ---
-const rhythmCanvas=document.getElementById('rhythmCanvas');
-const rCtx=rhythmCanvas.getContext('2d');
-let rhythmPlayer={x:160,y:160,vx:0,vy:0,hp:100,score:0};
-let rhythmEnemies=[]; let rhythmProjectiles=[]; let music;
-function resetRhythm(){ rhythmPlayer={x:rhythmCanvas.width/2,y:rhythmCanvas.height-60,vx:0,vy:0,hp:100,score:0}; rhythmEnemies=[]; rhythmProjectiles=[]; spawnRhythmWave(); updateRhythmUI(); playMusic(); }
-function playMusic(){ if(!music){ music=new Audio('Blaze.mp3'); music.loop=true;} music.currentTime=0; music.play(); }
-function spawnRhythmWave(){ const mode=document.getElementById('difficulty').value; const count=mode==='hard'?14:mode==='normal'?9:6; for(let i=0;i<count;i++){ rhythmEnemies.push({type:i%3===0?'laser':i%3===1?'circle':'pellet', t:0, x:Math.random()*rhythmCanvas.width, y:-20, alive:true}); } }
-function updateRhythmUI(){ document.getElementById('rhythmHp').textContent=rhythmPlayer.hp; document.getElementById('rhythmScore').textContent=rhythmPlayer.score; }
-let joystickVec={x:0,y:0};
-function rhythmLoop(){ rCtx.clearRect(0,0,rhythmCanvas.width,rhythmCanvas.height);
-  // player
-  rCtx.fillStyle='rgba(0,255,255,0.8)';
-  rCtx.beginPath(); rCtx.arc(rhythmPlayer.x, rhythmPlayer.y, 10, 0, Math.PI*2); rCtx.fill();
-  // movement
-  const accX=(keys['ArrowRight']?-1:0)+(keys['ArrowLeft']?1:0);
-  const accY=(keys['ArrowDown']?-1:0)+(keys['ArrowUp']?1:0);
-  const j=joystickVec; rhythmPlayer.vx=(accX*-1 + j.x*0.8)*4; rhythmPlayer.vy=(accY*-1 + j.y*0.8)*4;
-  rhythmPlayer.x+=rhythmPlayer.vx; rhythmPlayer.y+=rhythmPlayer.vy;
-  rhythmPlayer.x=Math.max(12,Math.min(rhythmCanvas.width-12,rhythmPlayer.x));
-  rhythmPlayer.y=Math.max(12,Math.min(rhythmCanvas.height-12,rhythmPlayer.y));
-  // abilities
-  if(keys['ShiftLeft']) { rCtx.strokeStyle='rgba(255,29,209,0.7)'; rCtx.strokeRect(rhythmPlayer.x-14,rhythmPlayer.y-14,28,28); }
-  if(keys['Space']) { rCtx.strokeStyle='rgba(0,255,255,0.7)'; rCtx.beginPath(); rCtx.arc(rhythmPlayer.x,rhythmPlayer.y,18,0,Math.PI*2); rCtx.stroke(); }
-  if(keys['KeyZ']) { rhythmProjectiles.push({x:rhythmPlayer.x,y:rhythmPlayer.y-10,v:-7}); keys['KeyZ']=false; }
-  // projectiles
-  rhythmProjectiles.forEach(p=>{ p.y+=p.v; rCtx.fillStyle='rgba(255,255,255,0.8)'; rCtx.fillRect(p.x-2,p.y-8,4,12); });
-  rhythmProjectiles=rhythmProjectiles.filter(p=>p.y>-20);
-  // enemies
-  rhythmEnemies.forEach(e=>{ e.t+=1; if(!e.alive)return; if(e.type==='laser'){ const width=40+Math.sin(e.t/20)*20; rCtx.fillStyle='rgba(255,0,0,0.4)'; rCtx.fillRect(e.x-width/2,0,width,rhythmCanvas.height); if(e.t%120===0) rhythmPlayer.hp-=5; }
-    if(e.type==='circle'){ const r=40+Math.sin(e.t/10)*20; rCtx.strokeStyle='rgba(255,255,0,0.6)'; rCtx.beginPath(); rCtx.arc(e.x, rhythmCanvas.height/2, r, 0, Math.PI*2); rCtx.stroke(); }
-    if(e.type==='pellet'){ e.y+=1.5; rCtx.fillStyle='rgba(255,128,0,0.8)'; rCtx.beginPath(); rCtx.arc(e.x,e.y,8,0,Math.PI*2); rCtx.fill(); if(e.t>300) { for(let i=0;i<6;i++){ rhythmProjectiles.push({x:e.x,y:e.y,v:(Math.random()*4-2)}); } e.alive=false; }
+document.getElementById('theme').onchange=(e)=>{
+  const val=e.target.value;
+  const area=document.getElementById('pythonArea');
+  if(val==='light'){ area.style.background='#f7f7ff'; area.style.color='#050510'; }
+  else if(val==='dracula'){ area.style.background='#1e1b2e'; area.style.color='#e8f7ff'; }
+  else { area.style.background='rgba(255,255,255,0.05)'; area.style.color='#e8f7ff'; }
+};
+
+// Chaos simulator
+const chaosCanvas=document.getElementById('chaosCanvas');
+const cCtx=chaosCanvas.getContext('2d');
+let actors=[]; let slowmo=false; let chaosEvents=[];
+function initChaos(){ actors=Array.from({length:24}).map(()=>({x:Math.random()*chaosCanvas.width,y:Math.random()*chaosCanvas.height,vx:0,vy:0})); }
+function addChaos(type){ chaosEvents.push({type,t:0,x:Math.random()*chaosCanvas.width,y:Math.random()*chaosCanvas.height}); }
+function chaosLoop(){
+  cCtx.fillStyle='rgba(0,0,0,0.6)';
+  cCtx.fillRect(0,0,chaosCanvas.width,chaosCanvas.height);
+  chaosEvents.forEach(e=>{
+    e.t++;
+    if(e.type==='meteor'){
+      cCtx.fillStyle='#ff8800';
+      cCtx.beginPath(); cCtx.arc(e.x,e.y,12,0,Math.PI*2); cCtx.fill();
+      actors.forEach(a=>{ a.vx+=(a.x-e.x)*0.0005; a.vy+=(a.y-e.y)*0.0005;});
     }
-    // collision
-    const dist=Math.hypot(rhythmPlayer.x-e.x, rhythmPlayer.y-(e.y||rhythmCanvas.height/2));
-    if(dist<18 && e.alive){ rhythmPlayer.hp-=1; }
-    rhythmProjectiles.forEach(p=>{ if(Math.hypot(p.x-e.x,p.y-e.y)<12){ e.alive=false; rhythmPlayer.score+=5; }});
+    if(e.type==='tornado'){
+      cCtx.strokeStyle='#0ff';
+      cCtx.beginPath(); cCtx.arc(e.x,e.y,20+Math.sin(e.t/5)*10,0,Math.PI*2); cCtx.stroke();
+      actors.forEach(a=>{ a.vx+=Math.sin(e.t/10)*0.2; a.vy+=Math.cos(e.t/10)*0.2; });
+    }
+    if(e.type==='quake'){
+      if(e.t<60){
+        cCtx.fillStyle='rgba(255,255,255,0.1)'; cCtx.fillRect(0,0,chaosCanvas.width,chaosCanvas.height);
+        actors.forEach(a=>{ a.vx+=(Math.random()-0.5)*0.4; a.vy+=(Math.random()-0.5)*0.4;});
+      }
+    }
+    if(e.type==='explosion'){
+      cCtx.fillStyle=`rgba(255,46,212,${Math.max(0,1-e.t/40)})`;
+      cCtx.beginPath(); cCtx.arc(e.x,e.y,e.t*2,0,Math.PI*2); cCtx.fill();
+      actors.forEach(a=>{ const dx=a.x-e.x, dy=a.y-e.y; const dist=Math.hypot(dx,dy)+1; a.vx+=dx/dist*0.8; a.vy+=dy/dist*0.8; });
+    }
   });
-  rhythmEnemies=rhythmEnemies.filter(e=>e.alive||e.type!=='pellet');
-  if(rhythmEnemies.every(e=>!e.alive)) spawnRhythmWave();
-  if(rhythmPlayer.hp<=0){ resetRhythm(); }
-  updateRhythmUI();
-  requestAnimationFrame(rhythmLoop);
+  chaosEvents=chaosEvents.filter(e=>e.t<120);
+  actors.forEach(a=>{
+    a.x+=a.vx*(slowmo?0.5:1);
+    a.y+=a.vy*(slowmo?0.5:1);
+    a.vx*=0.98; a.vy*=0.98;
+    if(a.x<0||a.x>chaosCanvas.width) a.vx*=-1;
+    if(a.y<0||a.y>chaosCanvas.height) a.vy*=-1;
+    cCtx.fillStyle='#a0f';
+    cCtx.fillRect(a.x-4,a.y-4,8,8);
+  });
+  requestAnimationFrame(chaosLoop);
 }
+document.querySelectorAll('#chaos .button[data-disaster]').forEach(btn=>btn.onclick=()=>addChaos(btn.dataset.disaster));
+document.getElementById('randomChaos').onclick=()=>addChaos(['meteor','tornado','quake','explosion'][Math.floor(Math.random()*4)]);
+document.getElementById('speedToggle').onclick=()=>slowmo=!slowmo;
+document.getElementById('saveGif').onclick=()=>alert('GIF capture requires external lib; simulate saved.');
 
-// --- Minigames ---
-const miniSelect=document.getElementById('minigameSelect');
-const miniFrame=document.getElementById('miniGameFrame');
-let leaderboardData=[];
-const miniGames=Array.from({length:50}).map((_,i)=>({name:`Neon Challenge ${i+1}`,desc:['Click the orb','Solve math','Dodge neon','Type word'][i%4],type:['click','math','dodge','type'][i%4]}));
-miniGames.push({name:'Puzzle Grid',desc:'Memorize pattern',type:'memory'});
-miniGames.forEach(m=>{ const opt=document.createElement('option'); opt.value=m.name; opt.textContent=m.name; miniSelect.appendChild(opt); });
-let miniTimer;
-function startMini(){ const selected=miniGames.find(m=>m.name===miniSelect.value) || miniGames[0]; renderMini(selected); }
-function renderMini(game){ clearTimeout(miniTimer); miniFrame.innerHTML=`<div class="neon-card"><h3>${game.name}</h3><p>${game.desc}</p><div id="miniArea"></div><div class="badge" id="miniStatus">Ready</div></div>`; const area=document.getElementById('miniArea'); const status=document.getElementById('miniStatus'); let score=0;
-  if(game.type==='click'){ const orb=document.createElement('div'); orb.style.width='60px'; orb.style.height='60px'; orb.style.borderRadius='50%'; orb.style.background='conic-gradient(from 90deg, #0ff, #ff1dd1)'; orb.style.boxShadow='0 0 25px #0ff'; orb.style.margin='20px auto'; orb.style.cursor='pointer'; orb.onclick=()=>{score++; status.textContent='Score '+score;}; area.appendChild(orb); }
-  if(game.type==='math'){ const a=Math.floor(Math.random()*20), b=Math.floor(Math.random()*20); const input=document.createElement('input'); input.placeholder=`${a}+${b} = ?`; area.appendChild(input); const btn=document.createElement('button'); btn.textContent='Submit'; btn.className='button'; btn.onclick=()=>{ if(parseInt(input.value)==a+b){ score++; status.textContent='Correct!'; } else status.textContent='Wrong';}; area.appendChild(btn); }
-  if(game.type==='dodge'){ const canvas=document.createElement('canvas'); canvas.width=320; canvas.height=180; area.appendChild(canvas); const ctx=canvas.getContext('2d'); let px=160,py=90,obs=[]; function loop(){ ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,320,180); ctx.fillStyle='#0ff'; ctx.fillRect(px-6,py-6,12,12); if(Math.random()<0.03) obs.push({x:Math.random()*320,y:-10}); obs.forEach(o=>{o.y+=2; ctx.fillStyle='#ff1dd1'; ctx.fillRect(o.x-4,o.y-4,8,8); if(Math.hypot(px-o.x,py-o.y)<10) score--;}); obs=obs.filter(o=>o.y<200); requestAnimationFrame(loop);} loop(); canvas.addEventListener('mousemove',e=>{const rect=canvas.getBoundingClientRect(); px=e.clientX-rect.left; py=e.clientY-rect.top;}); status.textContent='Dodge to keep score'; }
-  if(game.type==='type'){ const word=['neon','glow','beat','glass'][Math.floor(Math.random()*4)]; const input=document.createElement('input'); input.placeholder=word; area.appendChild(input); input.addEventListener('input',()=>{ if(input.value.toLowerCase()===word){ score++; status.textContent='Typed!'; }}); }
-  if(game.type==='memory'){ const grid=document.createElement('div'); grid.style.display='grid'; grid.style.gridTemplateColumns='repeat(4,1fr)'; grid.style.gap='8px'; area.appendChild(grid); const pattern=[0,3,5,8]; const cells=[...Array(12).keys()]; cells.forEach(i=>{ const c=document.createElement('div'); c.style.background='rgba(255,255,255,0.05)'; c.style.height='40px'; c.style.border='1px solid rgba(255,255,255,0.2)'; c.onclick=()=>{ if(pattern.includes(i)){ c.style.background='#0ff'; score++; } else { c.style.background='#ff1d1d'; score--; } status.textContent='Score '+score;}; grid.appendChild(c); }); pattern.forEach((idx,k)=>{ setTimeout(()=>grid.children[idx].style.background='#ff1dd1',200*k); setTimeout(()=>grid.children[idx].style.background='rgba(255,255,255,0.05)',1200); }); }
-  miniTimer=setTimeout(()=>{ status.textContent='Finished score '+score; leaderboardData.push({name:game.name,score}); updateLeaderboard(); sendWebhook(game.name,score); },15000);
-}
-function updateLeaderboard(){ leaderboardData.sort((a,b)=>b.score-a.score); document.getElementById('leaderboard').textContent=leaderboardData.slice(0,5).map(l=>`${l.name}:${l.score}`).join(' | '); }
-async function sendWebhook(game,score){ const url='https://example.com/webhook'; try{ await fetch(url,{method:'POST',body:JSON.stringify({game,score,time:new Date().toISOString()})}); }catch(err){ console.warn('Webhook blocked in sandbox',err); }}
-
-// --- Virtual OS ---
-const osDesktop=document.getElementById('osDesktop');
-const taskbar=document.getElementById('taskbar');
-function boot(){ setTimeout(()=>document.getElementById('boot').style.display='none',1500); }
-function openWindow(title,content){ const win=document.createElement('div'); win.className='window'; win.style.left=(40+Math.random()*160)+'px'; win.style.top=(40+Math.random()*160)+'px'; win.innerHTML=`<header><h4>${title}</h4></header><div style="padding:10px;font-size:13px;">${content}</div>`; osDesktop.appendChild(win); const task=document.createElement('div'); task.textContent=title; task.className='badge'; taskbar.appendChild(task); }
-osDesktop.querySelectorAll('.os-icon').forEach(i=>i.onclick=()=>{ const app=i.dataset.app; if(app==='explorer') openWindow('Explorer','Files are simulated.'); if(app==='terminal') openWindow('NeoTerm','> help\n> hack'); if(app==='store') openWindow('Store','Apps: Synth, Paint, Retro.'); if(app==='settings') openWindow('Settings','Toggle neon glow, desktop widgets.'); });
-boot();
-
-// --- Backrooms ---
+// Backrooms top-down
 const backCanvas=document.getElementById('backroomsCanvas');
-const bCtx=backCanvas.getContext('2d'); let maze=[], player={x:1,y:1,stamina:100}, stalker={x:5,y:5};
-function generateMaze(){ const w=21,h=21; maze=[...Array(h)].map(()=>Array(w).fill(1)); function carve(x,y){ const dirs=[[1,0],[-1,0],[0,1],[0,-1]].sort(()=>Math.random()-0.5); maze[y][x]=0; dirs.forEach(([dx,dy])=>{ const nx=x+dx*2, ny=y+dy*2; if(nx>0&&ny>0&&nx<w-1&&ny<h-1&&maze[ny][nx]===1){ maze[y+dy][x+dx]=0; carve(nx,ny);} }); }
+const bCtx=backCanvas.getContext('2d');
+let maze=[], player={x:1,y:1,stamina:100}, stalker={x:5,y:5};
+function generateMaze(){
+  const w=23,h=23; maze=[...Array(h)].map(()=>Array(w).fill(1));
+  function carve(x,y){
+    const dirs=[[1,0],[-1,0],[0,1],[0,-1]].sort(()=>Math.random()-0.5);
+    maze[y][x]=0;
+    dirs.forEach(([dx,dy])=>{
+      const nx=x+dx*2, ny=y+dy*2;
+      if(nx>0&&ny>0&&nx<w-1&&ny<h-1&&maze[ny][nx]===1){
+        maze[y+dy][x+dx]=0; carve(nx,ny);
+      }
+    });
+  }
   carve(1,1); player={x:1,y:1,stamina:100}; stalker={x:w-2,y:h-2};
 }
-function backroomsLoop(){ bCtx.fillStyle='rgba(255,255,120,0.05)'; bCtx.fillRect(0,0,backCanvas.width,backCanvas.height); const cell=24; for(let y=0;y<maze.length;y++) for(let x=0;x<maze[0].length;x++){ if(maze[y][x]===1){ bCtx.fillStyle='rgba(255,255,0,0.18)'; bCtx.fillRect(x*cell,y*cell,cell,cell);} }
-  const speed=keys['ShiftLeft']&&player.stamina>0?0.08:0.04; if(keys['ShiftLeft']) player.stamina=Math.max(0,player.stamina-0.2); else player.stamina=Math.min(100,player.stamina+0.1);
-  const dx=(keys['KeyD']?1:0)-(keys['KeyA']?1:0); const dy=(keys['KeyS']?1:0)-(keys['KeyW']?1:0);
-  const nx=player.x+dx*speed*60, ny=player.y+dy*speed*60; if(maze[Math.round(ny)]?.[Math.round(nx)]===0){ player.x=nx; player.y=ny; }
+const keys={};
+document.addEventListener('keydown',e=>{ keys[e.code]=true; });
+document.addEventListener('keyup',e=>{ keys[e.code]=false; });
+function backroomsLoop(){
+  const cell=26;
+  bCtx.fillStyle='rgba(255,255,120,0.05)';
+  bCtx.fillRect(0,0,backCanvas.width,backCanvas.height);
+  for(let y=0;y<maze.length;y++) for(let x=0;x<maze[0].length;x++){
+    if(maze[y][x]===1){
+      bCtx.fillStyle='rgba(255,255,0,0.18)';
+      bCtx.fillRect(x*cell,y*cell,cell,cell);
+    }
+  }
+  const speed=keys['ShiftLeft']&&player.stamina>0?0.08:0.04;
+  if(keys['ShiftLeft']) player.stamina=Math.max(0,player.stamina-0.2); else player.stamina=Math.min(100,player.stamina+0.1);
+  const dx=(keys['KeyD']?1:0)-(keys['KeyA']?1:0);
+  const dy=(keys['KeyS']?1:0)-(keys['KeyW']?1:0);
+  const nx=player.x+dx*speed*60, ny=player.y+dy*speed*60;
+  if(maze[Math.round(ny)]?.[Math.round(nx)]===0){ player.x=nx; player.y=ny; }
   stalker.x+=(player.x-stalker.x)*0.002; stalker.y+=(player.y-stalker.y)*0.002;
   bCtx.fillStyle='rgba(255,0,0,0.8)'; bCtx.fillRect(stalker.x*cell, stalker.y*cell, cell, cell);
   bCtx.fillStyle='rgba(255,255,255,0.9)'; bCtx.fillRect(player.x*cell, player.y*cell, cell, cell);
@@ -398,63 +394,12 @@ function backroomsLoop(){ bCtx.fillStyle='rgba(255,255,120,0.05)'; bCtx.fillRect
   requestAnimationFrame(backroomsLoop);
 }
 
-// --- Chaos Simulator ---
-const chaosCanvas=document.getElementById('chaosCanvas'); const cCtx=chaosCanvas.getContext('2d'); let actors=[]; let slowmo=false; let chaosEvents=[];
-function initChaos(){ actors=Array.from({length:24}).map(()=>({x:Math.random()*chaosCanvas.width,y:Math.random()*chaosCanvas.height,vx:0,vy:0})); }
-function addChaos(type){ chaosEvents.push({type,t:0,x:Math.random()*chaosCanvas.width,y:Math.random()*chaosCanvas.height}); }
-function chaosLoop(){ cCtx.fillStyle='rgba(0,0,0,0.6)'; cCtx.fillRect(0,0,chaosCanvas.width,chaosCanvas.height);
-  chaosEvents.forEach(e=>{ e.t++; if(e.type==='meteor'){ cCtx.fillStyle='#ff8800'; cCtx.beginPath(); cCtx.arc(e.x,e.y,12,0,Math.PI*2); cCtx.fill(); actors.forEach(a=>{ a.vx+=(a.x-e.x)*0.0005; a.vy+=(a.y-e.y)*0.0005;}); }
-    if(e.type==='tornado'){ cCtx.strokeStyle='#0ff'; cCtx.beginPath(); cCtx.arc(e.x,e.y,20+Math.sin(e.t/5)*10,0,Math.PI*2); cCtx.stroke(); actors.forEach(a=>{ a.vx+=Math.sin(e.t/10)*0.2; a.vy+=Math.cos(e.t/10)*0.2; }); }
-    if(e.type==='quake'){ if(e.t<60){ cCtx.fillStyle='rgba(255,255,255,0.1)'; cCtx.fillRect(0,0,chaosCanvas.width,chaosCanvas.height); actors.forEach(a=>{ a.vx+=(Math.random()-0.5)*0.4; a.vy+=(Math.random()-0.5)*0.4;}); } }
-    if(e.type==='explosion'){ cCtx.fillStyle=`rgba(255,29,209,${Math.max(0,1-e.t/40)})`; cCtx.beginPath(); cCtx.arc(e.x,e.y,e.t*2,0,Math.PI*2); cCtx.fill(); actors.forEach(a=>{ const dx=a.x-e.x, dy=a.y-e.y; const dist=Math.hypot(dx,dy)+1; a.vx+=dx/dist*0.8; a.vy+=dy/dist*0.8; }); }
-  });
-  chaosEvents=chaosEvents.filter(e=>e.t<120);
-  actors.forEach(a=>{ a.x+=a.vx*(slowmo?0.5:1); a.y+=a.vy*(slowmo?0.5:1); a.vx*=0.98; a.vy*=0.98; if(a.x<0||a.x>chaosCanvas.width) a.vx*=-1; if(a.y<0||a.y>chaosCanvas.height) a.vy*=-1; cCtx.fillStyle='#a0f'; cCtx.fillRect(a.x-4,a.y-4,8,8); });
-  requestAnimationFrame(chaosLoop);
-}
-document.querySelectorAll('#chaos .button[data-disaster]').forEach(btn=>btn.onclick=()=>addChaos(btn.dataset.disaster));
-document.getElementById('randomChaos').onclick=()=>['meteor','tornado','quake','explosion'][Math.floor(Math.random()*4)]&&addChaos(['meteor','tornado','quake','explosion'][Math.floor(Math.random()*4)]);
-document.getElementById('speedToggle').onclick=()=>slowmo=!slowmo;
-document.getElementById('saveGif').onclick=()=>alert('GIF capture requires external lib; simulate saved.');
-
-// --- AI Terminal ---
-const termDisplay=document.getElementById('terminalDisplay'); const termInput=document.getElementById('terminalInput');
-function termPrint(text){ const line=document.createElement('div'); line.textContent=text; line.style.padding='4px'; line.style.animation='fadeIn 0.3s'; termDisplay.appendChild(line); termDisplay.scrollTop=termDisplay.scrollHeight; }
-termPrint('NEOTERM ready. Type help.');
-termInput.addEventListener('keydown',e=>{ if(e.key==='Enter'){ const cmd=termInput.value.trim(); termInput.value=''; handleTerm(cmd); } });
-function handleTerm(cmd){ termPrint('> '+cmd); const replies={help:'Commands: help, hack, generate, music, wipe, chaos, admin', hack:'Attempting breach...ACCESS GRANTED', generate:'Synthesizing code fractals...', music:'Playing neon beat (use rhythm tab!)', wipe:'Logs wiped', chaos:'Triggering random disasters', admin:'Secret mode unlocked!'}; termPrint(replies[cmd]||'Unknown command'); if(cmd==='chaos') addChaos(['meteor','explosion'][Math.floor(Math.random()*2)]); }
-
-// --- Python Sandbox ---
-let pyReady=false; let pyodide;
-async function loadPy(){ pyodide=await loadPyodide(); pyReady=true; }
-loadPy();
-async function runPy(){ if(!pyReady){ document.getElementById('pyOutput').textContent='Loading Pyodide...'; return; } const code=document.getElementById('pythonArea').value; try{ const result=await pyodide.runPythonAsync(code); document.getElementById('pyOutput').textContent=String(result); }catch(err){ document.getElementById('pyOutput').textContent=err; }}
-document.getElementById('runPy').onclick=runPy;
-document.getElementById('saveCode').onclick=()=>localStorage.setItem('neon-code',document.getElementById('pythonArea').value);
-document.getElementById('loadCode').onclick=()=>{ const v=localStorage.getItem('neon-code'); if(v) document.getElementById('pythonArea').value=v; };
-
-// --- Roblox Mock ---
-document.getElementById('rbxFetch').onclick=()=>{ const user=document.getElementById('rbxUser').value||'Builderman'; const wrap=document.getElementById('rbxResults'); wrap.innerHTML=''; const cards=[{title:'Profile',body:`User: ${user}<br>Followers: ${Math.floor(Math.random()*1e5)}`},{title:'Friends',body:'Friends list loaded (mock).'},{title:'Groups',body:'Member of Neon Devs, GlassWorks.'},{title:'Badges',body:'Sparkle, Speedrunner'},{title:'Presence',body:'Online | In-Game'},{title:'RAP',body:`${Math.floor(Math.random()*50000)} value`}]; cards.forEach(c=>{ const div=document.createElement('div'); div.className='neon-card'; div.innerHTML=`<h3>${c.title}</h3><p>${c.body}</p>`; wrap.appendChild(div); }); };
-
-// --- Joystick ---
-const joystick=document.getElementById('joystick'); let joystickActive=false; let startPos=null;
-joystick.addEventListener('touchstart',e=>{ joystickActive=true; startPos={x:e.touches[0].clientX,y:e.touches[0].clientY};});
-joystick.addEventListener('touchmove',e=>{ if(!joystickActive)return; const dx=e.touches[0].clientX-startPos.x; const dy=e.touches[0].clientY-startPos.y; joystickVec={x:Math.max(-1,Math.min(1,dx/40)), y:Math.max(-1,Math.min(1,dy/40))}; });
-joystick.addEventListener('touchend',()=>{ joystickActive=false; joystickVec={x:0,y:0}; });
-
-// Initialize scenes
-rhythmCanvas.width=rhythmCanvas.clientWidth; rhythmCanvas.height=360;
-backCanvas.width=backCanvas.clientWidth; backCanvas.height=maze.length?backCanvas.height:504;
-chaosCanvas.width=chaosCanvas.clientWidth; chaosCanvas.height=480;
-initFPS(); fpsLoop(performance.now());
-rhythmLoop();
-resetRhythm();
+// Init
+backCanvas.width=backCanvas.clientWidth; backCanvas.height=maze.length?backCanvas.height:600;
+chaosCanvas.width=chaosCanvas.clientWidth; chaosCanvas.height=420;
 initChaos(); chaosLoop();
 generateMaze(); backroomsLoop();
-
-// Nav buttons
- document.getElementById('startRhythm').onclick=resetRhythm;
- document.getElementById('startMini').onclick=startMini;
+showSection('portal');
 </script>
 </body>
 </html>
