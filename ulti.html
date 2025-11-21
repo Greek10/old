@@ -211,6 +211,31 @@ for i in range(3):
     <button class="button" data-target="portal">Back to Portals</button>
     <canvas id="backroomsCanvas"></canvas>
   </div>
+
+  <!-- SHOW ALL POPUP -->
+  <div id="popupOverlay" style="
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.65);
+    display:none; justify-content:center; align-items:center;
+    z-index:200;
+    backdrop-filter:blur(6px);
+  ">
+    <div style="
+      background:rgba(255,255,255,0.07);
+      border:1px solid rgba(0,255,255,0.35);
+      padding:20px;
+      border-radius:14px;
+      width:90%; max-width:600px;
+      max-height:70vh;
+      overflow:auto;
+      box-shadow:0 0 22px rgba(0,255,255,0.25);
+    ">
+      <h2 id="popupTitle" style="margin-top:0;"></h2>
+      <div id="popupContent" style="line-height:1.5;"></div>
+      <button class="button" onclick="closePopup()" style="margin-top:15px;">Close</button>
+    </div>
+  </div>
+
 </main>
 <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
 <script>
@@ -231,6 +256,20 @@ function showSection(id){
 }
 document.querySelectorAll('button[data-target]').forEach(btn=>btn.onclick=()=>showSection(btn.dataset.target));
 
+// Popup helpers for Show All
+function showPopup(title, items) {
+  const overlay = document.getElementById('popupOverlay');
+  document.getElementById('popupTitle').textContent = title;
+  document.getElementById('popupContent').innerHTML =
+    (items && items.length)
+      ? items.map(x => `<div style="padding:4px 0;">${x}</div>`).join('')
+      : '<p>No data.</p>';
+  overlay.style.display = 'flex';
+}
+function closePopup() {
+  document.getElementById('popupOverlay').style.display = 'none';
+}
+
 // Roblox live data via RoProxy + multiple fallbacks
 const rbxBtn=document.getElementById('rbxFetch');
 const proxyWrap=url=>`https://corsproxy.io/?${encodeURIComponent(url)}`;
@@ -241,7 +280,7 @@ async function fetchJson(url,opts){
   return await res.json();
 }
 
-/* ✅ FIXED: username endpoints */
+// FIXED username endpoints (no broken search endpoint)
 const usernameEndpoints=[
   'https://users.roproxy.com/v1/usernames/users',
   'https://users.rprxy.xyz/v1/usernames/users',
@@ -257,7 +296,7 @@ function withHost(path){
   return rbxHosts.map(base=>`${base}${path}`);
 }
 
-/* ✅ FIXED: lookupUser – simpler, correct payload, no broken search fallback */
+// FIXED lookupUser – correct payload, simpler logic
 async function lookupUser(username){
   const payload={ usernames:[username] };
   for(const url of usernameEndpoints){
@@ -278,41 +317,79 @@ async function renderRoblox(){
     const user=await lookupUser(username);
     if(!user) throw new Error('User not found');
     const userId=user.id;
-    async function tryMulti(paths){
-      for(const set of paths){
+
+    async function tryMulti(pathSets){
+      for(const set of pathSets){
         for(const url of set) {
           try { return await fetchJson(url.url, url.opts); } catch(err){ console.warn('roblox api fallback',err); }
         }
       }
       return null; // gracefully allow partial data instead of hard failure
     }
+
     const [profile,presence,friends,groups,badges,avatar]=await Promise.all([
       tryMulti([withHost(`/v1/users/${userId}`).map(u=>({url:u})), [ {url:proxyWrap(`https://users.roblox.com/v1/users/${userId}`)} ]]),
       tryMulti([[{url:'https://presence.roproxy.com/v1/presence/users',opts:{method:'POST',body:JSON.stringify({userIds:[userId]})}},
                  {url:'https://presence.rprxy.xyz/v1/presence/users',opts:{method:'POST',body:JSON.stringify({userIds:[userId]})}},
                  {url:proxyWrap('https://presence.roblox.com/v1/presence/users'),opts:{method:'POST',body:JSON.stringify({userIds:[userId]})}}]]),
-      tryMulti([[{url:`https://friends.roproxy.com/v1/users/${userId}/friends?limit=12`},{url:`https://friends.rprxy.xyz/v1/users/${userId}/friends?limit=12`},{url:proxyWrap(`https://friends.roblox.com/v1/users/${userId}/friends?limit=12`)}]]),
+      tryMulti([[{url:`https://friends.roproxy.com/v1/users/${userId}/friends?limit=200`},{url:`https://friends.rprxy.xyz/v1/users/${userId}/friends?limit=200`},{url:proxyWrap(`https://friends.roblox.com/v1/users/${userId}/friends?limit=200`)}]]),
       tryMulti([[{url:`https://groups.roproxy.com/v2/users/${userId}/groups/roles`},{url:`https://groups.rprxy.xyz/v2/users/${userId}/groups/roles`},{url:proxyWrap(`https://groups.roblox.com/v2/users/${userId}/groups/roles`)}]]),
-      tryMulti([[{url:`https://badges.roproxy.com/v1/users/${userId}/badges?limit=8`},{url:`https://badges.rprxy.xyz/v1/users/${userId}/badges?limit=8`},{url:proxyWrap(`https://badges.roblox.com/v1/users/${userId}/badges?limit=8`)}]]),
+      tryMulti([[{url:`https://badges.roproxy.com/v1/users/${userId}/badges?limit=100`},{url:`https://badges.rprxy.xyz/v1/users/${userId}/badges?limit=100`},{url:proxyWrap(`https://badges.roblox.com/v1/users/${userId}/badges?limit=100`)}]]),
       tryMulti([[{url:`https://avatar.roproxy.com/v1/users/${userId}/avatar`},{url:`https://avatar.rprxy.xyz/v1/users/${userId}/avatar`},{url:proxyWrap(`https://avatar.roblox.com/v1/users/${userId}/avatar`)}]]),
     ]);
+
     const presenceType=presence?.userPresences?.[0]?.userPresenceType;
     const presenceText=presenceType===2?'In-Game':presenceType===1?'Online':presenceType===3?'Studio':'Offline/Unknown';
     const rap = (avatar?.assets||[]).reduce((sum,a)=>sum+(a?.recentAveragePrice||0),0);
     const profileSafe = profile || {displayName:'Unavailable', name:username, created:Date.now(), followersCount:'?'};
+
+    const friendsAll = (friends?.data || []).map(f => f.name);
+    const groupsAll  = (groups?.data || []).map(g => g.group.name);
+    const badgesAll  = (badges?.data || []).map(b => b.name);
+
     const cards=[
-      {title:'Profile',body:`<strong>${profileSafe.displayName}</strong> (@${profileSafe.name})<br>Created: ${profileSafe.created? new Date(profileSafe.created).toLocaleDateString():'Unknown'}<br>Followers: ${profileSafe?.followersCount??'N/A'}`},
-      {title:'Presence',body:`Status: ${presenceText || 'Unknown'}${presence? '' : ' (proxy limited)'}`},
-      {title:'Friends',body:(friends?.data||[]).map(f=>f.name).slice(0,6).join(', ')||'No public friends or blocked by proxy'},
-      {title:'Groups',body:(groups?.data||[]).map(g=>g.group.name).slice(0,6).join(', ')||'No groups'},
-      {title:'Badges',body:(badges?.data||[]).map(b=>b.name).slice(0,6).join(', ')||'No badges'},
-      {title:'RAP (avatar assets)',body: rap? rap.toLocaleString() : 'Unavailable via current proxy'}
+      {
+        title:'Profile',
+        body:`<strong>${profileSafe.displayName}</strong> (@${profileSafe.name})<br>Created: ${profileSafe.created? new Date(profileSafe.created).toLocaleDateString():'Unknown'}<br>Followers: ${profileSafe?.followersCount??'N/A'}`
+      },
+      {
+        title:'Presence',
+        body:`Status: ${presenceText || 'Unknown'}${presence? '' : ' (proxy limited)'}`
+      },
+      {
+        title:'Friends',
+        body: friendsAll.slice(0,6).join(', ') || 'No public friends or blocked by proxy',
+        full: friendsAll
+      },
+      {
+        title:'Groups',
+        body: groupsAll.slice(0,6).join(', ') || 'No groups',
+        full: groupsAll
+      },
+      {
+        title:'Badges',
+        body: badgesAll.slice(0,6).join(', ') || 'No badges',
+        full: badgesAll
+      },
+      {
+        title:'RAP (avatar assets)',
+        body: rap? rap.toLocaleString() : 'Unavailable via current proxy'
+      }
     ];
+
     wrap.innerHTML='';
     cards.forEach(c=>{
       const div=document.createElement('div');
       div.className='portal-card';
       div.innerHTML=`<h3>${c.title}</h3><p>${c.body}</p>`;
+      if(c.full && c.full.length){
+        const btn=document.createElement('button');
+        btn.className='button';
+        btn.textContent='Show All';
+        btn.style.marginTop='8px';
+        btn.onclick=()=>showPopup(`${c.title} — Full List`, c.full);
+        div.appendChild(btn);
+      }
       wrap.appendChild(div);
     });
   }catch(err){
@@ -396,7 +473,7 @@ async function runPy(){
   try {
     pyodide.setStdin({stdin:()=>{
       let val;
-      if(feedIndex < feed.length){ val = feedIndex < feed.length ? feed[feedIndex++] : ''; }
+      if(feedIndex < feed.length){ val = feed[feedIndex++]; }
       else { val = prompt('input() requested:'); }
       transcript += `\n[input] ${val??''}`;
       return (val??'')+'\n';
