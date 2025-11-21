@@ -153,18 +153,27 @@
 
     const controls = new PointerLockControls(camera, document.body);
     const startBtn = document.getElementById('startBtn');
-    startBtn.addEventListener('click', () => controls.lock());
+    let playing = false;
+    startBtn.addEventListener('click', () => {
+      playing = true;
+      orbit.enabled = false;
+      startBtn.textContent = 'Playing – arrows to look, WASD to move. Mouse lock optional (ESC to exit)';
+      controls.lock();
+    });
     renderer.domElement.addEventListener('click', () => {
-      if (!controls.isLocked) controls.lock();
+      if (playing && !controls.isLocked) controls.lock();
     });
 
     controls.addEventListener('lock', () => {
       startBtn.textContent = 'Pointer locked – press ESC to release';
-      orbit.enabled = false;
     });
     controls.addEventListener('unlock', () => {
-      startBtn.textContent = 'Click to lock mouse & play (WASD + Space, or arrows)';
-      orbit.enabled = true;
+      if (playing) {
+        startBtn.textContent = 'Playing without mouse lock – use arrows to look (click to re-lock)';
+      } else {
+        orbit.enabled = true;
+        startBtn.textContent = 'Click to lock mouse & play (WASD + Space, or arrows)';
+      }
     });
 
     // Lighting
@@ -428,29 +437,22 @@
 
     let canJump = false;
     function applyArrowLook(delta) {
+      if (!playing) return;
       const lookSpeed = 1.8;
       const yawObject = controls.getObject();
 
-      if (controls.isLocked) {
-        if (lookState.ArrowLeft) yawObject.rotation.y += lookSpeed * delta;
-        if (lookState.ArrowRight) yawObject.rotation.y -= lookSpeed * delta;
+      if (lookState.ArrowLeft) yawObject.rotation.y += lookSpeed * delta;
+      if (lookState.ArrowRight) yawObject.rotation.y -= lookSpeed * delta;
 
-        let pitch = camera.rotation.x;
-        if (lookState.ArrowUp) pitch += lookSpeed * delta;
-        if (lookState.ArrowDown) pitch -= lookSpeed * delta;
-        pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
-        camera.rotation.x = pitch;
-      } else {
-        let moved = false;
-        if (lookState.ArrowLeft) { orbit.rotateLeft(lookSpeed * delta); moved = true; }
-        if (lookState.ArrowRight) { orbit.rotateLeft(-lookSpeed * delta); moved = true; }
-        if (lookState.ArrowUp) { orbit.rotateUp(lookSpeed * delta); moved = true; }
-        if (lookState.ArrowDown) { orbit.rotateUp(-lookSpeed * delta); moved = true; }
-        if (moved) orbit.update();
-      }
+      let pitch = camera.rotation.x;
+      if (lookState.ArrowUp) pitch += lookSpeed * delta;
+      if (lookState.ArrowDown) pitch -= lookSpeed * delta;
+      pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
+      camera.rotation.x = pitch;
     }
 
     function processMovement(delta) {
+      if (!playing) return;
       const speed = keyState['ShiftLeft'] ? 16 : 10;
       direction.set(0, 0, 0);
       if (keyState['KeyW']) direction.z -= 1;
@@ -459,35 +461,33 @@
       if (keyState['KeyD']) direction.x += 1;
       direction.normalize();
 
-      if (controls.isLocked) {
-        velocity.x -= velocity.x * 10.0 * delta;
-        velocity.z -= velocity.z * 10.0 * delta;
-        velocity.y -= 30 * delta; // gravity
+      velocity.x -= velocity.x * 10.0 * delta;
+      velocity.z -= velocity.z * 10.0 * delta;
+      velocity.y -= 30 * delta; // gravity
 
-        if (keyState['Space'] && canJump) {
-          velocity.y = 10;
-          canJump = false;
-        }
+      if (keyState['Space'] && canJump) {
+        velocity.y = 10;
+        canJump = false;
+      }
 
-        if (direction.lengthSq() > 0) {
-          const forward = new THREE.Vector3();
-          controls.getDirection(forward);
-          forward.y = 0;
-          forward.normalize();
-          const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
-          velocity.addScaledVector(forward, direction.z * speed * delta);
-          velocity.addScaledVector(right, -direction.x * speed * delta);
-        }
+      if (direction.lengthSq() > 0) {
+        const forward = new THREE.Vector3();
+        controls.getDirection(forward);
+        forward.y = 0;
+        forward.normalize();
+        const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+        velocity.addScaledVector(forward, direction.z * speed * delta);
+        velocity.addScaledVector(right, -direction.x * speed * delta);
+      }
 
-        controls.moveRight(-velocity.x * delta);
-        controls.moveForward(-velocity.z * delta);
-        const position = controls.getObject().position;
-        position.y += velocity.y * delta;
-        if (position.y < playerHeight) {
-          velocity.y = 0;
-          position.y = playerHeight;
-          canJump = true;
-        }
+      controls.moveRight(-velocity.x * delta);
+      controls.moveForward(-velocity.z * delta);
+      const position = controls.getObject().position;
+      position.y += velocity.y * delta;
+      if (position.y < playerHeight) {
+        velocity.y = 0;
+        position.y = playerHeight;
+        canJump = true;
       }
     }
 
