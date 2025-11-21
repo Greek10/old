@@ -84,12 +84,16 @@
       pointer-events: auto;
       z-index: 2;
     }
-    #startBtn {
+    #status {
       width: 100%;
-      margin-top: 6px;
-      background: linear-gradient(90deg, #38bdf8, #2563eb);
-      color: #e0f2fe;
-      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+      margin-top: 8px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(37, 99, 235, 0.14);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      color: #bfdbfe;
+      font-weight: 600;
+      line-height: 1.5;
     }
     #log {
       margin-top: 8px;
@@ -118,7 +122,7 @@
       <div class="stat"><span>Income / sec</span><span id="income">$0</span></div>
       <div class="stat"><span>Upgrades</span><span id="owned">0</span></div>
       <div class="stat"><span>Crates Grabbed</span><span id="crates">0</span></div>
-      <button id="startBtn">Click to lock mouse &amp; play (WASD + Space, or arrows)</button>
+      <div id="status">Session live: WASD/Space to move, arrows to look. Click the scene to optionally lock the mouse.</div>
       <div id="log"></div>
     </div>
     <div id="btns"></div>
@@ -152,28 +156,18 @@
     orbit.target.set(0, 2, 0);
 
     const controls = new PointerLockControls(camera, document.body);
-    const startBtn = document.getElementById('startBtn');
-    let playing = false;
-    startBtn.addEventListener('click', () => {
-      playing = true;
-      orbit.enabled = false;
-      startBtn.textContent = 'Playing – arrows to look, WASD to move. Mouse lock optional (ESC to exit)';
-      controls.lock();
-    });
+    const statusEl = document.getElementById('status');
+    let playing = true;
+    orbit.enabled = false;
     renderer.domElement.addEventListener('click', () => {
-      if (playing && !controls.isLocked) controls.lock();
+      if (!controls.isLocked) controls.lock();
     });
 
     controls.addEventListener('lock', () => {
-      startBtn.textContent = 'Pointer locked – press ESC to release';
+      statusEl.textContent = 'Pointer locked – press ESC to release.';
     });
     controls.addEventListener('unlock', () => {
-      if (playing) {
-        startBtn.textContent = 'Playing without mouse lock – use arrows to look (click to re-lock)';
-      } else {
-        orbit.enabled = true;
-        startBtn.textContent = 'Click to lock mouse & play (WASD + Space, or arrows)';
-      }
+      statusEl.textContent = 'Playing without mouse lock – use arrows to look (click to re-lock).';
     });
 
     // Lighting
