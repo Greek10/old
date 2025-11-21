@@ -170,6 +170,10 @@ canvas { width: 100%; max-width: 900px; height: 420px; border-radius: 12px; back
       <button class="button" id="loadCode">Load</button>
       <button class="button" data-target="portal">Back to Portals</button>
     </div>
+    <div class="control-row">
+      <input id="pyInputFeed" placeholder="Input queue (one line per input() call)" style="flex:1;">
+      <span class="badge">Inline input</span>
+    </div>
     <textarea id="pythonArea">name = input('Enter your name: ')
 print('Hello', name)
 for i in range(3):
@@ -181,7 +185,7 @@ for i in range(3):
   <div id="terminal" class="section">
     <h2>AI Code Terminal</h2>
     <div class="neon-card glass-panel" id="terminalDisplay" style="min-height:220px;font-family:monospace;background:rgba(0,0,0,0.45);"></div>
-    <input id="terminalInput" placeholder="Type command (help/hack/generate/music/wipe/chaos/admin/status/theme)" style="width:100%;margin-top:8px;">
+    <input id="terminalInput" placeholder="Type command (help, hack, generate, music, wipe, chaos, admin, status, theme, scan, clear, joke, neon, echo, matrix, portal, uptime)" style="width:100%;margin-top:8px;">
     <div style="margin-top:10px;"><button class="button" data-target="portal">Back to Portals</button></div>
   </div>
 
@@ -227,8 +231,9 @@ function showSection(id){
 }
 document.querySelectorAll('button[data-target]').forEach(btn=>btn.onclick=()=>showSection(btn.dataset.target));
 
-// Roblox live data via RoProxy
+// Roblox live data via RoProxy + multiple fallbacks
 const rbxBtn=document.getElementById('rbxFetch');
+const proxyWrap=url=>`https://corsproxy.io/?${encodeURIComponent(url)}`;
 async function fetchJson(url,opts){
   const headers = opts?.method === 'POST' ? {'Content-Type':'application/json'} : {};
   const res=await fetch(url,{mode:'cors',credentials:'omit',headers:{...headers,...(opts?.headers||{})},...opts});
@@ -238,12 +243,13 @@ async function fetchJson(url,opts){
 const usernameEndpoints=[
   'https://users.roproxy.com/v1/usernames/users',
   'https://users.rprxy.xyz/v1/usernames/users',
-  'https://corsproxy.io/?https://users.roblox.com/v1/usernames/users'
+  proxyWrap('https://users.roblox.com/v1/usernames/users'),
+  proxyWrap('https://users.roblox.com/v1/users/search?keyword=__USER__&limit=1')
 ];
 const rbxHosts=[
   'https://users.roproxy.com',
   'https://users.rprxy.xyz',
-  'https://corsproxy.io/?https://users.roblox.com'
+  proxyWrap('https://users.roblox.com')
 ];
 function withHost(path){
   return rbxHosts.map(base=>`${base}${path}`);
@@ -251,10 +257,19 @@ function withHost(path){
 async function lookupUser(username){
   const payload={usernames:[username],excludeBannedUsers:true,excludeUsernamePrefixes:{}};
   for(const url of usernameEndpoints){
-    try{ const data=await fetchJson(url,{method:'POST',body:JSON.stringify(payload)}); return data.data?.[0]; }
-    catch(err){ console.warn('lookup fallback',err); }
+    try{
+      if(url.includes('__USER__')){
+        const data=await fetchJson(url.replace('__USER__',encodeURIComponent(username)));
+        const match=data.data?.[0];
+        if(match) return match;
+      }else{
+        const data=await fetchJson(url,{method:'POST',body:JSON.stringify(payload)});
+        const match=data.data?.[0];
+        if(match) return match;
+      }
+    } catch(err){ console.warn('lookup fallback',err); }
   }
-  throw new Error('Failed to fetch user data');
+  throw new Error('Unable to reach Roblox user services. Try again.');
 }
 async function renderRoblox(){
   const wrap=document.getElementById('rbxResults');
@@ -270,26 +285,29 @@ async function renderRoblox(){
           try { return await fetchJson(url.url, url.opts); } catch(err){ console.warn('roblox api fallback',err); }
         }
       }
-      throw new Error('Failed to fetch from all endpoints');
+      return null; // gracefully allow partial data instead of hard failure
     }
     const [profile,presence,friends,groups,badges,avatar]=await Promise.all([
-      tryMulti([withHost(`/v1/users/${userId}`).map(u=>({url:u}))]),
+      tryMulti([withHost(`/v1/users/${userId}`).map(u=>({url:u})), [ {url:proxyWrap(`https://users.roblox.com/v1/users/${userId}`)} ]]),
       tryMulti([[{url:'https://presence.roproxy.com/v1/presence/users',opts:{method:'POST',body:JSON.stringify({userIds:[userId]})}},
-                 {url:'https://presence.rprxy.xyz/v1/presence/users',opts:{method:'POST',body:JSON.stringify({userIds:[userId]})}}]]),
-      tryMulti([[{url:`https://friends.roproxy.com/v1/users/${userId}/friends?limit=12`},{url:`https://friends.rprxy.xyz/v1/users/${userId}/friends?limit=12`}]]),
-      tryMulti([[{url:`https://groups.roproxy.com/v2/users/${userId}/groups/roles`},{url:`https://groups.rprxy.xyz/v2/users/${userId}/groups/roles`}]]),
-      tryMulti([[{url:`https://badges.roproxy.com/v1/users/${userId}/badges?limit=8`},{url:`https://badges.rprxy.xyz/v1/users/${userId}/badges?limit=8`}]]),
-      tryMulti([[{url:`https://avatar.roproxy.com/v1/users/${userId}/avatar`},{url:`https://avatar.rprxy.xyz/v1/users/${userId}/avatar`}]]),
+                 {url:'https://presence.rprxy.xyz/v1/presence/users',opts:{method:'POST',body:JSON.stringify({userIds:[userId]})}},
+                 {url:proxyWrap('https://presence.roblox.com/v1/presence/users'),opts:{method:'POST',body:JSON.stringify({userIds:[userId]})}}]]),
+      tryMulti([[{url:`https://friends.roproxy.com/v1/users/${userId}/friends?limit=12`},{url:`https://friends.rprxy.xyz/v1/users/${userId}/friends?limit=12`},{url:proxyWrap(`https://friends.roblox.com/v1/users/${userId}/friends?limit=12`)}]]),
+      tryMulti([[{url:`https://groups.roproxy.com/v2/users/${userId}/groups/roles`},{url:`https://groups.rprxy.xyz/v2/users/${userId}/groups/roles`},{url:proxyWrap(`https://groups.roblox.com/v2/users/${userId}/groups/roles`)}]]),
+      tryMulti([[{url:`https://badges.roproxy.com/v1/users/${userId}/badges?limit=8`},{url:`https://badges.rprxy.xyz/v1/users/${userId}/badges?limit=8`},{url:proxyWrap(`https://badges.roblox.com/v1/users/${userId}/badges?limit=8`)}]]),
+      tryMulti([[{url:`https://avatar.roproxy.com/v1/users/${userId}/avatar`},{url:`https://avatar.rprxy.xyz/v1/users/${userId}/avatar`},{url:proxyWrap(`https://avatar.roblox.com/v1/users/${userId}/avatar`)}]]),
     ]);
-    const presenceText=presence?.userPresences?.[0]?.userPresenceType===2?'In-Game':presence?.userPresences?.[0]?.userPresenceType===1?'Online':'Offline';
+    const presenceType=presence?.userPresences?.[0]?.userPresenceType;
+    const presenceText=presenceType===2?'In-Game':presenceType===1?'Online':presenceType===3?'Studio':'Offline/Unknown';
     const rap = (avatar?.assets||[]).reduce((sum,a)=>sum+(a?.recentAveragePrice||0),0);
+    const profileSafe = profile || {displayName:'Unavailable', name:username, created:Date.now(), followersCount:'?'};
     const cards=[
-      {title:'Profile',body:`<strong>${profile.displayName}</strong> (@${profile.name})<br>Created: ${new Date(profile.created).toLocaleDateString()}<br>Followers: ${profile?.followersCount??'N/A'}`},
-      {title:'Presence',body:`Status: ${presenceText || 'Unknown'}`},
-      {title:'Friends',body:(friends.data||[]).map(f=>f.name).slice(0,6).join(', ')||'No public friends'},
-      {title:'Groups',body:(groups.data||[]).map(g=>g.group.name).slice(0,6).join(', ')||'No groups'},
-      {title:'Badges',body:(badges.data||[]).map(b=>b.name).slice(0,6).join(', ')||'No badges'},
-      {title:'RAP (avatar assets)',body: rap? rap.toLocaleString() : 'Unavailable'}
+      {title:'Profile',body:`<strong>${profileSafe.displayName}</strong> (@${profileSafe.name})<br>Created: ${profileSafe.created? new Date(profileSafe.created).toLocaleDateString():'Unknown'}<br>Followers: ${profileSafe?.followersCount??'N/A'}`},
+      {title:'Presence',body:`Status: ${presenceText || 'Unknown'}${presence? '' : ' (proxy limited)'}`},
+      {title:'Friends',body:(friends?.data||[]).map(f=>f.name).slice(0,6).join(', ')||'No public friends or blocked by proxy'},
+      {title:'Groups',body:(groups?.data||[]).map(g=>g.group.name).slice(0,6).join(', ')||'No groups'},
+      {title:'Badges',body:(badges?.data||[]).map(b=>b.name).slice(0,6).join(', ')||'No badges'},
+      {title:'RAP (avatar assets)',body: rap? rap.toLocaleString() : 'Unavailable via current proxy'}
     ];
     wrap.innerHTML='';
     cards.forEach(c=>{
@@ -307,6 +325,7 @@ rbxBtn.onclick=renderRoblox;
 // AI terminal
 const termDisplay=document.getElementById('terminalDisplay');
 const termInput=document.getElementById('terminalInput');
+const bootTime=performance.now();
 function termPrint(text){
   const line=document.createElement('div');
   line.textContent=text;
@@ -325,8 +344,9 @@ termInput.addEventListener('keydown',e=>{
 });
 function handleTerm(cmd){
   termPrint('> '+cmd);
+  const [base,...rest]=cmd.split(' ');
   const replies={
-    help:'Commands: help, hack, generate, music, wipe, chaos, admin, status, theme, scan, clear, joke, neon',
+    help:'Commands: help, hack, generate, music, wipe, chaos, admin, status, theme, scan, clear, joke, neon, echo, matrix, portal, uptime',
     hack:'Attempting breach...ACCESS GRANTED',
     generate:'Synthesizing code fractals...',
     music:'Playing neon beat (imaginary)',
@@ -340,10 +360,23 @@ function handleTerm(cmd){
     joke:'Why do programmers love the dark? Because light attracts bugs.',
     neon:'Cranking glow shaders to 110%.'
   };
-  const reply=replies[cmd]||'Unknown command';
-  if(cmd==='clear'){ termDisplay.innerHTML=''; termPrint('Screen cleared.'); return; }
+  if(base==='clear'){ termDisplay.innerHTML=''; termPrint('Screen cleared.'); return; }
+  if(base==='echo'){ termPrint(rest.join(' ')||'(nothing to echo)'); return; }
+  if(base==='matrix'){
+    let ticks=0;
+    const interval=setInterval(()=>{
+      const col='01\/\\';
+      const line=Array.from({length:32},()=>col[Math.floor(Math.random()*col.length)]).join('');
+      termPrint(line);
+      ticks++; if(ticks>10) clearInterval(interval);
+    },80);
+    return;
+  }
+  if(base==='portal'){ termPrint('Returning to portal hub.'); showSection('portal'); return; }
+  if(base==='uptime'){ const sec=((performance.now()-bootTime)/1000).toFixed(1); termPrint(`Uptime: ${sec}s`); return; }
+  const reply=replies[cmd]||replies[base]||'Unknown command';
   termPrint(reply);
-  if(cmd==='chaos') addChaos(['meteor','explosion','tornado','quake'][Math.floor(Math.random()*4)]);
+  if(cmd==='chaos' || base==='chaos') addChaos(['meteor','explosion','tornado','quake'][Math.floor(Math.random()*4)]);
   if(cmd==='theme'||cmd==='neon') document.body.classList.toggle('pulse');
 }
 termPrint('███ NEOTERM ONLINE ███');
@@ -359,9 +392,14 @@ async function runPy(){
   const output=document.getElementById('pyOutput');
   if(!pyReady){ output.textContent='Loading Pyodide...'; return; }
   const code=document.getElementById('pythonArea').value;
+  const feed=document.getElementById('pyInputFeed').value.split(/\n/).filter(l=>l.length>0);
+  let feedIndex=0; let transcript='';
   try {
     pyodide.setStdin({stdin:()=>{
-      const val=prompt('Python input requested:');
+      let val;
+      if(feedIndex < feed.length){ val = feed[feedIndex++]; }
+      else { val = prompt('input() requested:'); }
+      transcript += `\n[input] ${val??''}`;
       return (val??'')+'\n';
     }});
     pyodide.globals.set('code_to_run', code);
@@ -377,7 +415,7 @@ finally:
     sys.stderr = _old_err
 buf.getvalue()
     `);
-    output.textContent=result || '(no output)';
+    output.textContent=(transcript?transcript+'\n':'')+(result || '(no output)');
   } catch(err){
     output.textContent=err;
   }
@@ -397,14 +435,18 @@ document.getElementById('theme').onchange=(e)=>{
 // Chaos simulator (more reactive)
 const chaosCanvas=document.getElementById('chaosCanvas');
 const cCtx=chaosCanvas.getContext('2d');
-let actors=[]; let slowmo=false; let chaosEvents=[]; let debris=[];
+let actors=[]; let slowmo=false; let chaosEvents=[]; let debris=[]; let structures=[]; let scorch=[];
 function resizeChaos(){
   chaosCanvas.width=chaosCanvas.clientWidth||900;
   chaosCanvas.height=420;
 }
 function initChaos(){
   resizeChaos();
-  actors=Array.from({length:28}).map(()=>({x:Math.random()*chaosCanvas.width,y:Math.random()*chaosCanvas.height,vx:0,vy:0,panic:Math.random(),color:`hsl(${180+Math.random()*60},90%,60%)`}));
+  structures=Array.from({length:14}).map(()=>{
+    const w=40+Math.random()*80, h=40+Math.random()*70;
+    return {x:Math.random()*(chaosCanvas.width-w-40)+20, y:Math.random()*(chaosCanvas.height-h-40)+20, w, h};
+  });
+  actors=Array.from({length:32}).map(()=>({x:Math.random()*chaosCanvas.width,y:Math.random()*chaosCanvas.height,vx:0,vy:0,panic:Math.random(),color:`hsl(${180+Math.random()*60},90%,60%)`}));
 }
 function addChaos(type){ chaosEvents.push({type,t:0,x:Math.random()*chaosCanvas.width,y:Math.random()*chaosCanvas.height}); }
 function chaosLoop(){
@@ -415,6 +457,15 @@ function chaosLoop(){
   cCtx.strokeStyle='rgba(0,255,255,0.06)'; cCtx.lineWidth=1;
   for(let x=0;x<chaosCanvas.width;x+=40){ cCtx.beginPath(); cCtx.moveTo(x,0); cCtx.lineTo(x,chaosCanvas.height); cCtx.stroke(); }
   for(let y=0;y<chaosCanvas.height;y+=40){ cCtx.beginPath(); cCtx.moveTo(0,y); cCtx.lineTo(chaosCanvas.width,y); cCtx.stroke(); }
+  // buildings
+  structures.forEach(s=>{
+    cCtx.fillStyle='rgba(255,255,255,0.03)';
+    cCtx.fillRect(s.x,s.y,s.w,s.h);
+    cCtx.strokeStyle='rgba(0,255,255,0.2)';
+    cCtx.strokeRect(s.x,s.y,s.w,s.h);
+  });
+  scorch.forEach(s=>{ cCtx.fillStyle=`rgba(255,120,60,${s.life/120})`; cCtx.beginPath(); cCtx.arc(s.x,s.y, s.r,0,Math.PI*2); cCtx.fill(); s.life--; });
+  scorch=scorch.filter(s=>s.life>0);
   chaosEvents.forEach(e=>{
     e.t++;
     if(e.type==='meteor'){
@@ -423,6 +474,7 @@ function chaosLoop(){
       cCtx.beginPath(); cCtx.arc(e.x,e.y,16,0,Math.PI*2); cCtx.fill();
       cCtx.fillStyle='rgba(255,140,60,0.35)'; cCtx.beginPath(); cCtx.ellipse(e.x-25,e.y-25,trail,trail*0.5,Math.PI/4,0,Math.PI*2); cCtx.fill();
       debris.push({x:e.x,y:e.y, vx:(Math.random()-0.5)*2, vy:(Math.random()-0.5)*2, life:80});
+      scorch.push({x:e.x,y:e.y,r:38,life:120});
       actors.forEach(a=>{ const dx=a.x-e.x, dy=a.y-e.y; const dist=Math.hypot(dx,dy)+1; a.vx+=dx/dist*1.6; a.vy+=dy/dist*1.6;});
     }
     if(e.type==='tornado'){
@@ -442,6 +494,7 @@ function chaosLoop(){
       cCtx.beginPath(); cCtx.arc(e.x,e.y,e.t*2.8,0,Math.PI*2); cCtx.fill();
       actors.forEach(a=>{ const dx=a.x-e.x, dy=a.y-e.y; const dist=Math.hypot(dx,dy)+1; a.vx+=dx/dist*2.2; a.vy+=dy/dist*2.2; });
       debris.push({x:e.x,y:e.y, vx:(Math.random()-0.5)*3, vy:(Math.random()-0.5)*3, life:60});
+      scorch.push({x:e.x,y:e.y,r:24+e.t*0.8,life:160});
     }
   });
   chaosEvents=chaosEvents.filter(e=>e.t<140);
@@ -451,18 +504,22 @@ function chaosLoop(){
     cCtx.beginPath(); cCtx.arc(d.x,d.y,4,0,Math.PI*2); cCtx.fill();
   });
   debris=debris.filter(d=>d.life>0);
+  function blocked(nx,ny){
+    return structures.some(s=>nx> s.x-8 && nx< s.x+s.w+8 && ny> s.y-8 && ny< s.y+s.h+8);
+  }
   actors.forEach(a=>{
     a.panic=Math.min(1,a.panic+chaosEvents.length*0.0025);
-    a.x+=a.vx*(slowmo?0.45:1);
-    a.y+=a.vy*(slowmo?0.45:1);
+    const mx=a.vx*(slowmo?0.45:1), my=a.vy*(slowmo?0.45:1);
+    const tx=a.x+mx, ty=a.y+my;
+    if(!blocked(tx,a.y)) a.x=tx; else a.vx*=-0.6;
+    if(!blocked(a.x,ty)) a.y=ty; else a.vy*=-0.6;
     a.vx*=0.982; a.vy*=0.982;
-    if(a.x<0||a.x>chaosCanvas.width) a.vx*=-1;
-    if(a.y<0||a.y>chaosCanvas.height) a.vy*=-1;
+    if(a.x<8||a.x>chaosCanvas.width-8) a.vx*=-1;
+    if(a.y<8||a.y>chaosCanvas.height-8) a.vy*=-1;
     const glow=12+22*a.panic;
     cCtx.shadowColor=`rgba(0,255,255,${0.5+0.3*a.panic})`; cCtx.shadowBlur=glow;
     cCtx.fillStyle=a.color;
     cCtx.beginPath(); cCtx.arc(a.x,a.y,6+glow*0.08,0,Math.PI*2); cCtx.fill();
-    // panic trail
     cCtx.shadowBlur=0;
     cCtx.fillStyle=`rgba(255,255,255,${0.08+0.12*a.panic})`;
     cCtx.fillRect(a.x-2,a.y+8,4,14*a.panic);
@@ -479,6 +536,7 @@ const backCanvas=document.getElementById('backroomsCanvas');
 const bCtx=backCanvas.getContext('2d');
 let maze=[], player={x:1,y:1,stamina:100}, stalker={x:5,y:5,alert:0};
 const cell=26;
+let lastBackTime=performance.now();
 function resizeBackrooms(){ backCanvas.style.maxWidth='960px'; backCanvas.style.width='100%'; }
 function generateMaze(){
   const w=23,h=23; maze=[...Array(h)].map(()=>Array(w).fill(1));
@@ -502,7 +560,9 @@ function drawOverlay(text,y){
   bCtx.fillStyle='rgba(0,0,0,0.45)'; bCtx.fillRect(10,y-14,180,26);
   bCtx.fillStyle='#00fff7'; bCtx.fillText(text,18,y+2);
 }
-function backroomsLoop(){
+function openCell(x,y){ return maze[Math.floor(y)]?.[Math.floor(x)]===0; }
+function backroomsLoop(ts){
+  const dt=Math.min(32,(ts-lastBackTime)||16); lastBackTime=ts;
   const lightGrad=bCtx.createRadialGradient(player.x*cell+cell/2, player.y*cell+cell/2, cell*1.5, player.x*cell+cell/2, player.y*cell+cell/2, cell*5);
   lightGrad.addColorStop(0,'rgba(255,255,190,0.3)');
   lightGrad.addColorStop(1,'rgba(255,255,120,0.05)');
@@ -517,12 +577,14 @@ function backroomsLoop(){
     }
   }
   const sprinting=keys['ShiftLeft']||keys['ShiftRight'];
-  const speed=sprinting&&player.stamina>0?0.09:0.05;
+  const speed=sprinting&&player.stamina>0?0.0085:0.0055;
   if(sprinting) player.stamina=Math.max(0,player.stamina-0.25); else player.stamina=Math.min(100,player.stamina+0.18);
   const dx=(keys['KeyD']?1:0)-(keys['KeyA']?1:0);
   const dy=(keys['KeyS']?1:0)-(keys['KeyW']?1:0);
-  const nx=player.x+dx*speed*60, ny=player.y+dy*speed*60;
-  if(maze[Math.round(ny)]?.[Math.round(nx)]===0){ player.x=nx; player.y=ny; }
+  const move=dt*speed*60;
+  const nx=player.x+dx*move, ny=player.y+dy*move;
+  if(openCell(nx, player.y)) player.x=nx;
+  if(openCell(player.x, ny)) player.y=ny;
   stalker.alert=Math.min(1, stalker.alert + (Math.random()*0.002) + (sprinting?0.006:0.002));
   const chaseSpeed=0.006 + stalker.alert*0.01;
   stalker.x+=(player.x-stalker.x)*chaseSpeed; stalker.y+=(player.y-stalker.y)*chaseSpeed;
@@ -543,7 +605,7 @@ function backroomsLoop(){
 // Init
 generateMaze();
 resizeBackrooms();
-initChaos(); chaosLoop(); backroomsLoop();
+initChaos(); chaosLoop(); requestAnimationFrame(backroomsLoop);
 showSection('portal');
 window.addEventListener('resize',()=>{resizeChaos(); resizeBackrooms();});
 </script>
