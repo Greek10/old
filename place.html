@@ -58,7 +58,7 @@
         main {
             padding: 0 32px 32px;
             display: grid;
-            grid-template-columns: 340px 1fr;
+            grid-template-columns: 1fr;
             gap: 20px;
         }
         .card {
@@ -118,13 +118,14 @@
         .btn:active { transform: translateY(0); }
         .palette {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(32px, 1fr));
+            grid-template-columns: repeat(3, 1fr);
             gap: 8px;
-            margin-top: 12px;
+            max-height: 640px;
+            overflow: auto;
         }
         .color {
-            width: 32px;
-            height: 32px;
+            width: 36px;
+            height: 36px;
             border-radius: 10px;
             cursor: pointer;
             border: 2px solid rgba(255,255,255,0.1);
@@ -169,37 +170,63 @@
             border: 1px solid rgba(255,255,255,0.06);
         }
         .note { margin-top: 10px; font-size: 13px; color: var(--muted); }
+        .canvas-layout {
+            display: grid;
+            grid-template-columns: 1fr 150px;
+            gap: 12px;
+            align-items: start;
+        }
+        .palette-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 10px;
+            display: grid;
+            gap: 10px;
+            position: sticky;
+            top: 100px;
+        }
+        .auth-panel {
+            position: fixed;
+            top: 96px;
+            left: 24px;
+            width: 320px;
+            max-width: calc(100% - 48px);
+            z-index: 20;
+            display: none;
+        }
+        .auth-panel.open { display: block; }
+        .auth-toggle {
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.05);
+            color: #e7f0ff;
+            cursor: pointer;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .auth-toggle::before {
+            content: '⚡';
+        }
         @media (max-width: 1024px) {
-            main { grid-template-columns: 1fr; }
+            .canvas-layout { grid-template-columns: 1fr; }
+            .palette-card { position: relative; top: 0; }
         }
     </style>
 </head>
 <body>
     <header>
         <div class="title">Pixel World <span>// r/place</span></div>
-        <div class="pill">Massive collaborative canvas · Fresh neon UI</div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button id="authToggle" class="auth-toggle" aria-expanded="false">Account</button>
+            <div class="pill">Massive collaborative canvas · Fresh neon UI</div>
+        </div>
     </header>
 
     <main>
-        <section class="card" aria-label="Authentication">
-            <h3>Join the canvas</h3>
-            <p class="muted">Sign up or log in to start placing pixels. <strong>TestAdmin23</strong> has admin perks with no cooldown.</p>
-            <div class="auth-grid">
-                <label>Username
-                    <input type="text" id="username" placeholder="Enter username">
-                </label>
-                <label>Password
-                    <input type="password" id="password" placeholder="••••••••">
-                </label>
-                <div style="display:flex; gap:10px;">
-                    <button class="btn" id="loginBtn">Log in</button>
-                    <button class="btn secondary" id="signupBtn" style="flex:1;">Sign up</button>
-                </div>
-            </div>
-            <div class="status" id="authStatus">Not logged in.</div>
-            <div class="note">Accounts persist globally (stored for everyone). Use <strong>TestAdmin23</strong> with password <strong>admin</strong> for admin access.</div>
-        </section>
-
         <section class="canvas-shell">
             <div class="canvas-header">
                 <div class="toolbar">
@@ -210,12 +237,41 @@
                 </div>
                 <button class="btn secondary" id="resetView">Center view</button>
             </div>
-            <canvas id="board" width="1200" height="1200"></canvas>
-            <div class="status" id="hoverInfo">Hover over the canvas to see coordinates.</div>
-            <div class="palette" id="palette"></div>
+            <div class="canvas-layout">
+                <div class="canvas-wrap">
+                    <canvas id="board" width="1200" height="1200"></canvas>
+                    <div class="status" id="hoverInfo">Hover over the canvas to see coordinates.</div>
+                </div>
+                <div class="palette-card">
+                    <div style="display:flex;align-items:center;gap:8px;justify-content:space-between;">
+                        <strong>Palette</strong>
+                        <span class="muted" style="font-size:12px;">Tap or hold Shift</span>
+                    </div>
+                    <div class="palette" id="palette"></div>
+                </div>
+            </div>
             <div class="note">Tip: Pixels sync live to everyone connected. Admins skip cooldowns and can place unlimited pixels; regular users have a short cooldown between placements to keep things fair.</div>
         </section>
     </main>
+
+    <section class="card auth-panel" id="authPanel" aria-label="Authentication">
+        <h3>Join the canvas</h3>
+        <p class="muted">Sign up or log in to start placing pixels with your crew.</p>
+        <div class="auth-grid">
+            <label>Username
+                <input type="text" id="username" placeholder="Enter username">
+            </label>
+            <label>Password
+                <input type="password" id="password" placeholder="••••••••">
+            </label>
+            <div style="display:flex; gap:10px;">
+                <button class="btn" id="loginBtn">Log in</button>
+                <button class="btn secondary" id="signupBtn" style="flex:1;">Sign up</button>
+            </div>
+        </div>
+        <div class="status" id="authStatus">Not logged in.</div>
+        <div class="note">Accounts persist globally so you can pick up where you left off on any device.</div>
+    </section>
 
     <script>
         const GRID_SIZE = 200;           // Canvas dimensions (200 x 200)
@@ -238,7 +294,8 @@
         let zoom = 1;
 
         const COLORS = [
-            '#FF0000', '#FF6B00', '#FFD300', '#00E676', '#00C2FF', '#0065FF', '#8400FF', '#FF00FF', '#FFFFFF', '#C0C0C0', '#808080', '#000000'
+            '#FF0000', '#FF6B00', '#FF9900', '#FFD300', '#FFE66D', '#C8FF00', '#7CFC00', '#00E676', '#00C2FF', '#0096FF', '#0065FF', '#0037FF',
+            '#6F00FF', '#8400FF', '#A742FF', '#FF00FF', '#FF55AA', '#FF7BC0', '#FFFFFF', '#F0F0F0', '#C0C0C0', '#808080', '#404040', '#000000'
         ];
 
         const ADMIN_USERNAME = 'TestAdmin23';
@@ -450,12 +507,17 @@
         CANVAS.height = GRID_SIZE * PIXEL_SIZE;
         drawBoard();
 
+        let shiftHeld = false;
+
         CANVAS.addEventListener('mousemove', (e) => {
             const rect = CANVAS.getBoundingClientRect();
             const x = Math.floor((e.clientX - rect.left - offsetX) / (PIXEL_SIZE * zoom));
             const y = Math.floor((e.clientY - rect.top - offsetY) / (PIXEL_SIZE * zoom));
             if (x >= 0 && y >= 0 && x < GRID_SIZE && y < GRID_SIZE) {
                 hoverInfo.textContent = `(${x}, ${y}) · Color ${board[y][x]}`;
+                if (shiftHeld) {
+                    placePixel(x, y);
+                }
             } else {
                 hoverInfo.textContent = 'Outside canvas';
             }
@@ -467,6 +529,17 @@
             const y = Math.floor((e.clientY - rect.top - offsetY) / (PIXEL_SIZE * zoom));
             if (x >= 0 && y >= 0 && x < GRID_SIZE && y < GRID_SIZE) {
                 placePixel(x, y);
+            }
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Shift') {
+                shiftHeld = true;
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'Shift') {
+                shiftHeld = false;
             }
         });
 
@@ -531,11 +604,18 @@
                 currentUser = { ...users[savedUser], username: savedUser };
                 authStatus.textContent = `Welcome back ${savedUser}${currentUser.isAdmin ? ' (admin)' : ''}.`;
             } else {
-                authStatus.textContent = 'Persistent accounts ready. Admin user is TestAdmin23 with password "admin".';
+                authStatus.textContent = 'Persistent accounts ready. Log in to start placing pixels.';
             }
             updateRoleUI(currentUser);
             connectRealtime();
         })();
+
+        const authPanel = document.getElementById('authPanel');
+        const authToggle = document.getElementById('authToggle');
+        authToggle.addEventListener('click', () => {
+            const isOpen = authPanel.classList.toggle('open');
+            authToggle.setAttribute('aria-expanded', String(isOpen));
+        });
     </script>
 </body>
 </html>
