@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -198,7 +197,7 @@
                 </div>
             </div>
             <div class="status" id="authStatus">Not logged in.</div>
-            <div class="note">Accounts are session-only (no local saving). Use <strong>TestAdmin23</strong> with password <strong>admin</strong> for admin access.</div>
+            <div class="note">Accounts persist globally (stored for everyone). Use <strong>TestAdmin23</strong> with password <strong>admin</strong> for admin access.</div>
         </section>
 
         <section class="canvas-shell">
@@ -214,7 +213,7 @@
             <canvas id="board" width="1200" height="1200"></canvas>
             <div class="status" id="hoverInfo">Hover over the canvas to see coordinates.</div>
             <div class="palette" id="palette"></div>
-            <div class="note">Tip: Admins skip cooldowns and can place unlimited pixels. Regular users have a short cooldown between placements to keep things fair.</div>
+            <div class="note">Tip: Pixels sync live to everyone connected. Admins skip cooldowns and can place unlimited pixels; regular users have a short cooldown between placements to keep things fair.</div>
         </section>
     </main>
 
@@ -222,6 +221,7 @@
         const GRID_SIZE = 200;           // Canvas dimensions (200 x 200)
         const PIXEL_SIZE = 6;            // Visual size of each pixel
         const COOLDOWN_MS = 5000;        // Cooldown for non-admin users
+        const EMPTY_COLOR = '#0a0f1f';
         const CANVAS = document.getElementById('board');
         const CTX = CANVAS.getContext('2d');
         const paletteEl = document.getElementById('palette');
@@ -244,11 +244,24 @@
         const ADMIN_USERNAME = 'TestAdmin23';
         const ADMIN_PASSWORD = 'admin';
 
-        // Session-only account store (no local persistence)
-        const users = {
-            [ADMIN_USERNAME]: { password: ADMIN_PASSWORD, isAdmin: true, lastPixel: 0 }
-        };
+        const WS_URL = 'wss://demo.piesocket.com/v3/pixel-neon?api_key=DEMOKEY&notify_self=1';
+        let socket = null;
+        let users = {};
         let currentUser = null;
+
+        function loadUsers() {
+            try {
+                const stored = JSON.parse(localStorage.getItem('pixelUsers')) || {};
+                stored[ADMIN_USERNAME] = { password: ADMIN_PASSWORD, isAdmin: true, lastPixel: stored[ADMIN_USERNAME]?.lastPixel || 0 };
+                return stored;
+            } catch (e) {
+                return { [ADMIN_USERNAME]: { password: ADMIN_PASSWORD, isAdmin: true, lastPixel: 0 } };
+            }
+        }
+
+        function persistUsers() {
+            localStorage.setItem('pixelUsers', JSON.stringify(users));
+        }
 
         function getBoard() {
             try { return JSON.parse(localStorage.getItem('pixelBoard')) || createEmptyBoard(); }
@@ -260,10 +273,76 @@
         }
 
         function createEmptyBoard() {
-            return Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill('#0a0f1f'));
+            return Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(EMPTY_COLOR));
         }
 
         const board = getBoard();
+
+        function sendRealtime(payload) {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify(payload));
+            }
+        }
+
+        function requestStateSync() {
+            sendRealtime({ type: 'request_state' });
+        }
+
+        function broadcastState() {
+            const pixels = [];
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    if (board[y][x] !== EMPTY_COLOR) {
+                        pixels.push([x, y, board[y][x]]);
+                    }
+                }
+            }
+            sendRealtime({ type: 'state', pixels, users });
+        }
+
+        function connectRealtime() {
+            socket = new WebSocket(WS_URL);
+            socket.addEventListener('open', () => {
+                requestStateSync();
+            });
+            socket.addEventListener('message', (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'pixel') {
+                        const { x, y, color } = data;
+                        if (typeof x === 'number' && typeof y === 'number' && color) {
+                            board[y][x] = color;
+                            saveBoard(board);
+                            drawBoard();
+                        }
+                    } else if (data.type === 'request_state') {
+                        broadcastState();
+                    } else if (data.type === 'state') {
+                        if (Array.isArray(data.pixels)) {
+                            data.pixels.forEach(([x, y, color]) => {
+                                if (typeof x === 'number' && typeof y === 'number' && color) {
+                                    board[y][x] = color;
+                                }
+                            });
+                            saveBoard(board);
+                            drawBoard();
+                        }
+                        if (data.users) {
+                            users = { ...users, ...data.users };
+                            persistUsers();
+                        }
+                    } else if (data.type === 'user' && data.username && data.data) {
+                        users[data.username] = data.data;
+                        persistUsers();
+                    }
+                } catch (e) {
+                    console.warn('Realtime message parse failed', e);
+                }
+            });
+            socket.addEventListener('close', () => {
+                setTimeout(connectRealtime, 2000);
+            });
+        }
 
         // Render helpers
         function drawBoard() {
@@ -304,6 +383,8 @@
                 return;
             }
             currentUser = { ...user, username };
+            localStorage.setItem('pixelCurrentUser', username);
+            persistUsers();
             authStatus.textContent = `Logged in as ${username}${user.isAdmin ? ' (admin)' : ''}.`;
             updateRoleUI(currentUser);
         }
@@ -314,9 +395,12 @@
                 return;
             }
             users[username] = { password, isAdmin: false, lastPixel: 0 };
+            persistUsers();
             currentUser = { ...users[username], username };
+            localStorage.setItem('pixelCurrentUser', username);
             authStatus.textContent = `Account created! Logged in as ${username}.`;
             updateRoleUI(currentUser);
+            sendRealtime({ type: 'user', username, data: users[username] });
         }
 
         function placePixel(x, y) {
@@ -336,10 +420,14 @@
             board[y][x] = currentColor;
             saveBoard(board);
 
+            // broadcast live placement
+            sendRealtime({ type: 'pixel', x, y, color: currentColor, user: user.username });
+
             // update last placement for non-admins
             if (!user.isAdmin) {
                 users[user.username].lastPixel = now;
                 currentUser.lastPixel = now;
+                persistUsers();
             }
 
             drawBoard();
@@ -436,8 +524,17 @@
 
         // Auto-load current session
         (function initSession() {
-            authStatus.textContent = 'Session-only accounts. Admin user is TestAdmin23 with password "admin".';
-            updateRoleUI(null);
+            users = loadUsers();
+            persistUsers();
+            const savedUser = localStorage.getItem('pixelCurrentUser');
+            if (savedUser && users[savedUser]) {
+                currentUser = { ...users[savedUser], username: savedUser };
+                authStatus.textContent = `Welcome back ${savedUser}${currentUser.isAdmin ? ' (admin)' : ''}.`;
+            } else {
+                authStatus.textContent = 'Persistent accounts ready. Admin user is TestAdmin23 with password "admin".';
+            }
+            updateRoleUI(currentUser);
+            connectRealtime();
         })();
     </script>
 </body>
