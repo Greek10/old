@@ -27,6 +27,18 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
 }
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 50% 20%, rgba(0,255,255,0.06), transparent 30%),
+              radial-gradient(circle at 20% 60%, rgba(255,46,212,0.08), transparent 34%),
+              radial-gradient(circle at 80% 80%, rgba(130,86,255,0.07), transparent 40%);
+  pointer-events: none;
+  z-index: -1;
+}
+body.pulse { animation: pulseBg 12s ease-in-out infinite; }
+@keyframes pulseBg { 0%{filter:hue-rotate(0deg);} 50%{filter:hue-rotate(30deg) saturate(1.1);} 100%{filter:hue-rotate(0deg);} }
 header {
   position: sticky; top: 0; z-index: 20;
   display: flex; justify-content: space-between; align-items: center;
@@ -91,6 +103,7 @@ input, select, textarea {
 }
 textarea { width: 100%; min-height: 240px; }
 canvas { width: 100%; max-width: 900px; height: 420px; border-radius: 12px; background: radial-gradient(circle at 40% 30%, rgba(0,255,255,0.12), transparent 40%), #050612; }
+.glass-panel { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); box-shadow: 0 20px 60px rgba(0,0,0,0.4); border-radius: 14px; padding: 12px; }
 .neon-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
 </style>
 </head>
@@ -161,13 +174,14 @@ canvas { width: 100%; max-width: 900px; height: 420px; border-radius: 12px; back
 for i in range(3):
     print('beat', i)
 </textarea>
+    <textarea id="pyInput" placeholder="Input lines used by input() calls (one line per input)"></textarea>
     <pre id="pyOutput" class="neon-card" style="min-height:140px;overflow:auto;"></pre>
   </div>
 
   <div id="terminal" class="section">
     <h2>AI Code Terminal</h2>
-    <div class="neon-card" id="terminalDisplay" style="min-height:220px;font-family:monospace;background:rgba(0,0,0,0.45);"></div>
-    <input id="terminalInput" placeholder="Type command (help/hack/generate/music/wipe/chaos/admin)" style="width:100%;margin-top:8px;">
+    <div class="neon-card glass-panel" id="terminalDisplay" style="min-height:220px;font-family:monospace;background:rgba(0,0,0,0.45);"></div>
+    <input id="terminalInput" placeholder="Type command (help/hack/generate/music/wipe/chaos/admin/status/theme)" style="width:100%;margin-top:8px;">
     <div style="margin-top:10px;"><button class="button" data-target="portal">Back to Portals</button></div>
   </div>
 
@@ -208,7 +222,8 @@ function showSection(id){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   nav.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.textContent===id.toUpperCase()));
-  if(id==='chaos') resizeChaos();
+  if(id==='chaos') { setTimeout(resizeChaos,60); }
+  if(id==='backrooms') { setTimeout(resizeBackrooms,60); }
 }
 document.querySelectorAll('button[data-target]').forEach(btn=>btn.onclick=()=>showSection(btn.dataset.target));
 
@@ -219,10 +234,20 @@ async function fetchJson(url,opts){
   if(!res.ok) throw new Error(`Request failed: ${res.status}`);
   return await res.json();
 }
+const rbxHosts=[
+  'https://users.roproxy.com',
+  'https://users.rprxy.xyz'
+];
+function withHost(path){
+  return rbxHosts.map(base=>`${base}${path}`);
+}
 async function lookupUser(username){
   const payload={usernames:[username],excludeBannedUsers:true,excludeUsernamePrefixes:{}};
-  const data=await fetchJson('https://users.roproxy.com/v1/usernames/users',{method:'POST',body:JSON.stringify(payload)});
-  return data.data?.[0];
+  for(const url of withHost('/v1/usernames/users')){
+    try{ const data=await fetchJson(url,{method:'POST',body:JSON.stringify(payload)}); return data.data?.[0]; }
+    catch(err){ console.warn('lookup fallback',err); }
+  }
+  throw new Error('Failed to fetch user data');
 }
 async function renderRoblox(){
   const wrap=document.getElementById('rbxResults');
@@ -232,13 +257,22 @@ async function renderRoblox(){
     const user=await lookupUser(username);
     if(!user) throw new Error('User not found');
     const userId=user.id;
+    async function tryMulti(paths){
+      for(const set of paths){
+        for(const url of set) {
+          try { return await fetchJson(url.url, url.opts); } catch(err){ console.warn('roblox api fallback',err); }
+        }
+      }
+      throw new Error('Failed to fetch from all endpoints');
+    }
     const [profile,presence,friends,groups,badges,avatar]=await Promise.all([
-      fetchJson(`https://users.roproxy.com/v1/users/${userId}`),
-      fetchJson('https://presence.roproxy.com/v1/presence/users',{method:'POST',body:JSON.stringify({userIds:[userId]})}),
-      fetchJson(`https://friends.roproxy.com/v1/users/${userId}/friends?limit=12`),
-      fetchJson(`https://groups.roproxy.com/v2/users/${userId}/groups/roles`),
-      fetchJson(`https://badges.roproxy.com/v1/users/${userId}/badges?limit=8`),
-      fetchJson(`https://avatar.roproxy.com/v1/users/${userId}/avatar`)  // contains bodyColors + assets
+      tryMulti([withHost(`/v1/users/${userId}`).map(u=>({url:u}))]),
+      tryMulti([[{url:'https://presence.roproxy.com/v1/presence/users',opts:{method:'POST',body:JSON.stringify({userIds:[userId]})}},
+                 {url:'https://presence.rprxy.xyz/v1/presence/users',opts:{method:'POST',body:JSON.stringify({userIds:[userId]})}}]]),
+      tryMulti([[{url:`https://friends.roproxy.com/v1/users/${userId}/friends?limit=12`},{url:`https://friends.rprxy.xyz/v1/users/${userId}/friends?limit=12`}]]),
+      tryMulti([[{url:`https://groups.roproxy.com/v2/users/${userId}/groups/roles`},{url:`https://groups.rprxy.xyz/v2/users/${userId}/groups/roles`}]]),
+      tryMulti([[{url:`https://badges.roproxy.com/v1/users/${userId}/badges?limit=8`},{url:`https://badges.rprxy.xyz/v1/users/${userId}/badges?limit=8`}]]),
+      tryMulti([[{url:`https://avatar.roproxy.com/v1/users/${userId}/avatar`},{url:`https://avatar.rprxy.xyz/v1/users/${userId}/avatar`}]]),
     ]);
     const presenceText=presence?.userPresences?.[0]?.userPresenceType===2?'In-Game':presence?.userPresences?.[0]?.userPresenceType===1?'Online':'Offline';
     const rap = (avatar?.assets||[]).reduce((sum,a)=>sum+(a?.recentAveragePrice||0),0);
@@ -285,17 +319,21 @@ termInput.addEventListener('keydown',e=>{
 function handleTerm(cmd){
   termPrint('> '+cmd);
   const replies={
-    help:'Commands: help, hack, generate, music, wipe, chaos, admin',
+    help:'Commands: help, hack, generate, music, wipe, chaos, admin, status, theme',
     hack:'Attempting breach...ACCESS GRANTED',
     generate:'Synthesizing code fractals...',
-    music:'Playing neon beat',
+    music:'Playing neon beat (imaginary)',
     wipe:'Logs wiped',
     chaos:'Triggering random disasters',
-    admin:'Secret mode unlocked!'
+    admin:'Secret mode unlocked! Elevated permissions granted.',
+    status:'CPU flux 42%, neon grid stable, packets humming.',
+    theme:'Toggled neon pulse background.'
   };
   termPrint(replies[cmd]||'Unknown command');
   if(cmd==='chaos') addChaos(['meteor','explosion'][Math.floor(Math.random()*2)]);
+  if(cmd==='theme') document.body.classList.toggle('pulse');
 }
+termPrint('███ NEOTERM ONLINE ███');
 
 // Python sandbox
 let pyReady=false; let pyodide;
@@ -308,17 +346,21 @@ async function runPy(){
   const output=document.getElementById('pyOutput');
   if(!pyReady){ output.textContent='Loading Pyodide...'; return; }
   const code=document.getElementById('pythonArea').value;
+  const stdinLines=(document.getElementById('pyInput').value||'').split('\n');
+  let stdinIndex=0;
   try {
+    pyodide.setStdin({stdin:()=> (stdinIndex < stdinLines.length ? stdinLines[stdinIndex++]+'\n' : '')});
     pyodide.globals.set('code_to_run', code);
     const result=await pyodide.runPythonAsync(`
 import sys, io
 buf = io.StringIO()
-_old = sys.stdout
-sys.stdout = buf
+_old_out, _old_err = sys.stdout, sys.stderr
+sys.stdout = sys.stderr = buf
 try:
     exec(code_to_run)
 finally:
-    sys.stdout = _old
+    sys.stdout = _old_out
+    sys.stderr = _old_err
 buf.getvalue()
     `);
     output.textContent=result || '(no output)';
@@ -352,7 +394,7 @@ function initChaos(){
 }
 function addChaos(type){ chaosEvents.push({type,t:0,x:Math.random()*chaosCanvas.width,y:Math.random()*chaosCanvas.height}); }
 function chaosLoop(){
-  cCtx.fillStyle='rgba(0,0,0,0.6)';
+  cCtx.fillStyle='rgba(5,6,20,0.7)';
   cCtx.fillRect(0,0,chaosCanvas.width,chaosCanvas.height);
   chaosEvents.forEach(e=>{
     e.t++;
@@ -386,8 +428,10 @@ function chaosLoop(){
     a.vx*=0.985; a.vy*=0.985;
     if(a.x<0||a.x>chaosCanvas.width) a.vx*=-1;
     if(a.y<0||a.y>chaosCanvas.height) a.vy*=-1;
-    cCtx.fillStyle=`rgba(${180+70*a.panic},${0+30*a.panic},255,0.9)`;
-    cCtx.fillRect(a.x-4,a.y-4,8,8);
+    const glow=15*a.panic;
+    cCtx.fillStyle=`rgba(${180+70*a.panic},${40+60*a.panic},255,0.55)`;
+    cCtx.shadowColor='rgba(0,255,255,0.5)'; cCtx.shadowBlur=glow;
+    cCtx.beginPath(); cCtx.arc(a.x,a.y,6+glow*0.08,0,Math.PI*2); cCtx.fill();
   });
   requestAnimationFrame(chaosLoop);
 }
@@ -401,6 +445,7 @@ const backCanvas=document.getElementById('backroomsCanvas');
 const bCtx=backCanvas.getContext('2d');
 let maze=[], player={x:1,y:1,stamina:100}, stalker={x:5,y:5};
 const cell=26;
+function resizeBackrooms(){ backCanvas.style.maxWidth='960px'; backCanvas.style.width='100%'; }
 function generateMaze(){
   const w=23,h=23; maze=[...Array(h)].map(()=>Array(w).fill(1));
   function carve(x,y){
@@ -420,11 +465,15 @@ const keys={};
 document.addEventListener('keydown',e=>{ keys[e.code]=true; });
 document.addEventListener('keyup',e=>{ keys[e.code]=false; });
 function backroomsLoop(){
-  bCtx.fillStyle='rgba(255,255,120,0.05)';
+  bCtx.fillStyle='rgba(25,25,5,0.9)';
   bCtx.fillRect(0,0,backCanvas.width,backCanvas.height);
+  const glowGrad=bCtx.createLinearGradient(0,0,backCanvas.width,backCanvas.height);
+  glowGrad.addColorStop(0,'rgba(255,255,120,0.12)');
+  glowGrad.addColorStop(1,'rgba(0,255,200,0.12)');
+  bCtx.fillStyle=glowGrad; bCtx.fillRect(0,0,backCanvas.width,backCanvas.height);
   for(let y=0;y<maze.length;y++) for(let x=0;x<maze[0].length;x++){
     if(maze[y][x]===1){
-      bCtx.fillStyle='rgba(255,255,0,0.18)';
+      bCtx.fillStyle='rgba(255,255,70,0.2)';
       bCtx.fillRect(x*cell,y*cell,cell,cell);
     }
   }
@@ -435,10 +484,12 @@ function backroomsLoop(){
   const dy=(keys['KeyS']?1:0)-(keys['KeyW']?1:0);
   const nx=player.x+dx*speed*60, ny=player.y+dy*speed*60;
   if(maze[Math.round(ny)]?.[Math.round(nx)]===0){ player.x=nx; player.y=ny; }
-  stalker.x+=(player.x-stalker.x)*0.003; stalker.y+=(player.y-stalker.y)*0.003;
-  bCtx.fillStyle='rgba(255,0,0,0.8)'; bCtx.fillRect(stalker.x*cell, stalker.y*cell, cell, cell);
-  bCtx.fillStyle='rgba(255,255,255,0.9)'; bCtx.fillRect(player.x*cell, player.y*cell, cell, cell);
-  bCtx.fillStyle='#0ff'; bCtx.fillRect((maze[0].length-2)*cell,(maze.length-2)*cell,cell,cell);
+  stalker.x+=(player.x-stalker.x)*0.005; stalker.y+=(player.y-stalker.y)*0.005;
+  bCtx.shadowBlur=18; bCtx.shadowColor='rgba(255,0,0,0.7)';
+  bCtx.fillStyle='rgba(255,0,90,0.85)'; bCtx.beginPath(); bCtx.arc(stalker.x*cell+cell/2, stalker.y*cell+cell/2, cell*0.55, 0, Math.PI*2); bCtx.fill();
+  bCtx.shadowColor='rgba(0,255,255,0.6)'; bCtx.fillStyle='rgba(255,255,255,0.92)'; bCtx.beginPath(); bCtx.arc(player.x*cell+cell/2, player.y*cell+cell/2, cell*0.45,0,Math.PI*2); bCtx.fill();
+  bCtx.shadowColor='rgba(0,200,255,0.8)'; bCtx.fillStyle='#00f0ff'; bCtx.beginPath(); bCtx.arc((maze[0].length-2)*cell+cell/2,(maze.length-2)*cell+cell/2,cell*0.5,0,Math.PI*2); bCtx.fill();
+  bCtx.shadowBlur=0;
   if(Math.abs(player.x-(maze[0].length-2))<0.5 && Math.abs(player.y-(maze.length-2))<0.5){ generateMaze(); }
   if(Math.hypot(player.x-stalker.x, player.y-stalker.y)<1){ player.x=1; player.y=1; }
   requestAnimationFrame(backroomsLoop);
@@ -446,9 +497,10 @@ function backroomsLoop(){
 
 // Init
 generateMaze();
+resizeBackrooms();
 initChaos(); chaosLoop(); backroomsLoop();
 showSection('portal');
-window.addEventListener('resize',resizeChaos);
+window.addEventListener('resize',()=>{resizeChaos(); resizeBackrooms();});
 </script>
 </body>
 </html>
