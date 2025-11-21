@@ -232,55 +232,44 @@ function showSection(id){
 document.querySelectorAll('button[data-target]').forEach(btn=>btn.onclick=()=>showSection(btn.dataset.target));
 
 // Roblox live data via RoProxy + multiple fallbacks
-const proxyWrap = url => `https://corsproxy.io/?${encodeURIComponent(url)}`;
-const rbxBtn = document.getElementById("rbxFetch");
-
-async function fetchJson(url, opts = {}) {
-  const res = await fetch(url, {
-    method: opts.method || "GET",
-    headers: opts.headers || {},
-    body: opts.body || null
-  });
-
-  if (!res.ok) throw new Error("Request failed: " + res.status);
+const rbxBtn=document.getElementById('rbxFetch');
+const proxyWrap=url=>`https://corsproxy.io/?${encodeURIComponent(url)}`;
+async function fetchJson(url,opts){
+  const headers = opts?.method === 'POST' ? {'Content-Type':'application/json'} : {};
+  const res=await fetch(url,{mode:'cors',credentials:'omit',headers:{...headers,...(opts?.headers||{})},...opts});
+  if(!res.ok) throw new Error(`Request failed: ${res.status}`);
   return await res.json();
 }
 
-// ✔ FIXED: correct payload
-// ✔ FIXED: correct fallback chain
-// ✔ FIXED: consistent POST body across proxies
+/* ✅ FIXED: username endpoints */
+const usernameEndpoints=[
+  'https://users.roproxy.com/v1/usernames/users',
+  'https://users.rprxy.xyz/v1/usernames/users',
+  proxyWrap('https://users.roblox.com/v1/usernames/users')
+];
 
-async function lookupUser(username) {
-  const payload = { usernames: [username] };
-
-  const endpoints = [
-    "https://users.roproxy.com/v1/usernames/users",
-    "https://users.rprxy.xyz/v1/usernames/users",
-    proxyWrap("https://users.roblox.com/v1/usernames/users")
-  ];
-
-  for (const url of endpoints) {
-    try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) continue;  
-      const data = await res.json();
-
-      if (data?.data?.length > 0) {
-        return data.data[0];
-      }
-
-    } catch (err) {
-      console.warn("lookup fallback failed:", err);
-    }
-  }
-
-  throw new Error("Unable to reach Roblox user services. Try again.");
+const rbxHosts=[
+  'https://users.roproxy.com',
+  'https://users.rprxy.xyz',
+  proxyWrap('https://users.roblox.com')
+];
+function withHost(path){
+  return rbxHosts.map(base=>`${base}${path}`);
 }
+
+/* ✅ FIXED: lookupUser – simpler, correct payload, no broken search fallback */
+async function lookupUser(username){
+  const payload={ usernames:[username] };
+  for(const url of usernameEndpoints){
+    try{
+      const data=await fetchJson(url,{method:'POST',body:JSON.stringify(payload)});
+      const match=data.data?.[0];
+      if(match) return match;
+    } catch(err){ console.warn('lookup fallback',err); }
+  }
+  throw new Error('Unable to reach Roblox user services. Try again.');
+}
+
 async function renderRoblox(){
   const wrap=document.getElementById('rbxResults');
   wrap.innerHTML='<div class="portal-card"><p>Loading...</p></div>';
@@ -375,7 +364,7 @@ function handleTerm(cmd){
   if(base==='matrix'){
     let ticks=0;
     const interval=setInterval(()=>{
-      const col='01\/\\';
+      const col='01\\/\\';
       const line=Array.from({length:32},()=>col[Math.floor(Math.random()*col.length)]).join('');
       termPrint(line);
       ticks++; if(ticks>10) clearInterval(interval);
@@ -407,7 +396,7 @@ async function runPy(){
   try {
     pyodide.setStdin({stdin:()=>{
       let val;
-      if(feedIndex < feed.length){ val = feed[feedIndex++]; }
+      if(feedIndex < feed.length){ val = feedIndex < feed.length ? feed[feedIndex++] : ''; }
       else { val = prompt('input() requested:'); }
       transcript += `\n[input] ${val??''}`;
       return (val??'')+'\n';
