@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -197,7 +198,7 @@
                 </div>
             </div>
             <div class="status" id="authStatus">Not logged in.</div>
-            <div class="note">Accounts are saved locally. If TestAdmin23 does not exist yet, a default admin profile is created for you.</div>
+            <div class="note">Accounts are session-only (no local saving). Use <strong>TestAdmin23</strong> with password <strong>admin</strong> for admin access.</div>
         </section>
 
         <section class="canvas-shell">
@@ -240,22 +241,14 @@
             '#FF0000', '#FF6B00', '#FFD300', '#00E676', '#00C2FF', '#0065FF', '#8400FF', '#FF00FF', '#FFFFFF', '#C0C0C0', '#808080', '#000000'
         ];
 
-        function getUsers() {
-            try { return JSON.parse(localStorage.getItem('pixelUsers')) || {}; }
-            catch { return {}; }
-        }
+        const ADMIN_USERNAME = 'TestAdmin23';
+        const ADMIN_PASSWORD = 'admin';
 
-        function saveUsers(users) {
-            localStorage.setItem('pixelUsers', JSON.stringify(users));
-        }
-
-        function ensureAdmin() {
-            const users = getUsers();
-            if (!users['TestAdmin23']) {
-                users['TestAdmin23'] = { password: 'admin', isAdmin: true, lastPixel: 0 };
-                saveUsers(users);
-            }
-        }
+        // Session-only account store (no local persistence)
+        const users = {
+            [ADMIN_USERNAME]: { password: ADMIN_PASSWORD, isAdmin: true, lastPixel: 0 }
+        };
+        let currentUser = null;
 
         function getBoard() {
             try { return JSON.parse(localStorage.getItem('pixelBoard')) || createEmptyBoard(); }
@@ -271,7 +264,6 @@
         }
 
         const board = getBoard();
-        ensureAdmin();
 
         // Render helpers
         function drawBoard() {
@@ -305,40 +297,30 @@
             cooldownText.textContent = user.isAdmin ? 'None' : `${COOLDOWN_MS / 1000}s`;
         }
 
-        function getCurrentUser() {
-            const username = localStorage.getItem('pixelCurrentUser');
-            if (!username) return null;
-            const users = getUsers();
-            return users[username] ? { ...users[username], username } : null;
-        }
-
         function login(username, password) {
-            const users = getUsers();
             const user = users[username];
             if (!user || user.password !== password) {
                 authStatus.textContent = 'Invalid credentials. Try again or sign up.';
                 return;
             }
-            localStorage.setItem('pixelCurrentUser', username);
+            currentUser = { ...user, username };
             authStatus.textContent = `Logged in as ${username}${user.isAdmin ? ' (admin)' : ''}.`;
-            updateRoleUI({ ...user, username });
+            updateRoleUI(currentUser);
         }
 
         function signup(username, password) {
-            const users = getUsers();
             if (users[username]) {
                 authStatus.textContent = 'That username is taken.';
                 return;
             }
             users[username] = { password, isAdmin: false, lastPixel: 0 };
-            saveUsers(users);
-            localStorage.setItem('pixelCurrentUser', username);
+            currentUser = { ...users[username], username };
             authStatus.textContent = `Account created! Logged in as ${username}.`;
-            updateRoleUI({ ...users[username], username });
+            updateRoleUI(currentUser);
         }
 
         function placePixel(x, y) {
-            const user = getCurrentUser();
+            const user = currentUser;
             if (!user) {
                 authStatus.textContent = 'Please log in to place pixels.';
                 return;
@@ -355,10 +337,9 @@
             saveBoard(board);
 
             // update last placement for non-admins
-            const users = getUsers();
             if (!user.isAdmin) {
                 users[user.username].lastPixel = now;
-                saveUsers(users);
+                currentUser.lastPixel = now;
             }
 
             drawBoard();
@@ -455,11 +436,8 @@
 
         // Auto-load current session
         (function initSession() {
-            const user = getCurrentUser();
-            if (user) {
-                authStatus.textContent = `Welcome back, ${user.username}${user.isAdmin ? ' (admin)' : ''}.`;
-            }
-            updateRoleUI(user);
+            authStatus.textContent = 'Session-only accounts. Admin user is TestAdmin23 with password "admin".';
+            updateRoleUI(null);
         })();
     </script>
 </body>
