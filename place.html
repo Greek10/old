@@ -232,14 +232,14 @@
                 <div class="toolbar">
                     <div class="badge" id="roleBadge">Guest</div>
                     <div class="stat">Selected color: <span id="colorPreview" style="display:inline-block;width:18px;height:18px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);"></span></div>
-                    <div class="stat">Cooldown: <span id="cooldownText">5s</span></div>
-                    <div class="stat">Canvas: 200 x 200</div>
+                    <div class="stat">Cooldown: <span id="cooldownText">1s</span></div>
+                    <div class="stat">Canvas: <span id="canvasSize">800 x 800</span></div>
                 </div>
                 <button class="btn secondary" id="resetView">Center view</button>
             </div>
             <div class="canvas-layout">
                 <div class="canvas-wrap">
-                    <canvas id="board" width="1200" height="1200"></canvas>
+                    <canvas id="board" width="4800" height="4800"></canvas>
                     <div class="status" id="hoverInfo">Hover over the canvas to see coordinates.</div>
                 </div>
                 <div class="palette-card">
@@ -250,7 +250,7 @@
                     <div class="palette" id="palette"></div>
                 </div>
             </div>
-            <div class="note">Tip: Pixels sync live to everyone connected. Admins skip cooldowns and can place unlimited pixels; regular users have a short cooldown between placements to keep things fair.</div>
+            <div class="note">Tip: Pixels sync live to everyone connected. Admins skip cooldowns and can place unlimited pixels; members recharge one pixel every second and can bank up to 300 charges for burst building.</div>
         </section>
     </main>
 
@@ -274,9 +274,10 @@
     </section>
 
     <script>
-        const GRID_SIZE = 200;           // Canvas dimensions (200 x 200)
+        const GRID_SIZE = 800;           // Canvas dimensions (800 x 800)
         const PIXEL_SIZE = 6;            // Visual size of each pixel
-        const COOLDOWN_MS = 5000;        // Cooldown for non-admin users
+        const COOLDOWN_MS = 1000;        // Cooldown for non-admin users (1s per charge)
+        const MAX_STACK = 300;           // Stack up to 300 pixels for members
         const EMPTY_COLOR = '#0a0f1f';
         const CANVAS = document.getElementById('board');
         const CTX = CANVAS.getContext('2d');
@@ -287,15 +288,20 @@
         const roleBadge = document.getElementById('roleBadge');
         const authStatus = document.getElementById('authStatus');
         const resetViewBtn = document.getElementById('resetView');
+        const canvasSizeText = document.getElementById('canvasSize');
 
         let currentColor = '#ff4757';
         let offsetX = 0;
         let offsetY = 0;
         let zoom = 1;
 
+        canvasSizeText.textContent = `${GRID_SIZE} x ${GRID_SIZE}`;
+
         const COLORS = [
-            '#FF0000', '#FF6B00', '#FF9900', '#FFD300', '#FFE66D', '#C8FF00', '#7CFC00', '#00E676', '#00C2FF', '#0096FF', '#0065FF', '#0037FF',
-            '#6F00FF', '#8400FF', '#A742FF', '#FF00FF', '#FF55AA', '#FF7BC0', '#FFFFFF', '#F0F0F0', '#C0C0C0', '#808080', '#404040', '#000000'
+            '#FF0000', '#FF3B30', '#FF6B00', '#FF9900', '#FFC700', '#FFE66D', '#FFF3B0', '#C8FF00', '#7CFC00', '#4CAF50', '#00E676', '#00C2FF',
+            '#0096FF', '#007BFF', '#0057D9', '#0037FF', '#001489', '#6F00FF', '#8400FF', '#A742FF', '#C18CFF', '#FF00FF', '#FF55AA', '#FF7BC0',
+            '#FFA3D7', '#FFFFFF', '#F0F0F0', '#D9D9D9', '#C0C0C0', '#A0A0A0', '#808080', '#606060', '#404040', '#202020', '#000000', '#00FFFF',
+            '#40E0D0', '#3CB371', '#228B22', '#B5651D', '#8B4513', '#F4A460', '#FFDAB9', '#FFDEAD'
         ];
 
         const ADMIN_USERNAME = 'TestAdmin23';
@@ -306,10 +312,22 @@
         let users = {};
         let currentUser = null;
 
+        function hydrateUserFields(record) {
+            if (record.isAdmin) return record;
+            return {
+                ...record,
+                lastEarned: record.lastEarned || Date.now(),
+                stack: Math.min(record.stack || MAX_STACK, MAX_STACK)
+            };
+        }
+
         function loadUsers() {
             try {
                 const stored = JSON.parse(localStorage.getItem('pixelUsers')) || {};
                 stored[ADMIN_USERNAME] = { password: ADMIN_PASSWORD, isAdmin: true, lastPixel: stored[ADMIN_USERNAME]?.lastPixel || 0 };
+                Object.keys(stored).forEach(key => {
+                    stored[key] = hydrateUserFields(stored[key]);
+                });
                 return stored;
             } catch (e) {
                 return { [ADMIN_USERNAME]: { password: ADMIN_PASSWORD, isAdmin: true, lastPixel: 0 } };
@@ -320,9 +338,23 @@
             localStorage.setItem('pixelUsers', JSON.stringify(users));
         }
 
+        function mergeUsers(incoming = {}) {
+            Object.entries(incoming).forEach(([name, data]) => {
+                users[name] = hydrateUserFields(data);
+            });
+            persistUsers();
+        }
+
         function getBoard() {
-            try { return JSON.parse(localStorage.getItem('pixelBoard')) || createEmptyBoard(); }
-            catch { return createEmptyBoard(); }
+            try {
+                const stored = JSON.parse(localStorage.getItem('pixelBoard'));
+                if (!stored || stored.length !== GRID_SIZE || stored.some(row => row.length !== GRID_SIZE)) {
+                    return createEmptyBoard();
+                }
+                return stored;
+            } catch {
+                return createEmptyBoard();
+            }
         }
 
         function saveBoard(board) {
@@ -385,12 +417,10 @@
                             drawBoard();
                         }
                         if (data.users) {
-                            users = { ...users, ...data.users };
-                            persistUsers();
+                            mergeUsers(data.users);
                         }
                     } else if (data.type === 'user' && data.username && data.data) {
-                        users[data.username] = data.data;
-                        persistUsers();
+                        mergeUsers({ [data.username]: data.data });
                     }
                 } catch (e) {
                     console.warn('Realtime message parse failed', e);
@@ -425,12 +455,12 @@
             if (!user) {
                 roleBadge.textContent = 'Guest';
                 roleBadge.style.background = 'rgba(255,255,255,0.08)';
-                cooldownText.textContent = `${COOLDOWN_MS / 1000}s`;
+                cooldownText.textContent = `${COOLDOWN_MS / 1000}s · Stack up to ${MAX_STACK}`;
                 return;
             }
             roleBadge.textContent = user.isAdmin ? 'Admin' : 'Member';
             roleBadge.style.background = user.isAdmin ? 'rgba(139,248,192,0.18)' : 'rgba(107,230,255,0.15)';
-            cooldownText.textContent = user.isAdmin ? 'None' : `${COOLDOWN_MS / 1000}s`;
+            cooldownText.textContent = user.isAdmin ? 'None' : `${COOLDOWN_MS / 1000}s · Stack ${user.stack ?? MAX_STACK}/${MAX_STACK}`;
         }
 
         function login(username, password) {
@@ -439,7 +469,7 @@
                 authStatus.textContent = 'Invalid credentials. Try again or sign up.';
                 return;
             }
-            currentUser = { ...user, username };
+            currentUser = { ...hydrateUserFields(user), username };
             localStorage.setItem('pixelCurrentUser', username);
             persistUsers();
             authStatus.textContent = `Logged in as ${username}${user.isAdmin ? ' (admin)' : ''}.`;
@@ -451,13 +481,25 @@
                 authStatus.textContent = 'That username is taken.';
                 return;
             }
-            users[username] = { password, isAdmin: false, lastPixel: 0 };
+            users[username] = { password, isAdmin: false, lastPixel: 0, stack: MAX_STACK, lastEarned: Date.now() };
             persistUsers();
             currentUser = { ...users[username], username };
             localStorage.setItem('pixelCurrentUser', username);
             authStatus.textContent = `Account created! Logged in as ${username}.`;
             updateRoleUI(currentUser);
             sendRealtime({ type: 'user', username, data: users[username] });
+        }
+
+        function refreshStack(user) {
+            if (!user || user.isAdmin) return user;
+            const now = Date.now();
+            const elapsed = now - (user.lastEarned || now);
+            const gained = Math.floor(elapsed / COOLDOWN_MS);
+            if (gained > 0) {
+                user.stack = Math.min(MAX_STACK, (user.stack || 0) + gained);
+                user.lastEarned = (user.lastEarned || now) + gained * COOLDOWN_MS;
+            }
+            return user;
         }
 
         function placePixel(x, y) {
@@ -467,10 +509,12 @@
                 return;
             }
 
+            refreshStack(user);
+            updateRoleUI(user);
             const now = Date.now();
-            if (!user.isAdmin && now - (user.lastPixel || 0) < COOLDOWN_MS) {
-                const wait = Math.ceil((COOLDOWN_MS - (now - (user.lastPixel || 0))) / 1000);
-                authStatus.textContent = `Cooldown active. Wait ${wait}s.`;
+            if (!user.isAdmin && (user.stack ?? 0) <= 0) {
+                const wait = Math.ceil((COOLDOWN_MS - (now - (user.lastEarned || now))) / 1000);
+                authStatus.textContent = `Cooldown active. Next charge in ${wait}s.`;
                 return;
             }
 
@@ -482,9 +526,16 @@
 
             // update last placement for non-admins
             if (!user.isAdmin) {
-                users[user.username].lastPixel = now;
-                currentUser.lastPixel = now;
+                const stackValue = Math.max(0, (user.stack ?? MAX_STACK) - 1);
+                users[user.username] = {
+                    ...users[user.username],
+                    lastPixel: now,
+                    lastEarned: user.lastEarned || now,
+                    stack: stackValue,
+                };
+                currentUser = { ...users[user.username], username: user.username };
                 persistUsers();
+                updateRoleUI(currentUser);
             }
 
             drawBoard();
@@ -542,6 +593,17 @@
                 shiftHeld = false;
             }
         });
+
+        setInterval(() => {
+            if (!currentUser || currentUser.isAdmin) return;
+            const hydrated = refreshStack({ ...currentUser });
+            if (hydrated.stack !== currentUser.stack) {
+                currentUser = { ...hydrated };
+                users[currentUser.username] = { ...currentUser };
+                persistUsers();
+                updateRoleUI(currentUser);
+            }
+        }, COOLDOWN_MS);
 
         // Simple zoom controls using wheel
         CANVAS.addEventListener('wheel', (e) => {
@@ -601,7 +663,8 @@
             persistUsers();
             const savedUser = localStorage.getItem('pixelCurrentUser');
             if (savedUser && users[savedUser]) {
-                currentUser = { ...users[savedUser], username: savedUser };
+                currentUser = { ...hydrateUserFields(users[savedUser]), username: savedUser };
+                users[savedUser] = { ...currentUser };
                 authStatus.textContent = `Welcome back ${savedUser}${currentUser.isAdmin ? ' (admin)' : ''}.`;
             } else {
                 authStatus.textContent = 'Persistent accounts ready. Log in to start placing pixels.';
