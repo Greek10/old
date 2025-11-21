@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -119,7 +118,7 @@
       <div class="stat"><span>Income / sec</span><span id="income">$0</span></div>
       <div class="stat"><span>Upgrades</span><span id="owned">0</span></div>
       <div class="stat"><span>Crates Grabbed</span><span id="crates">0</span></div>
-      <button id="startBtn">Click to lock mouse &amp; play (WASD + Space)</button>
+      <button id="startBtn">Click to lock mouse &amp; play (WASD + Space, or arrows)</button>
       <div id="log"></div>
     </div>
     <div id="btns"></div>
@@ -155,13 +154,16 @@
     const controls = new PointerLockControls(camera, document.body);
     const startBtn = document.getElementById('startBtn');
     startBtn.addEventListener('click', () => controls.lock());
+    renderer.domElement.addEventListener('click', () => {
+      if (!controls.isLocked) controls.lock();
+    });
 
     controls.addEventListener('lock', () => {
       startBtn.textContent = 'Pointer locked – press ESC to release';
       orbit.enabled = false;
     });
     controls.addEventListener('unlock', () => {
-      startBtn.textContent = 'Click to lock mouse & play (WASD + Space)';
+      startBtn.textContent = 'Click to lock mouse & play (WASD + Space, or arrows)';
       orbit.enabled = true;
     });
 
@@ -407,14 +409,47 @@
     const velocity = new THREE.Vector3();
     const direction = new THREE.Vector3();
     const keyState = {};
-    document.addEventListener('keydown', e => keyState[e.code] = true);
-    document.addEventListener('keyup', e => keyState[e.code] = false);
+    const lookState = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
+    document.addEventListener('keydown', e => {
+      keyState[e.code] = true;
+      if (e.code in lookState) {
+        lookState[e.code] = true;
+        e.preventDefault();
+      }
+    });
+    document.addEventListener('keyup', e => {
+      keyState[e.code] = false;
+      if (e.code in lookState) lookState[e.code] = false;
+    });
 
     const playerHeight = 2;
     controls.getObject().position.set(-8, playerHeight, 8);
     scene.add(controls.getObject());
 
     let canJump = false;
+    function applyArrowLook(delta) {
+      const lookSpeed = 1.8;
+      const yawObject = controls.getObject();
+
+      if (controls.isLocked) {
+        if (lookState.ArrowLeft) yawObject.rotation.y += lookSpeed * delta;
+        if (lookState.ArrowRight) yawObject.rotation.y -= lookSpeed * delta;
+
+        let pitch = camera.rotation.x;
+        if (lookState.ArrowUp) pitch += lookSpeed * delta;
+        if (lookState.ArrowDown) pitch -= lookSpeed * delta;
+        pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
+        camera.rotation.x = pitch;
+      } else {
+        let moved = false;
+        if (lookState.ArrowLeft) { orbit.rotateLeft(lookSpeed * delta); moved = true; }
+        if (lookState.ArrowRight) { orbit.rotateLeft(-lookSpeed * delta); moved = true; }
+        if (lookState.ArrowUp) { orbit.rotateUp(lookSpeed * delta); moved = true; }
+        if (lookState.ArrowDown) { orbit.rotateUp(-lookSpeed * delta); moved = true; }
+        if (moved) orbit.update();
+      }
+    }
+
     function processMovement(delta) {
       const speed = keyState['ShiftLeft'] ? 16 : 10;
       direction.set(0, 0, 0);
@@ -516,6 +551,7 @@
     const clock = new THREE.Clock();
     function animate() {
       const delta = Math.min(0.05, clock.getDelta());
+      applyArrowLook(delta);
       processMovement(delta);
       tick(delta);
       orbit.update();
