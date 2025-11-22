@@ -743,14 +743,38 @@ async function checkGameBanStatus() {
     const userId = user.id;
 
     // 2) placeId → universeId (FIXED endpoint)
-    let universeDetails = null;
-    try {
-      universeDetails = await fetchJson(
-        `https://games.roproxy.com/v1/games/multiget-place-details?placeIds=${placeId}`
-      );
-    } catch (e) {}
+   // STEP 2 — placeId → universeId (uses 3 full fallbacks)
+let universeDetails = null;
+const universeUrls = [
+  `https://games.roproxy.com/v1/games/multiget-place-details?placeIds=${placeId}`,
+  `https://games.rprxy.xyz/v1/games/multiget-place-details?placeIds=${placeId}`,
+  proxyWrap(`https://games.roblox.com/v1/games/multiget-place-details?placeIds=${placeId}`)
+];
 
-    const placeInfo = universeDetails?.data?.[0];
+for (const url of universeUrls) {
+  try {
+    const data = await fetchJson(url);
+    if (data?.data?.length) {
+      universeDetails = data;
+      break;
+    }
+  } catch (err) {
+    // try next API
+  }
+}
+
+let placeInfo = null;
+if (universeDetails && universeDetails.data && universeDetails.data[0]) {
+  placeInfo = universeDetails.data[0];
+}
+
+if (!placeInfo || !placeInfo.universeId) {
+  resultBox.innerHTML =
+    '<h3>Game Ban Check</h3><p>Invalid Place ID or Roblox did not return universe data.</p>';
+  return;
+}
+
+const universeId = placeInfo.universeId;
     if (!placeInfo || !placeInfo.universeId) {
       resultBox.innerHTML =
         '<h3>Game Ban Check</h3><p>Invalid Place ID or Roblox did not return universe data.</p>';
