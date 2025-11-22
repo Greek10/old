@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Windows 98 Virtual Machine</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<title>Modern Browser VM — WebVM Linux Desktop</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 <style>
     :root {
@@ -11,6 +11,7 @@
         --card: rgba(15, 23, 42, 0.96);
         --accent: #38bdf8;
         --accent2: #a855f7;
+        --border: rgba(148, 163, 184, 0.5);
         --text-main: #e5e7eb;
         --text-muted: #9ca3af;
         --radius-xl: 20px;
@@ -28,7 +29,7 @@
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Poppins", sans-serif;
         background:
             radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.25), transparent 55%),
-            radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.22), transparent 60%),
+            radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.25), transparent 60%),
             var(--bg);
         color: var(--text-main);
         display: flex;
@@ -39,21 +40,21 @@
 
     .shell {
         width: 100%;
-        max-width: 1100px;
-        background: linear-gradient(135deg,
-            rgba(15, 23, 42, 0.96),
-            rgba(15, 23, 42, 0.9));
+        max-width: 1140px;
+        background: linear-gradient(140deg,
+            rgba(15, 23, 42, 0.98),
+            rgba(17, 24, 39, 0.96));
         border-radius: 26px;
-        border: 1px solid rgba(148, 163, 184, 0.45);
+        border: 1px solid var(--border);
         box-shadow: var(--shadow-soft);
         padding: 18px 18px 14px;
-        backdrop-filter: blur(22px);
+        backdrop-filter: blur(24px);
     }
 
     header {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 10px;
         align-items: baseline;
         justify-content: space-between;
         margin-bottom: 12px;
@@ -62,24 +63,26 @@
     h1 {
         font-size: 22px;
         margin: 0;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
     }
 
     .subtitle {
-        margin: 0;
+        margin: 4px 0 0;
         font-size: 12px;
         color: var(--text-muted);
-        max-width: 420px;
+        max-width: 460px;
     }
 
     .tag {
         padding: 4px 10px;
         border-radius: 999px;
-        border: 1px solid rgba(148, 163, 184, 0.5);
+        border: 1px solid var(--border);
         font-size: 11px;
         color: var(--text-muted);
-        background: rgba(15, 23, 42, 0.9);
+        background: rgba(15, 23, 42, 0.95);
         backdrop-filter: blur(10px);
+        text-align: right;
     }
 
     .controls {
@@ -91,7 +94,7 @@
         margin-bottom: 10px;
     }
 
-    .left-controls {
+    .controls-left {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
@@ -108,34 +111,38 @@
         display: inline-flex;
         align-items: center;
         gap: 7px;
-        transition: transform var(--transition), box-shadow var(--transition), background var(--transition), opacity var(--transition);
+        transition:
+            transform var(--transition),
+            box-shadow var(--transition),
+            background var(--transition),
+            opacity var(--transition);
     }
 
     .btn-primary {
         background: radial-gradient(circle at 10% 0%, var(--accent), #2563eb);
-        color: white;
+        color: #f9fafb;
         box-shadow:
-            0 0 0 1px rgba(56, 189, 248, 0.6),
-            0 12px 30px rgba(37, 99, 235, 0.8);
+            0 0 0 1px rgba(56, 189, 248, 0.7),
+            0 12px 30px rgba(37, 99, 235, 0.9);
     }
 
     .btn-primary:hover {
         transform: translateY(-1px);
         box-shadow:
             0 0 0 1px rgba(56, 189, 248, 0.9),
-            0 16px 36px rgba(37, 99, 235, 0.9);
+            0 16px 36px rgba(37, 99, 235, 1);
     }
 
     .btn-ghost {
-        background: rgba(15, 23, 42, 0.9);
+        background: rgba(15, 23, 42, 0.95);
         color: var(--text-muted);
-        box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.5);
+        box-shadow: 0 0 0 1px var(--border);
     }
 
     .btn-ghost:hover {
+        background: rgba(30, 64, 175, 0.45);
         color: var(--accent);
-        box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.7);
-        background: rgba(30, 64, 175, 0.35);
+        box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.8);
     }
 
     .btn-small {
@@ -146,6 +153,8 @@
     .hint {
         font-size: 11px;
         color: var(--text-muted);
+        max-width: 320px;
+        text-align: right;
     }
 
     .hint b {
@@ -157,19 +166,20 @@
         position: relative;
         border-radius: var(--radius-xl);
         overflow: hidden;
-        border: 1px solid rgba(30, 64, 175, 0.9);
-        background: radial-gradient(circle at 10% 0%, rgba(56, 189, 248, 0.22), transparent 60%),
-                    radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.2), transparent 60%),
-                    #020617;
-        min-height: min(70vh, 620px);
-        max-height: 80vh;
+        border: 1px solid rgba(37, 99, 235, 0.9);
+        background:
+            radial-gradient(circle at 10% 0%, rgba(56, 189, 248, 0.22), transparent 60%),
+            radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.22), transparent 60%),
+            #020617;
+        min-height: min(70vh, 640px);
+        max-height: 82vh;
     }
 
     iframe {
         width: 100%;
         height: 100%;
         border: none;
-        display: none; /* shown after Start clicked */
+        display: none; /* show after Launch */
         background: black;
     }
 
@@ -180,11 +190,11 @@
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
         text-align: center;
-        padding: 18px;
+        padding: 20px;
         background:
-            radial-gradient(circle at 0 0, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.98));
+            radial-gradient(circle at 0 0, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.98));
     }
 
     .overlay h2 {
@@ -193,10 +203,10 @@
     }
 
     .overlay p {
-        max-width: 520px;
         font-size: 13px;
         color: var(--text-muted);
-        margin: 0 0 10px;
+        max-width: 520px;
+        margin: 0 0 12px;
     }
 
     .badge-row {
@@ -210,8 +220,8 @@
     .badge {
         padding: 3px 8px;
         border-radius: 999px;
-        border: 1px solid rgba(148, 163, 184, 0.6);
-        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid var(--border);
+        background: rgba(15, 23, 42, 0.96);
         color: var(--text-muted);
     }
 
@@ -219,22 +229,20 @@
         width: 14px;
         height: 14px;
         border-radius: 999px;
-        border: 2px solid rgba(148, 163, 184, 0.6);
+        border: 2px solid rgba(148, 163, 184, 0.65);
         border-top-color: var(--accent);
         animation: spin 0.7s linear infinite;
     }
 
     @keyframes spin {
-        to {
-            transform: rotate(360deg);
-        }
+        to { transform: rotate(360deg); }
     }
 
     footer {
-        margin-top: 8px;
-        text-align: right;
+        margin-top: 10px;
         font-size: 11px;
         color: var(--text-muted);
+        text-align: right;
     }
 
     footer a {
@@ -247,7 +255,7 @@
         text-decoration: underline;
     }
 
-    @media (max-width: 720px) {
+    @media (max-width: 780px) {
         h1 {
             font-size: 19px;
         }
@@ -258,6 +266,13 @@
         .vm-wrapper {
             min-height: 60vh;
         }
+        .hint {
+            text-align: left;
+            max-width: 100%;
+        }
+        header {
+            gap: 6px;
+        }
     }
 </style>
 </head>
@@ -265,111 +280,118 @@
 <div class="shell">
     <header>
         <div>
-            <h1>Windows 98 Virtual Machine</h1>
+            <h1>Modern Browser VM</h1>
             <p class="subtitle">
-                Runs completely in your browser using the <b>v86</b> x86 emulator.
-                This is perfect for a GitHub Pages project – no backend required.
+                This page embeds <strong>WebVM</strong> — a full Linux environment
+                running entirely in your browser using WebAssembly and the CheerpX
+                virtualization engine. No server, no VPS, just a tab.
             </p>
         </div>
-        <span class="tag">Powered by copy.sh/v86 • Windows 98 profile</span>
+        <div class="tag">
+            WebVM Alpine Desktop • HTML5 / WebAssembly
+        </div>
     </header>
 
     <div class="controls">
-        <div class="left-controls">
-            <button id="startBtn" class="btn-primary">
-                <span id="startIcon">💾</span>
-                <span id="startText">Boot Windows 98</span>
+        <div class="controls-left">
+            <button id="launchBtn" class="btn-primary">
+                <span id="launchIcon">🧠</span>
+                <span id="launchText">Launch Linux Desktop VM</span>
             </button>
 
-            <button id="restartBtn" class="btn-ghost btn-small" disabled>
-                🔄 Restart VM
+            <button id="resetBtn" class="btn-ghost btn-small" disabled>
+                🔄 Reset VM
             </button>
 
             <button id="fullscreenBtn" class="btn-ghost btn-small">
-                ⛶ Fullscreen VM
+                ⛶ Fullscreen
             </button>
         </div>
 
         <div class="hint">
-            Tip: once it loads, <b>click inside</b> the VM to capture input.  
-            Press <b>Esc</b> to leave fullscreen.
+            Tip: after it loads, <b>click inside</b> the VM to control it.
+            Press <b>Esc</b> to exit fullscreen.
         </div>
     </div>
 
     <div class="vm-wrapper" id="vmWrapper">
         <iframe
             id="vmFrame"
-            title="Windows 98 Virtual Machine"
+            title="WebVM Alpine Linux Desktop"
             allow="fullscreen">
         </iframe>
 
         <div class="overlay" id="vmOverlay">
-            <h2>Windows 98 in your browser</h2>
+            <h2>Linux Desktop VM in your browser</h2>
             <p>
-                Click <b>Boot Windows 98</b> to start the virtual machine.
-                It uses the public <code>copy.sh/v86</code> Windows 98 profile and might take
-                a bit to boot depending on your connection and device.
+                When you click <b>Launch Linux Desktop VM</b>, this page loads
+                the <b>WebVM Alpine / Xorg / i3</b> environment in an embedded
+                frame. It’s a full Linux userspace with persistent storage and
+                networking support, running entirely client-side.
             </p>
+
             <div class="badge-row">
-                <span class="badge">🧠 Emulated x86 CPU (v86)</span>
-                <span class="badge">💿 Windows 98 disk image</span>
-                <span class="badge">🌐 Runs client-side in your browser</span>
+                <span class="badge">🖥 x86 virtualization via CheerpX</span>
+                <span class="badge">🐧 Alpine Linux + Xorg + i3</span>
+                <span class="badge">🧪 No backend · runs in your browser</span>
             </div>
         </div>
     </div>
 
     <footer>
-        VM backend provided by
-        <a href="https://copy.sh/v86/" target="_blank" rel="noopener noreferrer">copy.sh v86</a>.
-        You’re just embedding it on this page.
+        VM provided by
+        <a href="https://webvm.io/" target="_blank" rel="noopener noreferrer">WebVM</a>.
+        This page just embeds it with a custom UI.
     </footer>
 </div>
 
 <script>
     const vmFrame = document.getElementById("vmFrame");
     const vmOverlay = document.getElementById("vmOverlay");
-    const startBtn = document.getElementById("startBtn");
-    const restartBtn = document.getElementById("restartBtn");
+    const launchBtn = document.getElementById("launchBtn");
+    const resetBtn = document.getElementById("resetBtn");
     const fullscreenBtn = document.getElementById("fullscreenBtn");
     const vmWrapper = document.getElementById("vmWrapper");
 
-    const WINDOWS98_URL = "https://copy.sh/v86/?profile=windows98";
+    const WEBVM_ALPINE_URL = "https://webvm.io/alpine.html";
 
-    let hasBootedOnce = false;
+    let hasLaunched = false;
 
-    function bootVM() {
-        startBtn.disabled = true;
-        startBtn.classList.add("btn-ghost");
-        startBtn.classList.remove("btn-primary");
-        document.getElementById("startIcon").innerHTML = '<span class="spinner"></span>';
-        document.getElementById("startText").textContent = "Booting...";
+    function launchVM() {
+        launchBtn.disabled = true;
+        launchBtn.classList.remove("btn-primary");
+        launchBtn.classList.add("btn-ghost");
 
-        // Show iframe and start loading Windows 98 profile
+        document.getElementById("launchIcon").innerHTML = '<span class="spinner"></span>';
+        document.getElementById("launchText").textContent = "Launching VM...";
+
         vmFrame.style.display = "block";
-        vmFrame.src = WINDOWS98_URL;
+        vmFrame.src = WEBVM_ALPINE_URL;
 
-        // Hide overlay after a short delay so user sees that something is happening
+        // hide overlay after a small delay (so user sees something is happening)
         setTimeout(() => {
             vmOverlay.style.display = "none";
         }, 1200);
 
-        // Enable restart once we started at least once
-        hasBootedOnce = true;
-        restartBtn.disabled = false;
+        hasLaunched = true;
+        resetBtn.disabled = false;
     }
 
-    function restartVM() {
-        if (!hasBootedOnce) return;
+    function resetVM() {
+        if (!hasLaunched) return;
         vmFrame.src = "";
         vmFrame.style.display = "none";
         vmOverlay.style.display = "flex";
 
-        // Reset button visual
-        startBtn.disabled = false;
-        startBtn.classList.remove("btn-ghost");
-        startBtn.classList.add("btn-primary");
-        document.getElementById("startIcon").textContent = "💾";
-        document.getElementById("startText").textContent = "Boot Windows 98";
+        // reset button visuals
+        launchBtn.disabled = false;
+        launchBtn.classList.add("btn-primary");
+        launchBtn.classList.remove("btn-ghost");
+        document.getElementById("launchIcon").textContent = "🧠";
+        document.getElementById("launchText").textContent = "Launch Linux Desktop VM";
+
+        hasLaunched = false;
+        resetBtn.disabled = true;
     }
 
     function fullscreenVM() {
@@ -380,18 +402,18 @@
         } else if (vmWrapper.msRequestFullscreen) {
             vmWrapper.msRequestFullscreen();
         } else {
-            alert("Fullscreen API not supported in this browser.");
+            alert("Fullscreen is not supported in this browser.");
         }
     }
 
-    startBtn.addEventListener("click", (e) => {
+    launchBtn.addEventListener("click", (e) => {
         e.preventDefault();
-        bootVM();
+        launchVM();
     });
 
-    restartBtn.addEventListener("click", (e) => {
+    resetBtn.addEventListener("click", (e) => {
         e.preventDefault();
-        restartVM();
+        resetVM();
     });
 
     fullscreenBtn.addEventListener("click", (e) => {
