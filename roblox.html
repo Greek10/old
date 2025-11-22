@@ -12,34 +12,39 @@
   --bg: #04050f;
   --panel: rgba(255,255,255,0.06);
 }
+
 *{box-sizing:border-box;}
+
 body{
   margin:0;
   font-family:'Inter',system-ui,sans-serif;
-  background:#04050f;
   background:radial-gradient(circle at 20% 20%, rgba(255,46,212,0.2), transparent 35%),
              radial-gradient(circle at 80% 0%, rgba(0,255,247,0.18), transparent 35%),
              radial-gradient(circle at 45% 75%, rgba(130,86,255,0.18), transparent 40%),
-             #04050f;
+             var(--bg);
   color:#e8f7ff;
   min-height:100vh;
   padding:20px;
 }
+
 h1{
   font-family:'Orbitron',sans-serif;
   text-align:center;
   letter-spacing:1.2px;
 }
+
 .container{
   max-width:980px;
   margin:auto;
 }
+
 .controls{
   display:flex;
   gap:10px;
-  margin:20px 0;
+  margin:20px 0 6px;
   flex-wrap:wrap;
 }
+
 input{
   flex:1;
   min-width:200px;
@@ -49,6 +54,37 @@ input{
   background:rgba(255,255,255,0.05);
   color:white;
 }
+
+/* Suggestions dropdown */
+#suggestions {
+  position:relative;
+  max-width:980px;
+  margin:0 auto 16px;
+}
+#suggestionsList {
+  position:absolute;
+  left:0;
+  right:0;
+  top:2px;
+  background:rgba(8,12,26,0.95);
+  border-radius:10px;
+  border:1px solid rgba(0,255,255,0.4);
+  box-shadow:0 12px 25px rgba(0,0,0,0.6);
+  z-index:20;
+  display:none;
+  max-height:220px;
+  overflow:auto;
+}
+.suggestion-item {
+  padding:8px 10px;
+  cursor:pointer;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.suggestion-item:hover {
+  background:rgba(0,255,255,0.16);
+}
+
+/* Buttons, cards, grid */
 button{
   padding:10px 16px;
   border-radius:12px;
@@ -57,17 +93,20 @@ button{
   color:white;
   font-weight:600;
   cursor:pointer;
+  text-shadow:0 0 10px rgba(0,255,255,0.5);
   transition:0.18s;
 }
 button:hover{
   background:rgba(0,255,255,0.3);
   box-shadow:0 0 20px rgba(0,255,255,0.35);
 }
+
 .grid{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
   gap:14px;
 }
+
 .card{
   background:var(--panel);
   border:1px solid rgba(255,255,255,0.14);
@@ -77,6 +116,33 @@ button:hover{
 }
 .card h3{margin-top:0;}
 
+/* Loading overlay + spinner */
+#loadingOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.6);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:200;
+}
+.spinner{
+  width:60px;
+  height:60px;
+  border-radius:50%;
+  border:4px solid rgba(0,255,255,0.2);
+  border-top-color:#00fff7;
+  animation:spin 0.8s linear infinite, glow 1.2s ease-in-out infinite alternate;
+}
+@keyframes spin{
+  to{transform:rotate(360deg);}
+}
+@keyframes glow{
+  from{box-shadow:0 0 8px rgba(0,255,255,0.5);}
+  to{box-shadow:0 0 20px rgba(0,255,255,0.9);}
+}
+
+/* Popup */
 #popupOverlay{
   position:fixed;
   inset:0;
@@ -85,10 +151,10 @@ button:hover{
   align-items:center;
   background:rgba(0,0,0,0.65);
   backdrop-filter:blur(6px);
-  z-index:100;
+  z-index:150;
 }
 .popup-box{
-  background:rgba(8,12,26,0.95);
+  background:rgba(8,12,26,0.97);
   border:1px solid rgba(0,255,255,0.4);
   border-radius:14px;
   padding:18px;
@@ -96,14 +162,43 @@ button:hover{
   max-width:620px;
   max-height:72vh;
   overflow:auto;
+  color:white;
+  box-shadow:0 0 30px rgba(0,255,255,0.3);
 }
-.clickable-item {
-  cursor:pointer;
-  padding:4px 0;
+.popup-box h2{margin-top:0;}
+
+#popupSearch{
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid rgba(0,255,255,0.4);
+  background:rgba(255,255,255,0.07);
+  color:white;
+  margin-bottom:12px;
+}
+
+.popup-item{
+  padding:5px 0;
   border-bottom:1px solid rgba(255,255,255,0.07);
+  cursor:default;
 }
-.clickable-item:hover {
+.popup-item.clickable {
+  cursor:pointer;
+}
+.popup-item.clickable:hover{
   color:#00fff7;
+  text-shadow:0 0 10px #00fff7;
+}
+.popup-badge-link{
+  color:#00fff7;
+  text-decoration:none;
+}
+.popup-badge-link:hover{
+  text-decoration:underline;
+}
+.popup-sub{
+  font-size:12px;
+  opacity:0.7;
 }
 </style>
 </head>
@@ -117,41 +212,55 @@ button:hover{
     <button id="rbxFetch">Fetch Profile</button>
   </div>
 
+  <!-- Username suggestions -->
+  <div id="suggestions">
+    <div id="suggestionsList"></div>
+  </div>
+
   <div id="rbxResults" class="grid"></div>
+</div>
+
+<!-- Loading overlay -->
+<div id="loadingOverlay">
+  <div class="spinner"></div>
 </div>
 
 <!-- Popup -->
 <div id="popupOverlay">
   <div class="popup-box">
     <h2 id="popupTitle"></h2>
-    <input id="popupSearch" placeholder="Search..."
-      style="width:100%;padding:10px;border-radius:10px;
-             border:1px solid rgba(0,255,255,0.4);
-             background:rgba(255,255,255,0.07);color:white;margin-bottom:12px;">
+    <input id="popupSearch" placeholder="Search...">
     <div id="popupContent"></div>
     <button onclick="closePopup()" style="margin-top:12px;">Close</button>
   </div>
 </div>
 
 <script>
+// ---------- helpers ----------
 const proxyWrap = url => `https://corsproxy.io/?${encodeURIComponent(url)}`;
 
 async function fetchJson(url, opts){
   const headers = opts?.method === 'POST'
-    ? {'Content-Type':'application/json'} : {};
-  const res = await fetch(url,{mode:'cors',credentials:'omit',...opts,headers});
+    ? {'Content-Type':'application/json'}
+    : {};
+  const res = await fetch(url, {mode:'cors', credentials:'omit', ...opts, headers});
   if(!res.ok) throw new Error("HTTP "+res.status);
   return await res.json();
 }
 
+function showLoading(on){
+  document.getElementById("loadingOverlay").style.display = on ? "flex" : "none";
+}
+
+// ---------- username lookup ----------
 const usernameEndpoints = [
   "https://users.roproxy.com/v1/usernames/users",
   "https://users.rprxy.xyz/v1/usernames/users",
   proxyWrap("https://users.roblox.com/v1/usernames/users")
 ];
 
-async function lookupUser(name){
-  const payload={usernames:[name]};
+async function lookupUser(username){
+  const payload={usernames:[username]};
   for(const url of usernameEndpoints){
     try{
       const data = await fetchJson(url,{method:"POST",body:JSON.stringify(payload)});
@@ -161,58 +270,166 @@ async function lookupUser(name){
   throw new Error("Unable to reach Roblox user services.");
 }
 
-// --- POPUP ---
-let popupItems = [];
-let popupAction = null;
+// ---------- username autocomplete (search API) ----------
+let suggestTimeout = null;
+const inputEl = document.getElementById("rbxUser");
+const suggestionsList = document.getElementById("suggestionsList");
 
-function showPopup(title, items, action=null){
+inputEl.addEventListener("input", () => {
+  const q = inputEl.value.trim();
+  if(suggestTimeout) clearTimeout(suggestTimeout);
+  if(!q){
+    suggestionsList.style.display="none";
+    suggestionsList.innerHTML="";
+    return;
+  }
+  suggestTimeout = setTimeout(()=>doSearchSuggest(q), 200);
+});
+
+async function doSearchSuggest(query){
+  const urls = [
+    `https://users.roproxy.com/v1/users/search?keyword=${encodeURIComponent(query)}&limit=10`,
+    proxyWrap(`https://users.roblox.com/v1/users/search?keyword=${encodeURIComponent(query)}&limit=10`)
+  ];
+
+  let data = null;
+  for(const u of urls){
+    try{
+      data = await fetchJson(u);
+      break;
+    }catch{}
+  }
+  if(!data || !data.data || !data.data.length){
+    suggestionsList.style.display="none";
+    suggestionsList.innerHTML="";
+    return;
+  }
+
+  suggestionsList.innerHTML = data.data.map(u=>`
+    <div class="suggestion-item" data-username="${u.name}">
+      ${u.displayName} <span style="opacity:0.6;">(@${u.name})</span>
+    </div>
+  `).join("");
+  suggestionsList.style.display="block";
+
+  Array.from(suggestionsList.querySelectorAll(".suggestion-item")).forEach(item=>{
+    item.onclick = () => {
+      const name = item.getAttribute("data-username");
+      inputEl.value = name;
+      suggestionsList.style.display="none";
+      renderRoblox(name);
+    };
+  });
+}
+
+// hide suggest when clicking outside
+document.addEventListener("click", e=>{
+  if(!document.querySelector(".controls").contains(e.target) &&
+     !document.getElementById("suggestions").contains(e.target)){
+    suggestionsList.style.display="none";
+  }
+});
+
+// ---------- popup logic ----------
+let popupItems = [];
+let popupOptions = { type:"generic", onClick:null };
+
+function showPopup(title, items, options={type:"generic", onClick:null}){
   popupItems = items.slice();
-  popupAction = action;
+  popupOptions = options;
 
   document.getElementById("popupTitle").textContent = title;
   document.getElementById("popupOverlay").style.display = "flex";
 
-  renderPopupList(items);
+  document.getElementById("popupSearch").value = "";
+  renderPopupList(popupItems);
 
-  const search = document.getElementById("popupSearch");
-  search.value = "";
-  search.oninput = () => {
-    const q = search.value.toLowerCase();
-    renderPopupList(popupItems.filter(i=>i.toLowerCase().includes(q)));
+  document.getElementById("popupSearch").oninput = () => {
+    const q = document.getElementById("popupSearch").value.toLowerCase();
+    const filtered = popupItems.filter(item=>{
+      if(popupOptions.type==="badge"){
+        return item.name.toLowerCase().includes(q) ||
+               (item.gameName || "").toLowerCase().includes(q);
+      }else{
+        return item.toLowerCase().includes(q);
+      }
+    });
+    renderPopupList(filtered);
   };
 }
 
 function renderPopupList(list){
   const box = document.getElementById("popupContent");
-
   if(!list.length){
-    box.innerHTML="<p>No results</p>";
+    box.innerHTML = "<p>No results.</p>";
     return;
   }
 
-  box.innerHTML = list.map(n=>`
-    <div class="clickable-item" onclick="popupClicked('${n}')">${n}</div>
-  `).join("");
-}
+  if(popupOptions.type === "badge"){
+    box.innerHTML = list.map(b => `
+      <div class="popup-item">
+        <div>
+          <a class="popup-badge-link" href="https://www.roblox.com/badges/${b.id}" target="_blank" rel="noopener">
+            ${b.name}
+          </a>
+        </div>
+        <div class="popup-sub">
+          Game: <a class="popup-badge-link" href="https://www.roblox.com/games/${b.placeId || ''}" target="_blank" rel="noopener">
+            ${b.gameName || ('Place ID ' + (b.placeId || 'Unknown'))}
+          </a>
+        </div>
+      </div>
+    `).join("");
+  } else {
+    box.innerHTML = list.map(name => `
+      <div class="popup-item ${popupOptions.onClick ? 'clickable':''}" data-name="${name}">
+        ${name}
+      </div>
+    `).join("");
 
-function popupClicked(name){
-  if(popupAction) popupAction(name);
-  closePopup();
+    if(popupOptions.onClick){
+      box.querySelectorAll(".popup-item.clickable").forEach(el=>{
+        el.onclick = () => {
+          const n = el.getAttribute("data-name");
+          popupOptions.onClick(n);
+          closePopup();
+        };
+      });
+    }
+  }
 }
 
 function closePopup(){
-  document.getElementById("popupOverlay").style.display = "none";
+  document.getElementById("popupOverlay").style.display="none";
 }
 
-// --- MAIN ---
-document.getElementById("rbxFetch").onclick=()=> {
-  const u=document.getElementById("rbxUser").value.trim();
+// ---------- main render logic ----------
+document.getElementById("rbxFetch").onclick = () => {
+  const u = inputEl.value.trim();
   renderRoblox(u || "builderman");
 };
 
+let lastFriendsSet = null; // for mutual friends
+
+function formatLastOnline(lastOnlineStr){
+  if(!lastOnlineStr) return "Unknown";
+  const t = new Date(lastOnlineStr).getTime();
+  if(!t) return "Unknown";
+  const diffMs = Date.now() - t;
+  const sec = Math.floor(diffMs/1000);
+  const min = Math.floor(sec/60);
+  const hour = Math.floor(min/60);
+  const day = Math.floor(hour/24);
+  if(day>0) return `${day} day${day>1?'s':''} ago`;
+  if(hour>0) return `${hour} hour${hour>1?'s':''} ago`;
+  if(min>0) return `${min} min ago`;
+  return `${sec} sec ago`;
+}
+
 async function renderRoblox(username){
-  const wrap=document.getElementById("rbxResults");
-  wrap.innerHTML='<div class="card"><p>Loading...</p></div>';
+  const wrap = document.getElementById("rbxResults");
+  wrap.innerHTML = '<div class="card"><p>Loading...</p></div>';
+  showLoading(true);
 
   try{
     const user = await lookupUser(username);
@@ -220,7 +437,11 @@ async function renderRoblox(username){
 
     async function tryMulti(urls){
       for(const u of urls){
-        try { return await fetchJson(u); } catch{}
+        if(typeof u === "string"){
+          try{ return await fetchJson(u); }catch{}
+        } else if(u && u.url){
+          try{ return await fetchJson(u.url, u.opts); }catch{}
+        }
       }
       return null;
     }
@@ -235,7 +456,7 @@ async function renderRoblox(username){
       {url:"https://presence.roproxy.com/v1/presence/users",opts:{method:"POST",body:JSON.stringify({userIds:[id]})}},
       {url:"https://presence.rprxy.xyz/v1/presence/users",opts:{method:"POST",body:JSON.stringify({userIds:[id]})}},
       {url:proxyWrap("https://presence.roblox.com/v1/presence/users"),opts:{method:"POST",body:JSON.stringify({userIds:[id]})}}
-    ].map(x=>typeof x==="string"?{url:x}:x));
+    ]);
 
     const friends = await tryMulti([
       `https://friends.roproxy.com/v1/users/${id}/friends?limit=200`,
@@ -249,83 +470,158 @@ async function renderRoblox(username){
       proxyWrap(`https://groups.roblox.com/v2/users/${id}/groups/roles`)
     ]);
 
-    // FIXED BADGES (with private detection)
+    // badges
     let badges = null;
-    try {
+    try{
       badges = await tryMulti([
         `https://badges.roproxy.com/v1/users/${id}/badges?limit=100&sortOrder=Asc`,
         `https://badges.rprxy.xyz/v1/users/${id}/badges?limit=100&sortOrder=Asc`,
         proxyWrap(`https://badges.roblox.com/v1/users/${id}/badges?limit=100&sortOrder=Asc`)
       ]);
-    } catch {
+    }catch{
       badges = null;
     }
 
-    const presType = presence?.userPresences?.[0]?.userPresenceType;
-    const presText = presType===2?"In-Game": presType===1?"Online": presType===3?"Studio":"Offline";
+    // avatar/RAP
+    const avatar = await tryMulti([
+      `https://avatar.roproxy.com/v1/users/${id}/avatar`,
+      `https://avatar.rprxy.xyz/v1/users/${id}/avatar`,
+      proxyWrap(`https://avatar.roblox.com/v1/users/${id}/avatar`)
+    ]);
 
-    const friendsAll = (friends?.data||[]).map(f=>f.name);
-    const groupsAll  = (groups?.data ||[]).map(g=>g.group.name);
+    // presence info
+    const pres = presence?.userPresences?.[0];
+    const presenceType = pres?.userPresenceType;
+    const presenceText =
+      presenceType === 2 ? "In-Game" :
+      presenceType === 1 ? "Online" :
+      presenceType === 3 ? "Studio" : "Offline";
 
-    // BADGES: if null or missing → PRIVATE
-    let badgesAll = [];
-    let badgesArePrivate = false;
+    const lastOnlineText = formatLastOnline(pres?.lastOnline);
 
-    if (!badges || !Array.isArray(badges.data)) {
-      badgesArePrivate = true;
-    } else {
-      badgesAll = badges.data.map(b=>b.name).filter(Boolean);
+    // friends
+    const friendsAll = (friends?.data || []).map(f => f.name);
+    const currentFriendsSet = new Set(friendsAll);
+
+    // mutual friends with previous lookup
+    let mutualList = [];
+    if(lastFriendsSet){
+      mutualList = friendsAll.filter(n => lastFriendsSet.has(n));
+    }
+    lastFriendsSet = currentFriendsSet;
+
+    // groups with rank info
+    const groupsAll = (groups?.data || []).map(g => {
+      return `${g.group.name} — ${g.role?.name || 'Role'} (Rank ${g.role?.rank ?? '?'})`;
+    });
+
+    // badges: hide if private or fail
+    let badgesObjects = [];
+    let badgesVisible = false;
+    if(badges && Array.isArray(badges.data)){
+      badgesObjects = badges.data.map(b => ({
+        id: b.id,
+        name: b.name || ("Badge " + b.id),
+        placeId: b.awarderPlaceId || null,
+        gameName: b.awarderName || null
+      }));
+      if(badgesObjects.length > 0) badgesVisible = true;
     }
 
-    wrap.innerHTML="";
+    const rap = (avatar?.assets || [])
+      .reduce((s,a)=> s + (a.recentAveragePrice || 0), 0)
+      .toLocaleString();
 
-    function card(title, body, list, onclick=null){
+    wrap.innerHTML = "";
+
+    function addCard(title, bodyHtml, opts={}){
       const div=document.createElement("div");
       div.className="card";
-      div.innerHTML=`<h3>${title}</h3><p>${body}</p>`;
-      if(list && list.length){
+      div.innerHTML=`<h3>${title}</h3><p>${bodyHtml}</p>`;
+      if(opts.showAll && opts.list && opts.list.length){
         const btn=document.createElement("button");
         btn.textContent="Show All";
         btn.style.marginTop="8px";
-        btn.onclick=()=>showPopup(title, list, onclick);
+        btn.onclick=()=>showPopup(
+          title,
+          opts.rawItems || opts.list,
+          opts.popupOptions || {}
+        );
         div.appendChild(btn);
       }
       wrap.appendChild(div);
     }
 
     // PROFILE
-    card("Profile",
-      `<strong>${profile.displayName}</strong><br>@${profile.name}<br>Created: ${new Date(profile.created).toLocaleDateString()}`);
+    addCard("Profile",
+      `<strong>${profile.displayName}</strong><br>@${profile.name}<br>`+
+      `Created: ${new Date(profile.created).toLocaleDateString()}`);
 
-    // PRESENCE
-    card("Presence", presText);
-
-    // FRIENDS (clickable)
-    card("Friends",
-      friendsAll.slice(0,6).join(", ") || "None",
-      friendsAll,
-      name => renderRoblox(name)
+    // PRESENCE + last online
+    addCard("Presence",
+      `${presenceText}<br><span style="opacity:0.7;">Last online: ${lastOnlineText}</span>`
     );
 
-    // GROUPS
-    card("Groups",
-      groupsAll.slice(0,6).join(", ") || "None",
-      groupsAll
+    // FRIENDS (clickable via popup)
+    addCard("Friends",
+      friendsAll.length ? friendsAll.slice(0,6).join(", ") : "None",
+      {
+        showAll:true,
+        list:friendsAll,
+        popupOptions:{
+          type:"generic",
+          onClick:(name)=>renderRoblox(name)
+        }
+      }
     );
 
-    // BADGES (hide entirely if private)
-    if (!badgesArePrivate && badgesAll.length) {
-      card("Badges",
-        badgesAll.slice(0,6).join(", "),
-        badgesAll
+    // MUTUAL FRIENDS (if any)
+    if(mutualList.length){
+      addCard("Mutual Friends",
+        mutualList.slice(0,6).join(", ") + (mutualList.length>6?` +${mutualList.length-6} more`:""),
+        {
+          showAll:true,
+          list:mutualList,
+          popupOptions:{
+            type:"generic",
+            onClick:(name)=>renderRoblox(name)
+          }
+        }
       );
     }
 
+    // GROUPS
+    addCard("Groups",
+      groupsAll.length ? groupsAll.slice(0,4).join("<br>") : "None",
+      {
+        showAll:true,
+        list:groupsAll
+      }
+    );
+
+    // BADGES (only if visible)
+    if(badgesVisible){
+      addCard("Badges",
+        badgesObjects.slice(0,5).map(b=>b.name).join(", "),
+        {
+          showAll:true,
+          list:badgesObjects.map(b=>b.name),
+          rawItems:badgesObjects,
+          popupOptions:{ type:"badge" }
+        }
+      );
+    }
+
+    // RAP
+    addCard("RAP", rap || "Unavailable");
+
   }catch(err){
-    wrap.innerHTML = `<div class="card"><p>${err.message}</p></div>`;
+    document.getElementById("rbxResults").innerHTML =
+      `<div class="card"><p>${err.message}</p></div>`;
+  }finally{
+    showLoading(false);
   }
 }
 </script>
-
 </body>
 </html>
