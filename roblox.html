@@ -207,15 +207,24 @@ button:hover{
 <div class="container">
   <h1>Roblox Neon Lookup</h1>
 
+  <!-- main username controls -->
   <div class="controls">
     <input id="rbxUser" placeholder="Roblox username (e.g. builderman)">
     <button id="rbxFetch">Fetch Profile</button>
   </div>
 
-  <!-- Username suggestions -->
+  <!-- username suggestions -->
   <div id="suggestions">
     <div id="suggestionsList"></div>
   </div>
+
+  <!-- badge date checker -->
+  <div class="controls" style="margin-top:6px;">
+    <input id="badgeUser" placeholder="Username for badge check">
+    <input id="badgeId" placeholder="Badge ID">
+    <button id="badgeCheckBtn">Check Badge Award Date</button>
+  </div>
+  <div id="badgeAwardResult" class="card" style="display:none;margin-bottom:16px;"></div>
 
   <div id="rbxResults" class="grid"></div>
 </div>
@@ -270,7 +279,7 @@ async function lookupUser(username){
   throw new Error("Unable to reach Roblox user services.");
 }
 
-// ---------- username autocomplete (search API) ----------
+// ---------- username autocomplete (simplified) ----------
 let suggestTimeout = null;
 const inputEl = document.getElementById("rbxUser");
 const suggestionsList = document.getElementById("suggestionsList");
@@ -278,27 +287,26 @@ const suggestionsList = document.getElementById("suggestionsList");
 inputEl.addEventListener("input", () => {
   const q = inputEl.value.trim();
   if(suggestTimeout) clearTimeout(suggestTimeout);
-  if(!q){
+  if(!q || q.length < 3){
     suggestionsList.style.display="none";
     suggestionsList.innerHTML="";
     return;
   }
-  suggestTimeout = setTimeout(()=>doSearchSuggest(q), 200);
+  suggestTimeout = setTimeout(()=>doSearchSuggest(q), 250);
 });
 
 async function doSearchSuggest(query){
-  const urls = [
-    `https://users.roproxy.com/v1/users/search?keyword=${encodeURIComponent(query)}&limit=10`,
-    proxyWrap(`https://users.roblox.com/v1/users/search?keyword=${encodeURIComponent(query)}&limit=10`)
-  ];
-
+  // use only official endpoint via proxy to avoid weirdness
+  const url = proxyWrap(`https://users.roblox.com/v1/users/search?keyword=${encodeURIComponent(query)}&limit=10`);
   let data = null;
-  for(const u of urls){
-    try{
-      data = await fetchJson(u);
-      break;
-    }catch{}
+  try{
+    data = await fetchJson(url);
+  }catch{
+    suggestionsList.style.display="none";
+    suggestionsList.innerHTML="";
+    return;
   }
+
   if(!data || !data.data || !data.data.length){
     suggestionsList.style.display="none";
     suggestionsList.innerHTML="";
@@ -322,7 +330,6 @@ async function doSearchSuggest(query){
   });
 }
 
-// hide suggest when clicking outside
 document.addEventListener("click", e=>{
   if(!document.querySelector(".controls").contains(e.target) &&
      !document.getElementById("suggestions").contains(e.target)){
@@ -349,7 +356,8 @@ function showPopup(title, items, options={type:"generic", onClick:null}){
     const filtered = popupItems.filter(item=>{
       if(popupOptions.type==="badge"){
         return item.name.toLowerCase().includes(q) ||
-               (item.gameName || "").toLowerCase().includes(q);
+               (item.gameName || "").toLowerCase().includes(q) ||
+               String(item.id).includes(q);
       }else{
         return item.toLowerCase().includes(q);
       }
@@ -374,8 +382,12 @@ function renderPopupList(list){
           </a>
         </div>
         <div class="popup-sub">
-          Game: <a class="popup-badge-link" href="https://www.roblox.com/games/${b.placeId || ''}" target="_blank" rel="noopener">
-            ${b.gameName || ('Place ID ' + (b.placeId || 'Unknown'))}
+          ID: ${b.id}
+        </div>
+        <div class="popup-sub">
+          Game:
+          <a class="popup-badge-link" href="https://www.roblox.com/games/${b.placeId || ''}" target="_blank" rel="noopener">
+            ${b.gameName || (b.placeId ? 'Place ID ' + b.placeId : 'Unknown')}
           </a>
         </div>
       </div>
@@ -403,14 +415,7 @@ function closePopup(){
   document.getElementById("popupOverlay").style.display="none";
 }
 
-// ---------- main render logic ----------
-document.getElementById("rbxFetch").onclick = () => {
-  const u = inputEl.value.trim();
-  renderRoblox(u || "builderman");
-};
-
-let lastFriendsSet = null; // for mutual friends
-
+// ---------- helper: last online formatting ----------
 function formatLastOnline(lastOnlineStr){
   if(!lastOnlineStr) return "Unknown";
   const t = new Date(lastOnlineStr).getTime();
@@ -425,6 +430,14 @@ function formatLastOnline(lastOnlineStr){
   if(min>0) return `${min} min ago`;
   return `${sec} sec ago`;
 }
+
+// ---------- main render ----------
+document.getElementById("rbxFetch").onclick = () => {
+  const u = inputEl.value.trim();
+  renderRoblox(u || "builderman");
+};
+
+let lastFriendsSet = null; // for mutual friends
 
 async function renderRoblox(username){
   const wrap = document.getElementById("rbxResults");
@@ -470,7 +483,6 @@ async function renderRoblox(username){
       proxyWrap(`https://groups.roblox.com/v2/users/${id}/groups/roles`)
     ]);
 
-    // badges
     let badges = null;
     try{
       badges = await tryMulti([
@@ -482,14 +494,12 @@ async function renderRoblox(username){
       badges = null;
     }
 
-    // avatar/RAP
     const avatar = await tryMulti([
       `https://avatar.roproxy.com/v1/users/${id}/avatar`,
       `https://avatar.rprxy.xyz/v1/users/${id}/avatar`,
       proxyWrap(`https://avatar.roblox.com/v1/users/${id}/avatar`)
     ]);
 
-    // presence info
     const pres = presence?.userPresences?.[0];
     const presenceType = pres?.userPresenceType;
     const presenceText =
@@ -499,23 +509,21 @@ async function renderRoblox(username){
 
     const lastOnlineText = formatLastOnline(pres?.lastOnline);
 
-    // friends
     const friendsAll = (friends?.data || []).map(f => f.name);
     const currentFriendsSet = new Set(friendsAll);
 
-    // mutual friends with previous lookup
     let mutualList = [];
     if(lastFriendsSet){
       mutualList = friendsAll.filter(n => lastFriendsSet.has(n));
     }
     lastFriendsSet = currentFriendsSet;
 
-    // groups with rank info
+    // groups: show group name + role name only (no numeric rank spam)
     const groupsAll = (groups?.data || []).map(g => {
-      return `${g.group.name} — ${g.role?.name || 'Role'} (Rank ${g.role?.rank ?? '?'})`;
+      return `${g.group.name} — ${g.role?.name || 'Member'}`;
     });
 
-    // badges: hide if private or fail
+    // badges
     let badgesObjects = [];
     let badgesVisible = false;
     if(badges && Array.isArray(badges.data)){
@@ -557,12 +565,12 @@ async function renderRoblox(username){
       `<strong>${profile.displayName}</strong><br>@${profile.name}<br>`+
       `Created: ${new Date(profile.created).toLocaleDateString()}`);
 
-    // PRESENCE + last online
+    // PRESENCE
     addCard("Presence",
       `${presenceText}<br><span style="opacity:0.7;">Last online: ${lastOnlineText}</span>`
     );
 
-    // FRIENDS (clickable via popup)
+    // FRIENDS
     addCard("Friends",
       friendsAll.length ? friendsAll.slice(0,6).join(", ") : "None",
       {
@@ -575,7 +583,7 @@ async function renderRoblox(username){
       }
     );
 
-    // MUTUAL FRIENDS (if any)
+    // MUTUAL FRIENDS
     if(mutualList.length){
       addCard("Mutual Friends",
         mutualList.slice(0,6).join(", ") + (mutualList.length>6?` +${mutualList.length-6} more`:""),
@@ -590,7 +598,7 @@ async function renderRoblox(username){
       );
     }
 
-    // GROUPS
+    // GROUPS (group name + role name, no numeric)
     addCard("Groups",
       groupsAll.length ? groupsAll.slice(0,4).join("<br>") : "None",
       {
@@ -620,6 +628,71 @@ async function renderRoblox(username){
       `<div class="card"><p>${err.message}</p></div>`;
   }finally{
     showLoading(false);
+  }
+}
+
+// ---------- Badge award date checker ----------
+document.getElementById("badgeCheckBtn").onclick = checkBadgeAwardDate;
+
+async function checkBadgeAwardDate(){
+  const userField = document.getElementById("badgeUser");
+  const badgeField = document.getElementById("badgeId");
+  const resultBox = document.getElementById("badgeAwardResult");
+
+  const username = (userField.value || document.getElementById("rbxUser").value || "").trim();
+  const badgeIdRaw = badgeField.value.trim();
+
+  if(!username || !badgeIdRaw){
+    resultBox.style.display="block";
+    resultBox.innerHTML = "<h3>Badge Award Check</h3><p>Please enter both username and badge ID.</p>";
+    return;
+  }
+
+  const badgeId = Number(badgeIdRaw);
+  if(!Number.isInteger(badgeId) || badgeId <= 0){
+    resultBox.style.display="block";
+    resultBox.innerHTML = "<h3>Badge Award Check</h3><p>Badge ID must be a positive number.</p>";
+    return;
+  }
+
+  resultBox.style.display="block";
+  resultBox.innerHTML = "<h3>Badge Award Check</h3><p>Checking...</p>";
+
+  try{
+    const user = await lookupUser(username);
+    const userId = user.id;
+
+    const urls = [
+      `https://badges.roproxy.com/v1/users/${userId}/badges/awarded-dates?badgeIds=${badgeId}`,
+      `https://badges.rprxy.xyz/v1/users/${userId}/badges/awarded-dates?badgeIds=${badgeId}`,
+      proxyWrap(`https://badges.roblox.com/v1/users/${userId}/badges/awarded-dates?badgeIds=${badgeId}`)
+    ];
+
+    let data = null;
+    for(const u of urls){
+      try{
+        data = await fetchJson(u);
+        break;
+      }catch{}
+    }
+
+    const entry = data?.data?.find(b => String(b.badgeId) === String(badgeId));
+
+    if(!entry || !entry.awardedDate){
+      resultBox.innerHTML =
+        `<h3>Badge Award Check</h3>
+         <p><strong>${username}</strong> has <strong>never been awarded</strong> badge ID <strong>${badgeId}</strong>, or the data is private.</p>`;
+      return;
+    }
+
+    const awardedDate = new Date(entry.awardedDate);
+    resultBox.innerHTML =
+      `<h3>Badge Award Check</h3>
+       <p><strong>${username}</strong> was awarded badge ID <strong>${badgeId}</strong> on:</p>
+       <p>${awardedDate.toLocaleString()}</p>`;
+  }catch(err){
+    resultBox.innerHTML =
+      `<h3>Badge Award Check</h3><p>Error: ${err.message || 'Could not fetch data.'}</p>`;
   }
 }
 </script>
