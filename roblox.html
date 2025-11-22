@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Roblox Neon Lookup</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
 <style>
 :root {
   --bg: #04050f;
@@ -29,12 +31,12 @@ h1{
 }
 .container{
   max-width:980px;
-  margin:0 auto;
+  margin:auto;
 }
 .controls{
   display:flex;
   gap:10px;
-  margin:18px 0;
+  margin:20px 0;
   flex-wrap:wrap;
 }
 input{
@@ -44,14 +46,14 @@ input{
   border-radius:12px;
   border:1px solid rgba(255,255,255,0.12);
   background:rgba(255,255,255,0.05);
-  color:#e8f7ff;
+  color:white;
 }
 button{
   padding:10px 16px;
   border-radius:12px;
   border:1px solid rgba(0,255,255,0.4);
   background:rgba(0,255,255,0.18);
-  color:#e8f7ff;
+  color:white;
   font-weight:600;
   cursor:pointer;
   text-shadow:0 0 10px rgba(0,255,255,0.5);
@@ -95,211 +97,245 @@ button:hover{
   max-width:620px;
   max-height:72vh;
   overflow:auto;
+  color:white;
   box-shadow:0 0 30px rgba(0,255,255,0.3);
 }
 .popup-box h2{margin-top:0;}
 </style>
 </head>
+
 <body>
 <div class="container">
   <h1>Roblox Neon Lookup</h1>
+
   <div class="controls">
     <input id="rbxUser" placeholder="Roblox username (e.g. builderman)">
     <button id="rbxFetch">Fetch Profile</button>
   </div>
+
   <div id="rbxResults" class="grid"></div>
 </div>
 
-<!-- Show All popup -->
+<!-- Popup -->
 <div id="popupOverlay">
   <div class="popup-box">
     <h2 id="popupTitle"></h2>
+
+    <!-- Search -->
+    <input id="popupSearch"
+      placeholder="Search..."
+      style="width:100%;padding:10px;border-radius:10px;
+             border:1px solid rgba(0,255,255,0.4);
+             background:rgba(255,255,255,0.07);
+             color:white;margin-bottom:12px;">
+
     <div id="popupContent"></div>
+
     <button onclick="closePopup()" style="margin-top:10px;">Close</button>
   </div>
 </div>
 
 <script>
-// ---------- helpers ----------
-const proxyWrap=url=>`https://corsproxy.io/?${encodeURIComponent(url)}`;
+// --------------------------------
+// FETCH HELPERS
+// --------------------------------
+const proxyWrap = url => `https://corsproxy.io/?${encodeURIComponent(url)}`;
 
-async function fetchJson(url,opts){
+async function fetchJson(url, opts){
   const headers = opts?.method === 'POST'
-    ? {'Content-Type':'application/json', ...(opts.headers||{})}
-    : (opts?.headers||{});
-  const res = await fetch(url,{
-    mode:'cors',
-    credentials:'omit',
-    ...opts,
-    headers
-  });
-  if(!res.ok) throw new Error(`Request failed: ${res.status}`);
+    ? {'Content-Type':'application/json'}
+    : {};
+  const res = await fetch(url, { mode:'cors', credentials:'omit', ...opts, headers });
+  if(!res.ok) throw new Error("Request failed: "+res.status);
   return await res.json();
 }
 
-// username lookup (same logic as working big version, but simplified payload)
-const usernameEndpoints=[
+// Working username lookup
+const usernameEndpoints = [
   'https://users.roproxy.com/v1/usernames/users',
   'https://users.rprxy.xyz/v1/usernames/users',
   proxyWrap('https://users.roblox.com/v1/usernames/users')
 ];
 
-async function lookupUser(username){
-  const payload={ usernames:[username] };
+async function lookupUser(name){
+  const payload = { usernames:[name] };
   for(const url of usernameEndpoints){
     try{
-      const data=await fetchJson(url,{method:'POST',body:JSON.stringify(payload)});
-      const match=data.data?.[0];
-      if(match) return match;
-    }catch(e){
-      console.warn('username fallback failed',e);
-    }
+      const data = await fetchJson(url, {method:'POST',body:JSON.stringify(payload)});
+      if(data?.data?.length) return data.data[0];
+    }catch{}
   }
-  throw new Error('Unable to reach Roblox user services.');
+  throw new Error("Unable to reach Roblox user services.");
 }
 
-// popup
-function showPopup(title,items){
-  document.getElementById('popupTitle').textContent=title;
-  document.getElementById('popupContent').innerHTML =
-    (items && items.length)
-      ? items.map(x=>`<div style="padding:3px 0;">${x}</div>`).join('')
-      : '<p>No data.</p>';
-  document.getElementById('popupOverlay').style.display='flex';
+// --------------------------------
+// POPUP WITH SEARCH
+// --------------------------------
+let popupItems = [];
+
+function showPopup(title, items){
+  popupItems = items.slice();
+
+  document.getElementById("popupTitle").textContent = title;
+  document.getElementById("popupOverlay").style.display = "flex";
+
+  renderPopupList(items);
+
+  const search = document.getElementById("popupSearch");
+  search.value = "";
+  search.oninput = () => {
+    const q = search.value.toLowerCase();
+    const filtered = popupItems.filter(x => x.toLowerCase().includes(q));
+    renderPopupList(filtered);
+  };
 }
+
+function renderPopupList(list){
+  const box = document.getElementById("popupContent");
+
+  if(!list.length){
+    box.innerHTML = "<p>No results.</p>";
+    return;
+  }
+
+  box.innerHTML = list
+    .map(x => `<div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.1);">${x}</div>`)
+    .join("");
+}
+
 function closePopup(){
-  document.getElementById('popupOverlay').style.display='none';
+  document.getElementById("popupOverlay").style.display = "none";
 }
 
-// ---------- main render ----------
+// --------------------------------
+// MAIN RENDER
+// --------------------------------
+document.getElementById("rbxFetch").onclick = renderRoblox;
+
 async function renderRoblox(){
-  const wrap=document.getElementById('rbxResults');
-  const username=document.getElementById('rbxUser').value.trim() || 'builderman';
-  wrap.innerHTML='<div class="card"><p>Loading...</p></div>';
+  const wrap = document.getElementById("rbxResults");
+  const username = document.getElementById("rbxUser").value.trim() || "builderman";
+  wrap.innerHTML = '<div class="card"><p>Loading...</p></div>';
 
   try{
     const user = await lookupUser(username);
     const userId = user.id;
 
+    // Fallback multi-fetch
     async function tryMulti(sets){
       for(const set of sets){
         for(const cfg of set){
-          try{
-            return await fetchJson(cfg.url,cfg.opts);
-          }catch(e){
-            console.warn('api fallback',cfg.url,e);
-          }
+          try{ return await fetchJson(cfg.url, cfg.opts); }
+          catch{}
         }
       }
       return null;
     }
 
-    const withHosts = (path, bases) => bases.map(b=>({url:`${b}${path}`}));
+    const hosts = (bases, path) =>
+      bases.map(b => ({url: `${b}${path}`}));
 
-    const userBases = [
+    const users = [
       'https://users.roproxy.com',
       'https://users.rprxy.xyz',
       proxyWrap('https://users.roblox.com')
     ];
-    const friendsBases = [
+    const friendsHost = [
       'https://friends.roproxy.com',
       'https://friends.rprxy.xyz',
       proxyWrap('https://friends.roblox.com')
     ];
-    const groupsBases = [
+    const groupsHost = [
       'https://groups.roproxy.com',
       'https://groups.rprxy.xyz',
       proxyWrap('https://groups.roblox.com')
     ];
-    const badgesBases = [
+    const badgesHost = [
       'https://badges.roproxy.com',
       'https://badges.rprxy.xyz',
       proxyWrap('https://badges.roblox.com')
     ];
-    const avatarBases = [
+    const avatarHost = [
       'https://avatar.roproxy.com',
       'https://avatar.rprxy.xyz',
       proxyWrap('https://avatar.roblox.com')
     ];
 
-    const [profile,presence,friends,groups,badges,avatar] = await Promise.all([
-      tryMulti([ withHosts(`/v1/users/${userId}`, userBases) ]),
-      tryMulti([[
-        {url:'https://presence.roproxy.com/v1/presence/users',opts:{method:'POST',body:JSON.stringify({userIds:[userId]})}},
-        {url:'https://presence.rprxy.xyz/v1/presence/users',opts:{method:'POST',body:JSON.stringify({userIds:[userId]})}},
-        {url:proxyWrap('https://presence.roblox.com/v1/presence/users'),opts:{method:'POST',body:JSON.stringify({userIds:[userId]})}}
-      ]]),
-      tryMulti([ withHosts(`/v1/users/${userId}/friends?limit=200`, friendsBases) ]),
-      tryMulti([ withHosts(`/v2/users/${userId}/groups/roles`, groupsBases) ]),
-      tryMulti([ withHosts(`/v1/users/${userId}/badges?limit=200`, badgesBases) ]),
-      tryMulti([ withHosts(`/v1/users/${userId}/avatar`, avatarBases) ])
-    ]);
+    const [profile, presence, friends, groups, badges, avatar] =
+      await Promise.all([
+        tryMulti([ hosts(users, `/v1/users/${userId}`) ]),
+        tryMulti([[
+          {url:'https://presence.roproxy.com/v1/presence/users',opts:{method:'POST',body:JSON.stringify({userIds:[userId]})}},
+          {url:'https://presence.rprxy.xyz/v1/presence/users',opts:{method:'POST',body:JSON.stringify({userIds:[userId]})}},
+          {url:proxyWrap('https://presence.roblox.com/v1/presence/users'),opts:{method:'POST',body:JSON.stringify({userIds:[userId]})}}
+        ]]),
+        tryMulti([ hosts(friendsHost, `/v1/users/${userId}/friends?limit=200`) ]),
+        tryMulti([ hosts(groupsHost, `/v2/users/${userId}/groups/roles`) ]),
+        tryMulti([ hosts(badgesHost, `/v1/users/${userId}/badges?limit=200`) ]),
+        tryMulti([ hosts(avatarHost, `/v1/users/${userId}/avatar`) ])
+      ]);
 
     const presenceType = presence?.userPresences?.[0]?.userPresenceType;
-    const presenceText = presenceType===2 ? 'In-Game'
-                      : presenceType===1 ? 'Online'
-                      : presenceType===3 ? 'Studio'
-                      : presence ? 'Offline' : 'Unknown (presence blocked)';
+    const presenceText = presenceType === 2 ? "In-Game"
+                     : presenceType === 1 ? "Online"
+                     : presenceType === 3 ? "Studio"
+                     : "Offline";
 
-    const friendsAll = (friends?.data || []).map(f=>f.name);
-    const groupsAll  = (groups?.data || []).map(g=>g.group.name);
-    const badgesAll  = (badges?.data || []).map(b=>b.name);
-    const rapVal = (avatar?.assets || []).reduce((sum,a)=>sum+(a?.recentAveragePrice||0),0);
-    const rapText = rapVal ? rapVal.toLocaleString() : 'Unavailable';
+    const friendsAll = (friends?.data || []).map(f => f.name);
+    const groupsAll  = (groups?.data  || []).map(g => g.group.name);
+    const badgesAll  = (badges?.data  || []).map(b => b.name);
 
-    const profileSafe = profile || {displayName:'Unknown', name:username, created:null};
+    const rap = (avatar?.assets || [])
+      .reduce((sum,a)=> sum+(a.recentAveragePrice||0), 0)
+      .toLocaleString();
 
-    wrap.innerHTML='';
-    function addCard(title, bodyHtml, fullList){
-      const div=document.createElement('div');
-      div.className='card';
-      div.innerHTML=`<h3>${title}</h3><p>${bodyHtml}</p>`;
-      if(fullList && fullList.length){
-        const btn=document.createElement('button');
-        btn.textContent='Show All';
-        btn.style.marginTop='8px';
-        btn.onclick=()=>showPopup(title + ' – Full List', fullList);
+    wrap.innerHTML = "";
+
+    function addCard(title, body, full){
+      const div = document.createElement("div");
+      div.className = "card";
+      div.innerHTML = `<h3>${title}</h3><p>${body}</p>`;
+      if(full && full.length){
+        const btn = document.createElement("button");
+        btn.textContent = "Show All";
+        btn.style.marginTop = "8px";
+        btn.onclick = () => showPopup(title, full);
         div.appendChild(btn);
       }
       wrap.appendChild(div);
     }
 
     addCard(
-      'Profile',
-      `<strong>${profileSafe.displayName}</strong><br>@${profileSafe.name}<br>` +
-      (profileSafe.created ? `Created: ${new Date(profileSafe.created).toLocaleDateString()}` : 'Created: Unknown')
+      "Profile",
+      `<strong>${profile.displayName}</strong><br>@${profile.name}<br>
+       Created: ${new Date(profile.created).toLocaleDateString()}`
     );
 
-    addCard('Presence', presenceText);
+    addCard("Presence", presenceText);
 
-    addCard(
-      'Friends',
-      friendsAll.length ? friendsAll.slice(0,6).join(', ') : 'No public friends / proxy blocked',
+    addCard("Friends",
+      friendsAll.length ? friendsAll.slice(0,6).join(", ") : "None",
       friendsAll
     );
 
-    addCard(
-      'Groups',
-      groupsAll.length ? groupsAll.slice(0,6).join(', ') : 'No groups',
+    addCard("Groups",
+      groupsAll.length ? groupsAll.slice(0,6).join(", ") : "None",
       groupsAll
     );
 
-    addCard(
-      'Badges',
-      badgesAll.length ? badgesAll.slice(0,6).join(', ') : 'No badges',
+    addCard("Badges",
+      badgesAll.length ? badgesAll.slice(0,6).join(", ") : "None",
       badgesAll
     );
 
-    addCard('RAP (avatar assets)', rapText);
+    addCard("RAP", rap || "Unavailable");
 
   }catch(err){
-    console.error(err);
-    document.getElementById('rbxResults').innerHTML =
-      `<div class="card"><h3>Error</h3><p>${err.message || 'Unknown error'}</p></div>`;
+    document.getElementById("rbxResults").innerHTML =
+      `<div class="card"><p>${err.message}</p></div>`;
   }
 }
-
-document.getElementById('rbxFetch').onclick=renderRoblox;
 </script>
+
 </body>
 </html>
