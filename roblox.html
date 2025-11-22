@@ -197,7 +197,6 @@ th,td{
   <button data-section="gametracker">Game Tracker</button>
   <button data-section="alts">Alt Detector</button>
   <button data-section="avatar">Avatar Evolution</button>
-  <button data-section="sniper">Username Sniper</button>
 </nav>
 
 <!-- PROFILE SECTION -->
@@ -228,7 +227,7 @@ th,td{
 <!-- GAME TRACKER -->
 <section id="gametracker" class="section">
   <h2>Game Tracker (Place ID → Live Stats)</h2>
-  <p class="small">Uses Roblox place details to show universeId, name, creator and current online count.</p>
+  <p class="small">Uses Roblox place details + universe API to show name, creator, player count, visits, favorites and votes.</p>
   <div class="controls">
     <input id="gtPlaceId" placeholder="Place ID (e.g. 1818)">
     <button id="gtLoad">Load Game</button>
@@ -239,8 +238,8 @@ th,td{
 
 <!-- ALT DETECTOR -->
 <section id="alts" class="section">
-  <h2>Alt Detector (Compare Two Users)</h2>
-  <p class="small">Compares friends, groups, badges and name similarity. This is an estimation only, not official.</p>
+  <h2>Alt Detector (Advanced)</h2>
+  <p class="small">Compares account age, names, description, friends, groups, badges, and avatar assets. This is only an estimate, not proof.</p>
   <div class="controls">
     <input id="altUser1" placeholder="Main username">
     <input id="altUser2" placeholder="Potential alt username">
@@ -258,21 +257,6 @@ th,td{
     <button id="avLoad">Load Outfits</button>
   </div>
   <div id="avResult" style="margin-top:12px"></div>
-</section>
-
-<!-- USERNAME SNIPER -->
-<section id="sniper" class="section">
-  <h2>Username Sniper-style Checker</h2>
-  <p class="small">
-    Checks if a username currently belongs to any Roblox account via the public users API.  
-    If no account is found, it <b>might</b> be available or reserved – Roblox doesn’t expose full availability without login.
-  </p>
-  <div class="controls">
-    <input id="sniperName" placeholder="Target username (exact)">
-    <button id="sniperCheck">Check Now</button>
-    <button id="sniperAuto">Start Auto Check (60s)</button>
-  </div>
-  <div id="sniperStatus" class="card"></div>
 </section>
 
 <!-- POPUP -->
@@ -360,6 +344,15 @@ async function lookupUser(name){
   throw new Error('Unable to reach Roblox user services.');
 }
 
+// separate: get full profile by id
+async function getUserProfile(id){
+  return await tryMulti([
+    `https://users.roproxy.com/v1/users/${id}`,
+    `https://users.rprxy.xyz/v1/users/${id}`,
+    proxyWrap(`https://users.roblox.com/v1/users/${id}`)
+  ]);
+}
+
 // ---------- profile section ----------
 const rbxInput = document.getElementById('rbxUser');
 const rbxResults = document.getElementById('rbxResults');
@@ -392,11 +385,7 @@ async function renderProfile(username){
   try{
     const user = await lookupUser(username);
     const id = user.id;
-    const profile = await tryMulti([
-      `https://users.roproxy.com/v1/users/${id}`,
-      `https://users.rprxy.xyz/v1/users/${id}`,
-      proxyWrap(`https://users.roblox.com/v1/users/${id}`)
-    ]);
+    const profile = await getUserProfile(id);
     const friends = await tryMulti([
       `https://friends.roproxy.com/v1/users/${id}/friends?limit=200`,
       `https://friends.rprxy.xyz/v1/users/${id}/friends?limit=200`,
@@ -435,7 +424,8 @@ async function renderProfile(username){
     makeCard('Profile',`
       <span class="tag">ID: ${id}</span><br>
       <b>${profile.displayName}</b><br>@${profile.name}<br>
-      Created: ${profile.created? new Date(profile.created).toLocaleDateString(): 'Unknown'}
+      Created: ${profile.created? new Date(profile.created).toLocaleDateString(): 'Unknown'}<br>
+      Description: <span class="small">${profile.description || '(none)'}</span>
     `);
     makeCard('Friends',friendsList.slice(0,6).join(', ')||'None',friendsList,name=>renderProfile(name));
     makeCard('Groups',groupsList.slice(0,5).join('<br>')||'None',groupsList,null);
@@ -480,7 +470,7 @@ document.getElementById('lbScan').onclick = async()=>{
   box.innerHTML=html;
 };
 
-// ---------- game tracker ----------
+// ---------- game tracker (fixed using multiget-place-details + games API) ----------
 let lastGameDetails=null;
 document.getElementById('gtLoad').onclick = ()=>loadGameDetails(true);
 document.getElementById('gtRefresh').onclick = ()=>loadGameDetails(false);
@@ -489,23 +479,57 @@ async function loadGameDetails(reset){
   const placeId = document.getElementById('gtPlaceId').value.trim();
   const box = document.getElementById('gtResult');
   if(!placeId){box.innerHTML='<div class="small">Enter a placeId first.</div>';return;}
-  box.innerHTML='<div class="small">Loading place details...</div>';
+  box.innerHTML='<div class="small">Loading place + universe details...</div>';
   setLoading(true);
   try{
-    const data = await fetchJson(proxyWrap(`https://www.roblox.com/places/api-get-details?assetId=${encodeURIComponent(placeId)}`));
-    lastGameDetails = data;
+    // 1) placeId -> place details (with universeId)
+    const placeData = await tryMulti([
+      `https://games.roproxy.com/v1/games/multiget-place-details?placeIds=${placeId}`,
+      `https://games.rprxy.xyz/v1/games/multiget-place-details?placeIds=${placeId}`,
+      proxyWrap(`https://games.roblox.com/v1/games/multiget-place-details?placeIds=${placeId}`)
+    ]);
+    const place = placeData?.data?.[0];
+    if(!place){ throw new Error('Invalid placeId or no data'); }
+
+    const universeId = place.universeId || place.universeId || place.universeId; // redundant but safe
+
+    // 2) universeId -> full game info
+    const gameData = await tryMulti([
+      `https://games.roproxy.com/v1/games?universeIds=${universeId}`,
+      `https://games.rprxy.xyz/v1/games?universeIds=${universeId}`,
+      proxyWrap(`https://games.roblox.com/v1/games?universeIds=${universeId}`)
+    ]);
+    const game = gameData?.data?.[0] || {};
+
+    const name = game.name || place.name || place.Name || 'Unknown';
+    const creatorName = game.creator?.name || place.builder || place.Builder || 'Unknown';
+    const creatorId = game.creator?.id || place.builderId || place.BuilderId || 'Unknown';
+    const playing = game.playing ?? place.playing ?? place.OnlineCount ?? 'Unknown';
+    const visits = game.visits ?? place.visits ?? place.VisitedCount ?? 0;
+    const favorites = game.favoritedCount ?? place.favoritedCount ?? place.FavoritedCount ?? 0;
+    const upVotes = game.upVotes ?? place.TotalUpVotes ?? 0;
+    const downVotes = game.downVotes ?? place.TotalDownVotes ?? 0;
+    const maxPlayers = game.maxPlayers ?? place.maxPlayers ?? place.MaxPlayers ?? '?';
+    const created = game.created || place.created || place.Created;
+    const updated = game.updated || place.updated || place.Updated;
+    const url = place.url || place.Url || (game.rootPlaceId ? `https://www.roblox.com/games/${game.rootPlaceId}` : '');
+
+    lastGameDetails = {placeId,universeId,game};
+
     box.innerHTML = `
-      <h3>${data.Name}</h3>
+      <h3>${name}</h3>
       <p>
-        <span class="badge-pill badge-ok">UniverseId: ${data.UniverseId}</span><br>
-        Creator: <b>${data.Builder}</b> (id: ${data.BuilderId})<br>
-        Max Players: ${data.MaxPlayers}<br>
-        Online Now: <b>${data.OnlineCount}</b><br>
-        Visits: ${data.VisitedCount.toLocaleString()}<br>
-        Favorites: ${data.FavoritedCount.toLocaleString()}<br>
-        Votes: 👍 ${data.TotalUpVotes} / 👎 ${data.TotalDownVotes}
+        <span class="badge-pill badge-ok">UniverseId: ${universeId}</span><br>
+        Creator: <b>${creatorName}</b> (id: ${creatorId})<br>
+        Max Players: ${maxPlayers}<br>
+        Online Now: <b>${playing}</b><br>
+        Visits: ${Number(visits).toLocaleString()}<br>
+        Favorites: ${Number(favorites).toLocaleString()}<br>
+        Votes: 👍 ${upVotes} / 👎 ${downVotes}<br>
+        Created: ${created? new Date(created).toLocaleString():'Unknown'}<br>
+        Updated: ${updated? new Date(updated).toLocaleString():'Unknown'}
       </p>
-      <p class="small">URL: <a href="${data.Url}" target="_blank" style="color:${getComputedStyle(document.body).getPropertyValue('--accent')||'#0ff'}">${data.Url}</a></p>
+      ${url?`<p class="small">URL: <a href="${url}" target="_blank" style="color:${getComputedStyle(document.body).getPropertyValue('--accent')||'#0ff'}">${url}</a></p>`:''}
     `;
   }catch(err){
     box.innerHTML=`<div class="small">Error loading place: ${err.message}</div>`;
@@ -513,7 +537,7 @@ async function loadGameDetails(reset){
   setLoading(false);
 }
 
-// ---------- alt detector ----------
+// ---------- alt detector (reworked, multi-signal) ----------
 function jaccard(a,b){
   const sa = new Set(a), sb = new Set(b);
   let inter=0;
@@ -521,88 +545,158 @@ function jaccard(a,b){
   const union = sa.size + sb.size - inter;
   return union? inter/union : 0;
 }
-function nameSimilarity(a,b){
-  a=a.toLowerCase();b=b.toLowerCase();
+function simpleNameSimilarity(a,b){
+  a = (a||'').toLowerCase();
+  b = (b||'').toLowerCase();
+  if(!a || !b) return 0;
   if(a===b) return 1;
-  const common = [...new Set(a.split(/[^a-z0-9]+/).concat(b.split(/[^a-z0-9]+/)))]
-    .filter(p=>p && a.includes(p) && b.includes(p));
-  let score = common.length?0.4:0;
-  if(a.replace(/\d/g,'')===b.replace(/\d/g,'')) score=0.8;
-  return Math.min(1,score + (a[0]===b[0]?0.1:0));
+  const coreA = a.replace(/\d/g,'');
+  const coreB = b.replace(/\d/g,'');
+  if(coreA && coreA === coreB) return 0.9;
+  let score = 0;
+  if(a[0]===b[0]) score += 0.1;
+  if(a.slice(0,3)===b.slice(0,3)) score += 0.2;
+  if(a.includes(coreB) || b.includes(coreA)) score += 0.2;
+  return Math.min(1,score);
 }
+function descriptionSimilarity(a,b){
+  a=(a||'').toLowerCase().trim();
+  b=(b||'').toLowerCase().trim();
+  if(!a || !b) return 0;
+  if(a===b) return 1;
+  if(a.length<10 || b.length<10) return 0;
+  // crude common substring
+  let matches=0;
+  const wordsA = a.split(/\s+/);
+  const wordsB = new Set(b.split(/\s+/));
+  wordsA.forEach(w=>{ if(w.length>3 && wordsB.has(w)) matches++; });
+  return Math.min(1, matches/Math.max(3,wordsA.length));
+}
+function ageSimilarity(t1,t2){
+  if(!t1 || !t2) return 0.5;
+  const d = Math.abs(new Date(t1).getTime()-new Date(t2).getTime());
+  const days = d/(1000*60*60*24);
+  if(days<7) return 1;
+  if(days<30) return 0.8;
+  if(days<90) return 0.6;
+  if(days<365) return 0.4;
+  if(days<3*365) return 0.2;
+  return 0.05;
+}
+
 document.getElementById('altCheck').onclick = async()=>{
   const u1 = document.getElementById('altUser1').value.trim();
   const u2 = document.getElementById('altUser2').value.trim();
   const box = document.getElementById('altResult');
   if(!u1||!u2){box.innerHTML='<div class="card">Enter both usernames.</div>';return;}
-  box.innerHTML='<div class="card">Fetching data...</div>';
+  box.innerHTML='<div class="card">Fetching deep data...</div>';
   setLoading(true);
   try{
-    const [p1,p2] = await Promise.all([lookupUser(u1),lookupUser(u2)]);
-    const [g1,g2,f1,f2,b1,b2] = await Promise.all([
+    // basic user objects
+    const [raw1,raw2] = await Promise.all([lookupUser(u1),lookupUser(u2)]);
+    const [prof1,prof2] = await Promise.all([getUserProfile(raw1.id),getUserProfile(raw2.id)]);
+
+    // friends / groups / badges / avatar assets
+    const [g1,g2,f1,f2,b1,b2,av1,av2] = await Promise.all([
       tryMulti([
-        `https://groups.roproxy.com/v2/users/${p1.id}/groups/roles`,
-        `https://groups.rprxy.xyz/v2/users/${p1.id}/groups/roles`,
-        proxyWrap(`https://groups.roblox.com/v2/users/${p1.id}/groups/roles`)
+        `https://groups.roproxy.com/v2/users/${raw1.id}/groups/roles`,
+        `https://groups.rprxy.xyz/v2/users/${raw1.id}/groups/roles`,
+        proxyWrap(`https://groups.roblox.com/v2/users/${raw1.id}/groups/roles`)
       ]),
       tryMulti([
-        `https://groups.roproxy.com/v2/users/${p2.id}/groups/roles`,
-        `https://groups.rprxy.xyz/v2/users/${p2.id}/groups/roles`,
-        proxyWrap(`https://groups.roblox.com/v2/users/${p2.id}/groups/roles`)
+        `https://groups.roproxy.com/v2/users/${raw2.id}/groups/roles`,
+        `https://groups.rprxy.xyz/v2/users/${raw2.id}/groups/roles`,
+        proxyWrap(`https://groups.roblox.com/v2/users/${raw2.id}/groups/roles`)
       ]),
       tryMulti([
-        `https://friends.roproxy.com/v1/users/${p1.id}/friends?limit=200`,
-        `https://friends.rprxy.xyz/v1/users/${p1.id}/friends?limit=200`,
-        proxyWrap(`https://friends.roblox.com/v1/users/${p1.id}/friends?limit=200`)
+        `https://friends.roproxy.com/v1/users/${raw1.id}/friends?limit=200`,
+        `https://friends.rprxy.xyz/v1/users/${raw1.id}/friends?limit=200`,
+        proxyWrap(`https://friends.roblox.com/v1/users/${raw1.id}/friends?limit=200`)
       ]),
       tryMulti([
-        `https://friends.roproxy.com/v1/users/${p2.id}/friends?limit=200`,
-        `https://friends.rprxy.xyz/v1/users/${p2.id}/friends?limit=200`,
-        proxyWrap(`https://friends.roblox.com/v1/users/${p2.id}/friends?limit=200`)
+        `https://friends.roproxy.com/v1/users/${raw2.id}/friends?limit=200`,
+        `https://friends.rprxy.xyz/v1/users/${raw2.id}/friends?limit=200`,
+        proxyWrap(`https://friends.roblox.com/v1/users/${raw2.id}/friends?limit=200`)
       ]),
       tryMulti([
-        `https://badges.roproxy.com/v1/users/${p1.id}/badges?limit=100`,
-        `https://badges.rprxy.xyz/v1/users/${p1.id}/badges?limit=100`,
-        proxyWrap(`https://badges.roblox.com/v1/users/${p1.id}/badges?limit=100`)
+        `https://badges.roproxy.com/v1/users/${raw1.id}/badges?limit=100`,
+        `https://badges.rprxy.xyz/v1/users/${raw1.id}/badges?limit=100`,
+        proxyWrap(`https://badges.roblox.com/v1/users/${raw1.id}/badges?limit=100`)
       ]),
       tryMulti([
-        `https://badges.roproxy.com/v1/users/${p2.id}/badges?limit=100`,
-        `https://badges.rprxy.xyz/v1/users/${p2.id}/badges?limit=100`,
-        proxyWrap(`https://badges.roblox.com/v1/users/${p2.id}/badges?limit=100`)
+        `https://badges.roproxy.com/v1/users/${raw2.id}/badges?limit=100`,
+        `https://badges.rprxy.xyz/v1/users/${raw2.id}/badges?limit=100`,
+        proxyWrap(`https://badges.roblox.com/v1/users/${raw2.id}/badges?limit=100`)
+      ]),
+      tryMulti([
+        `https://avatar.roproxy.com/v1/users/${raw1.id}/avatar`,
+        `https://avatar.rprxy.xyz/v1/users/${raw1.id}/avatar`,
+        proxyWrap(`https://avatar.roblox.com/v1/users/${raw1.id}/avatar`)
+      ]),
+      tryMulti([
+        `https://avatar.roproxy.com/v1/users/${raw2.id}/avatar`,
+        `https://avatar.rprxy.xyz/v1/users/${raw2.id}/avatar`,
+        proxyWrap(`https://avatar.roblox.com/v1/users/${raw2.id}/avatar`)
       ])
     ]);
+
     const groups1=(g1?.data||[]).map(g=>g.group.id);
     const groups2=(g2?.data||[]).map(g=>g.group.id);
     const friends1=(f1?.data||[]).map(f=>f.id);
     const friends2=(f2?.data||[]).map(f=>f.id);
     const badges1=(b1?.data||[]).map(b=>b.id);
     const badges2=(b2?.data||[]).map(b=>b.id);
+    const assets1=(av1?.assets||[]).map(a=>a.id);
+    const assets2=(av2?.assets||[]).map(a=>a.id);
 
-    const groupScore = jaccard(groups1,groups2);
-    const friendScore = jaccard(friends1,friends2);
-    const badgeScore = jaccard(badges1,badges2);
-    const nameScore = nameSimilarity(p1.name,p2.name);
+    const groupScore = jaccard(groups1,groups2);        // social overlap
+    const friendScore = jaccard(friends1,friends2);     // direct friend overlap
+    const badgeScore = jaccard(badges1,badges2);        // achievement overlap
+    const avatarScore = jaccard(assets1,assets2);       // wearing same items
+    const nameScore = simpleNameSimilarity(prof1.name,prof2.name);
+    const displayScore = simpleNameSimilarity(prof1.displayName,prof2.displayName);
+    const descScore = descriptionSimilarity(prof1.description,prof2.description);
+    const ageScore = ageSimilarity(prof1.created,prof2.created);
 
-    const total = (groupScore*0.3)+(friendScore*0.3)+(badgeScore*0.25)+(nameScore*0.15);
+    // weight signals
+    const total =
+      groupScore * 0.18 +
+      friendScore * 0.2 +
+      badgeScore * 0.15 +
+      avatarScore * 0.22 +
+      nameScore * 0.1 +
+      displayScore * 0.05 +
+      descScore * 0.05 +
+      ageScore * 0.05;
+
     const pct = Math.round(total*100);
     let label='Low';let cls='badge-ok';
     if(pct>=70){label='High';cls='badge-bad';}
     else if(pct>=40){label='Medium';cls='badge-warn';}
 
+    const fmt = v=> (v*100).toFixed(1)+'%';
+
     box.innerHTML = `
       <div class="card">
-        <h3>Similarity: ${pct}% <span class="badge-pill ${cls}">${label} alt chance</span></h3>
+        <h3>Estimated Alt Chance: ${pct}% <span class="badge-pill ${cls}">${label}</span></h3>
         <p>
-          ${p1.name} (id: ${p1.id})<br>
-          ${p2.name} (id: ${p2.id})
+          ${prof1.name} (id: ${raw1.id})<br>
+          ${prof2.name} (id: ${raw2.id})
         </p>
         <ul class="small">
-          <li>Groups overlap: ${(groupScore*100).toFixed(1)}%</li>
-          <li>Friends overlap: ${(friendScore*100).toFixed(1)}%</li>
-          <li>Badges overlap: ${(badgeScore*100).toFixed(1)}%</li>
-          <li>Name similarity: ${(nameScore*100).toFixed(1)}%</li>
+          <li>Groups overlap: ${fmt(groupScore)}</li>
+          <li>Friends overlap: ${fmt(friendScore)}</li>
+          <li>Badges overlap: ${fmt(badgeScore)}</li>
+          <li>Avatar item overlap: ${fmt(avatarScore)}</li>
+          <li>Username similarity: ${fmt(nameScore)}</li>
+          <li>Display name similarity: ${fmt(displayScore)}</li>
+          <li>Description similarity: ${fmt(descScore)}</li>
+          <li>Account age similarity: ${fmt(ageScore)}</li>
         </ul>
-        <p class="small">This is just an estimate based on public data, not proof.</p>
+        <p class="small">
+          This is only an estimate based on public data.<br>
+          It cannot prove alt accounts, but it can highlight suspicious overlaps.
+        </p>
       </div>
     `;
   }catch(err){
@@ -650,70 +744,6 @@ document.getElementById('avLoad').onclick = async()=>{
     box.innerHTML = `<div class="card"><h3>Error</h3><p>${err.message}</p></div>`;
   }
   setLoading(false);
-};
-
-// ---------- username sniper ----------
-let sniperTimer=null;
-async function checkUsernameOnce(name){
-  const box = document.getElementById('sniperStatus');
-  if(!name){box.innerHTML='<div class="card">Enter a username to check.</div>';return;}
-  box.innerHTML='<div class="card">Checking...</div>';
-  try{
-    const payload={usernames:[name],excludeBannedUsers:false};
-    let data=null;
-    for(const url of usernameEndpoints){
-      try{
-        data = await fetchJson(url,{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify(payload)
-        });
-        break;
-      }catch{}
-    }
-    const found = data?.data?.find(u=>u.name.toLowerCase()===name.toLowerCase());
-    if(found){
-      box.innerHTML = `
-        <div class="card">
-          <h3>${name} is <span class="badge-pill badge-bad">TAKEN</span></h3>
-          <p>UserId: ${found.id}<br>Display: ${found.displayName}</p>
-          <p class="small">Last checked: ${new Date().toLocaleTimeString()}</p>
-        </div>
-      `;
-    }else{
-      box.innerHTML = `
-        <div class="card">
-          <h3>${name}</h3>
-          <p><span class="badge-pill badge-ok">No account found with this exact username</span></p>
-          <p class="small">
-            This usually means it is available or reserved.<br>
-            Roblox's official availability endpoint requires a logged-in session, so this is the best we can do from a public page.
-          </p>
-          <p class="small">Last checked: ${new Date().toLocaleTimeString()}</p>
-        </div>
-      `;
-    }
-  }catch(err){
-    box.innerHTML = `<div class="card"><h3>Error</h3><p>${err.message}</p></div>`;
-  }
-}
-
-document.getElementById('sniperCheck').onclick = ()=>{
-  const name = document.getElementById('sniperName').value.trim();
-  checkUsernameOnce(name);
-};
-document.getElementById('sniperAuto').onclick = ()=>{
-  const btn = document.getElementById('sniperAuto');
-  const name = document.getElementById('sniperName').value.trim();
-  if(sniperTimer){
-    clearInterval(sniperTimer);sniperTimer=null;
-    btn.textContent='Start Auto Check (60s)';
-    return;
-  }
-  if(!name){alert('Enter a username first');return;}
-  btn.textContent='Stop Auto Check';
-  checkUsernameOnce(name);
-  sniperTimer = setInterval(()=>checkUsernameOnce(name),60000);
 };
 </script>
 </body>
