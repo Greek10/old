@@ -45,17 +45,22 @@
       position: absolute;
       inset: 0;
       pointer-events: none;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 24px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: auto 1fr auto;
+      gap: 16px;
+      padding: 22px clamp(16px, 3vw, 32px);
+      align-items: start;
     }
     .hud {
+      grid-column: 1 / span 2;
       display: flex;
-      gap: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
       align-items: center;
       font-size: 14px;
       letter-spacing: 0.02em;
+      max-width: 70vw;
     }
     .pill {
       background: rgba(255, 255, 255, 0.05);
@@ -103,19 +108,38 @@
       font-weight: 700;
     }
     .bottom {
+      grid-column: 1;
       display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
+      flex-direction: column;
+      align-items: flex-start;
       gap: 12px;
-      flex-wrap: wrap;
+      max-width: min(520px, 45vw);
+    }
+
+    .cta-panel {
+      grid-column: 2;
+      grid-row: 3;
+      align-self: end;
+      justify-self: end;
+      pointer-events: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      background: rgba(9, 10, 21, 0.7);
+      border: 1px solid rgba(110, 243, 255, 0.08);
+      border-radius: 14px;
+      padding: 12px 14px;
+      box-shadow: 0 16px 50px rgba(0, 0, 0, 0.38);
+      max-width: 280px;
     }
     .card {
       pointer-events: auto;
       background: rgba(9, 10, 21, 0.75);
       border: 1px solid rgba(110, 243, 255, 0.1);
       border-radius: 16px;
-      padding: 14px 16px;
-      max-width: 420px;
+      padding: 12px 14px;
+      max-width: 360px;
       box-shadow: 0 16px 60px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
     }
     .card h3 {
@@ -136,8 +160,7 @@
     }
     #cta {
       pointer-events: auto;
-      align-self: center;
-      margin-top: 12px;
+      align-self: stretch;
       font-size: 16px;
       padding: 12px 16px;
       cursor: pointer;
@@ -148,6 +171,8 @@
       border-radius: 12px;
       box-shadow: 0 14px 50px rgba(110, 243, 255, 0.35);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
+      max-width: 230px;
+      text-align: center;
     }
     #cta:hover { transform: translateY(-1px) scale(1.01); }
     #cta:active { transform: translateY(0px); box-shadow: 0 8px 26px rgba(110, 243, 255, 0.25); }
@@ -164,16 +189,28 @@
       padding: 8px 12px;
       border-radius: 12px;
       background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       display: inline-flex;
       align-items: center;
       gap: 8px;
       color: var(--text);
       pointer-events: auto;
       cursor: pointer;
-      transition: transform 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+      transition: transform 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
     }
-    .chip:hover { transform: translateY(-1px); border-color: rgba(110, 243, 255, 0.35); color: var(--accent); }
+    .chip:hover { transform: translateY(-1px); border-color: rgba(110, 243, 255, 0.35); color: var(--accent); box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35); }
+
+    @media (max-width: 860px) {
+      .overlay {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto 1fr auto;
+      }
+      .hud { grid-column: 1; max-width: 100%; }
+      .bottom { max-width: 100%; }
+      .cta-panel { grid-column: 1; align-items: flex-start; justify-self: start; }
+      #cta { grid-column: 1; justify-self: start; }
+    }
     .chip strong { letter-spacing: 0.08em; }
   </style>
 </head>
@@ -205,7 +242,6 @@
           <div><span>Read</span>: Strikers dash, Weavers strafe, Bombers leave mines, Snipers fire beams.</div>
           <div><span>Vibe</span>: Streamed synthwave soundtrack auto-plays when the match starts.</div>
         </div>
-        <button id="cta">Start The Best Game</button>
       </div>
       <div class="card" style="max-width: 320px;">
         <h3>On-the-fly Upgrades</h3>
@@ -216,6 +252,12 @@
           <div>🔥 Perfect dashes reset combo decay.</div>
           <div>🌠 Overdrive bursts trigger when combos stay hot.</div>
         </div>
+      </div>
+    </div>
+    <div class="cta-panel">
+      <button id="cta">Start The Best Game</button>
+      <div class="controls" style="margin-top: 6px;">
+        <div style="color: var(--muted); font-size: 12px;">Arcade-ready · Minimal UI footprint · Full neon vibes</div>
       </div>
     </div>
   </div>
@@ -241,9 +283,12 @@
     const rand = (min, max) => Math.random() * (max - min) + min;
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
+    const MUSIC_URL = 'https://cdn.pixabay.com/download/audio/2023/10/11/audio_bdbfbced7a.mp3?filename=neon-lights-188626.mp3';
     const soundtrack = new Audio();
     soundtrack.loop = true;
     soundtrack.volume = 0.35;
+    soundtrack.crossOrigin = 'anonymous';
+    soundtrack.preload = 'auto';
     let musicLoaded = false;
     let musicLoading = false;
 
@@ -560,20 +605,23 @@
 
     async function ensureMusic() {
       if (musicLoaded && soundtrack.paused) {
-        soundtrack.play().catch(() => {});
-        musicStatus.textContent = 'On';
+        soundtrack.play().then(() => musicStatus.textContent = 'On').catch(() => { musicStatus.textContent = 'Ready'; });
         return;
       }
       if (musicLoaded || musicLoading) return;
       musicLoading = true;
-      musicStatus.textContent = 'Loading';
+      musicStatus.textContent = 'Loading…';
       try {
-        const res = await fetch('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
+        const res = await fetch(MUSIC_URL, { mode: 'cors' });
+        if (!res.ok) throw new Error(`music fetch failed: ${res.status}`);
         const blob = await res.blob();
         soundtrack.src = URL.createObjectURL(blob);
         musicLoaded = true;
-        musicStatus.textContent = 'On';
-        await soundtrack.play().catch(() => {});
+        await soundtrack.play().then(() => {
+          musicStatus.textContent = 'On';
+        }).catch(() => {
+          musicStatus.textContent = 'Ready';
+        });
       } catch (err) {
         console.error('music fetch failed', err);
         musicStatus.textContent = 'Offline';
