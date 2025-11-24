@@ -183,6 +183,7 @@
           <div><span>Dash</span>: Shift (short burst)</div>
           <div><span>Pulse</span>: Space / Click (area blast)</div>
           <div><span>Survive</span>: Chain combos, grab power cells, avoid threats.</div>
+          <div><span>Read</span>: Strikers dash, Weavers strafe, Bombers leave mines, Snipers fire beams.</div>
         </div>
         <button id="cta">Start The Best Game</button>
       </div>
@@ -193,6 +194,7 @@
           <div>🔵 Shield cores to recover HP.</div>
           <div>🟢 Time prisms to slow down danger.</div>
           <div>🔥 Perfect dashes reset combo decay.</div>
+          <div>🌠 Overdrive bursts trigger when combos stay hot.</div>
         </div>
       </div>
     </div>
@@ -269,6 +271,7 @@
         this.x = w / 2; this.y = h / 2; this.r = 12; this.speed = 320;
         this.vx = 0; this.vy = 0; this.hp = 100; this.combo = 1; this.comboTimer = 0;
         this.dashCD = 0; this.pulseCD = 0; this.invuln = 0; this.score = 0; this.wave = 1;
+        this.overdrive = 0;
         this.trail = new Trail(this, 'rgba(110,243,255,0.9)');
       }
       update(dt) {
@@ -288,6 +291,14 @@
         this.pulseCD = Math.max(0, this.pulseCD - dt);
         this.invuln = Math.max(0, this.invuln - dt);
         this.comboTimer = Math.max(0, this.comboTimer - dt);
+        if (this.combo > 2.4) this.overdrive = clamp(this.overdrive + dt * (this.combo * 0.12), 0, 1);
+        else this.overdrive = clamp(this.overdrive - dt * 0.35, 0, 1);
+        if (this.overdrive >= 1) {
+          pulses.push({ x: this.x, y: this.y, r: 12, max: 180, speed: 420, empowered: true });
+          addParticles(this.x, this.y, 30, '#9cfff7', 5);
+          this.overdrive = 0;
+          this.comboTimer = 2.8;
+        }
         if (this.comboTimer <= 0 && this.combo > 1) { this.combo *= 0.98; if (this.combo < 1.05) this.combo = 1; }
         this.trail.update();
       }
@@ -334,28 +345,133 @@
         else if (edge < w + h) { this.x = w + 30; this.y = edge - w; }
         else if (edge < w + h + w) { this.x = edge - (w + h); this.y = h + 30; }
         else { this.x = -30; this.y = edge - (w + h + w); }
-        this.r = type === 'orb' ? 10 : 14;
-        this.speed = type === 'orb' ? 130 : 190;
-        this.hp = type === 'orb' ? 1 : 2;
-        this.color = type === 'orb' ? '#b0ff87' : '#ff9ff3';
+
+        const archetypes = {
+          chaser: { r: 14, speed: 190, hp: 2, color: '#ff9ff3' },
+          orb: { r: 10, speed: 150, hp: 1, color: '#b0ff87' },
+          weaver: { r: 13, speed: 180, hp: 2, color: '#89e5ff' },
+          striker: { r: 15, speed: 150, hp: 2.5, color: '#ffcf7b' },
+          bomber: { r: 16, speed: 120, hp: 3, color: '#ffa4b2' },
+          sniper: { r: 14, speed: 160, hp: 2.5, color: '#c9afff' },
+        };
+
+        const data = archetypes[type] || archetypes.chaser;
+        this.r = data.r; this.speed = data.speed; this.hp = data.hp; this.color = data.color;
         this.spin = Math.random() * Math.PI * 2;
         this.spinSpeed = rand(-2, 2);
+        this.time = 0;
+        this.cooldown = rand(1, 2.4);
+        this.strength = 10 + this.hp * 2;
       }
       update(dt) {
+        this.time += dt;
         const dx = player.x - this.x; const dy = player.y - this.y;
         const len = Math.hypot(dx, dy) || 1;
-        const s = this.speed + player.wave * 8;
-        this.x += (dx / len) * s * dt; this.y += (dy / len) * s * dt;
+        const base = this.speed + player.wave * 7;
+
+        if (this.type === 'chaser') {
+          this.x += (dx / len) * base * dt; this.y += (dy / len) * base * dt;
+        } else if (this.type === 'orb') {
+          const swirl = Math.sin(this.time * 4) * 80;
+          this.x += (dx / len) * (base + 30) * dt + Math.cos(this.time * 3) * dt * swirl;
+          this.y += (dy / len) * (base + 30) * dt + Math.sin(this.time * 3) * dt * swirl;
+        } else if (this.type === 'weaver') {
+          const strafe = Math.sin(this.time * 6) * 180;
+          const tx = player.x + Math.cos(this.time * 2) * 40;
+          const ty = player.y + Math.sin(this.time * 2) * 40;
+          const lx = tx - this.x; const ly = ty - this.y;
+          const l = Math.hypot(lx, ly) || 1;
+          this.x += (lx / l) * base * dt + (-ly / l) * dt * (strafe * 0.2);
+          this.y += (ly / l) * base * dt + (lx / l) * dt * (strafe * 0.2);
+        } else if (this.type === 'striker') {
+          this.cooldown -= dt;
+          if (this.cooldown < 0.4) addParticles(this.x, this.y, 1, '#ffcf7b', 2);
+          const charge = this.cooldown <= 0;
+          const mult = charge ? 3.8 : 1.1;
+          this.x += (dx / len) * base * mult * dt;
+          this.y += (dy / len) * base * mult * dt;
+          if (charge) { this.cooldown = rand(1.2, 1.8); addParticles(this.x, this.y, 10, '#ffcf7b', 3); }
+        } else if (this.type === 'bomber') {
+          this.cooldown -= dt;
+          this.x += (dx / len) * base * 0.8 * dt;
+          this.y += (dy / len) * base * 0.8 * dt;
+          if (this.cooldown <= 0) {
+            hazards.push(new Hazard(this.x, this.y));
+            this.cooldown = rand(2, 3.4);
+          }
+        } else if (this.type === 'sniper') {
+          this.cooldown -= dt;
+          const desired = 260;
+          const dist = Math.hypot(dx, dy);
+          const dir = dist > desired ? 1 : -0.6;
+          this.x += (dx / len) * base * dir * dt + Math.cos(this.time * 1.6) * 40 * dt;
+          this.y += (dy / len) * base * dir * dt + Math.sin(this.time * 1.6) * 40 * dt;
+          if (this.cooldown <= 0) {
+            projectiles.push(new Projectile(this.x, this.y, dx / len, dy / len, '#c9afff'));
+            addParticles(this.x, this.y, 8, '#c9afff', 2);
+            this.cooldown = rand(2, 3);
+          }
+        }
+
         this.spin += this.spinSpeed * dt;
       }
       draw() {
         ctx.save();
         ctx.translate(this.x, this.y); ctx.rotate(this.spin);
-        ctx.strokeStyle = this.color; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.rect(-this.r, -this.r, this.r * 2, this.r * 2); ctx.stroke();
-        ctx.beginPath(); ctx.arc(0, 0, this.r * 0.5, 0, Math.PI * 2); ctx.stroke();
+        ctx.lineWidth = 2;
+        const highlight = this.type === 'bomber' ? this.r + 6 : this.r;
+        ctx.strokeStyle = this.color; ctx.beginPath(); ctx.rect(-highlight, -highlight, highlight * 2, highlight * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, 0, this.r * 0.65, 0, Math.PI * 2); ctx.stroke();
+        if (this.type === 'sniper') {
+          ctx.beginPath(); ctx.moveTo(0, -this.r - 4); ctx.lineTo(0, this.r + 4); ctx.stroke();
+        }
+        if (this.type === 'striker') {
+          ctx.beginPath(); ctx.arc(0, 0, this.r + 3, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
+        }
         ctx.restore();
       }
+    }
+
+    class Projectile {
+      constructor(x, y, dx, dy, color) {
+        this.x = x; this.y = y; this.dx = dx; this.dy = dy; this.speed = 400; this.r = 7; this.life = 2.6; this.color = color;
+      }
+      update(dt) {
+        this.x += this.dx * this.speed * dt;
+        this.y += this.dy * this.speed * dt;
+        this.life -= dt;
+      }
+      draw() {
+        ctx.save();
+        ctx.shadowBlur = 10; ctx.shadowColor = this.color;
+        ctx.fillStyle = this.color;
+        ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+      get dead() { return this.life <= 0 || this.x < -40 || this.x > w + 40 || this.y < -40 || this.y > h + 40; }
+    }
+
+    class Hazard {
+      constructor(x, y) { this.x = x; this.y = y; this.r = 12; this.timer = 1.6; this.exploding = false; this.max = 130; }
+      update(dt) {
+        this.timer -= dt;
+        if (this.timer <= 0 && !this.exploding) { this.exploding = true; this.timer = 0.5; addParticles(this.x, this.y, 18, '#ffa4b2', 3); }
+        if (this.exploding) this.r += (this.max - this.r) * dt * 3;
+      }
+      draw() {
+        ctx.save();
+        if (!this.exploding) {
+          ctx.globalAlpha = 0.8 + Math.sin(performance.now() * 0.01) * 0.2;
+          ctx.strokeStyle = '#ffa4b2';
+          ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2); ctx.stroke();
+          ctx.restore();
+        } else {
+          ctx.strokeStyle = 'rgba(255,164,178,0.6)';
+          ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2); ctx.stroke();
+          ctx.restore();
+        }
+      }
+      get done() { return this.exploding && this.timer <= 0; }
     }
 
     class Powerup {
@@ -381,6 +497,8 @@
     const enemies = [];
     const particles = [];
     const pulses = [];
+    const projectiles = [];
+    const hazards = [];
     const powerups = [];
 
     let spawnTimer = 0;
@@ -416,8 +534,8 @@
 
     function start() {
       running = true;
-      player.hp = 100; player.combo = 1; player.comboTimer = 0; player.score = 0; player.wave = 1;
-      enemies.length = 0; particles.length = 0; pulses.length = 0; powerups.length = 0;
+      player.hp = 100; player.combo = 1; player.comboTimer = 0; player.score = 0; player.wave = 1; player.overdrive = 0;
+      enemies.length = 0; particles.length = 0; pulses.length = 0; powerups.length = 0; projectiles.length = 0; hazards.length = 0;
       spawnTimer = 0; waveTimer = 0; last = performance.now();
       pointer.x = w / 2; pointer.y = h / 2;
     }
@@ -425,8 +543,13 @@
     function spawnEnemies(dt) {
       spawnTimer -= dt;
       if (spawnTimer <= 0) {
-        spawnTimer = Math.max(0.4, 1.4 - player.wave * 0.05);
-        const type = Math.random() < 0.3 ? 'orb' : 'chaser';
+        spawnTimer = Math.max(0.35, 1.35 - player.wave * 0.06);
+        const pool = ['chaser', 'chaser', 'orb'];
+        if (player.wave > 2) pool.push('weaver');
+        if (player.wave > 3) pool.push('striker');
+        if (player.wave > 4) pool.push('bomber');
+        if (player.wave > 5) pool.push('sniper');
+        const type = pool[Math.floor(Math.random() * pool.length)];
         enemies.push(new Enemy(type));
       }
       waveTimer += dt;
@@ -448,6 +571,8 @@
       spawnPowerups(dt);
 
       enemies.forEach((e) => e.update(dt));
+      projectiles.forEach((p) => p.update(dt));
+      hazards.forEach((h) => h.update(dt));
       powerups.forEach((p) => p.update(dt));
       particles.forEach((p) => p.update(dt));
 
@@ -469,9 +594,9 @@
         // Pulse hit
         for (const pulse of pulses) {
           if (pulse.r < pulse.max && Math.hypot(enemy.x - pulse.x, enemy.y - pulse.y) < pulse.r + enemy.r) {
-            enemy.hp -= 2;
+            enemy.hp -= pulse.empowered ? 3 : 2;
             addParticles(enemy.x, enemy.y, 10, enemy.color, 2);
-            player.combo += 0.05;
+            player.combo += pulse.empowered ? 0.09 : 0.05;
             player.comboTimer = 2.4;
           }
         }
@@ -485,8 +610,61 @@
           addParticles(enemy.x, enemy.y, 14, enemy.color, 3);
           const gain = Math.floor(20 * player.combo);
           player.score += gain; player.combo += 0.12; player.comboTimer = 2.5;
+          if (enemy.type === 'orb' && Math.random() < 0.6) {
+            enemies.push(new Enemy('orb'));
+          }
+          if (enemy.type === 'bomber') {
+            hazards.push(new Hazard(enemy.x, enemy.y));
+          }
         }
       });
+
+      // Projectiles collision
+      for (let i = projectiles.length - 1; i >= 0; i--) {
+        const b = projectiles[i];
+        const d = Math.hypot(b.x - player.x, b.y - player.y);
+        if (d < b.r + player.r) {
+          if (player.invuln <= 0) {
+            player.hp -= 10;
+            player.invuln = 0.4;
+            addParticles(player.x, player.y, 12, '#c9afff', 3);
+          }
+          projectiles.splice(i, 1);
+          continue;
+        }
+        for (const pulse of pulses) {
+          if (pulse.r < pulse.max && Math.hypot(b.x - pulse.x, b.y - pulse.y) < pulse.r + b.r) {
+            projectiles.splice(i, 1);
+            addParticles(b.x, b.y, 6, '#c9afff', 2);
+            break;
+          }
+        }
+        if (projectiles[i] && projectiles[i].dead) projectiles.splice(i, 1);
+      }
+
+      // Hazard collision
+      for (let i = hazards.length - 1; i >= 0; i--) {
+        const hz = hazards[i];
+        const d = Math.hypot(hz.x - player.x, hz.y - player.y);
+        if (hz.exploding && d < hz.r + player.r) {
+          if (player.invuln <= 0) {
+            player.hp -= 14;
+            player.invuln = 0.5;
+            addParticles(player.x, player.y, 16, '#ffa4b2', 3);
+            player.combo = Math.max(1, player.combo * 0.8);
+          }
+        } else if (!hz.exploding && d < hz.r + player.r) {
+          hz.timer = 0; // force explode if you bump it early
+        }
+
+        for (const pulse of pulses) {
+          if (pulse.r < pulse.max && Math.hypot(hz.x - pulse.x, hz.y - pulse.y) < pulse.r + hz.r) {
+            hz.timer = 0;
+          }
+        }
+
+        if (hazards[i] && hazards[i].done) hazards.splice(i, 1);
+      }
 
       // Pulse cleanup
       for (let i = pulses.length - 1; i >= 0; i--) if (pulses[i].r > pulses[i].max) pulses.splice(i, 1);
@@ -504,6 +682,7 @@
           if (p.kind === 'multi') player.combo += 0.6;
           if (p.kind === 'slow') {
             enemies.forEach((e) => { e.speed *= 0.6; });
+            projectiles.forEach((b) => { b.speed *= 0.7; });
           }
           addParticles(p.x, p.y, 24, '#ffffff', 3);
           powerups.splice(i, 1);
@@ -574,6 +753,8 @@
       });
 
       powerups.forEach((p) => p.draw());
+      hazards.forEach((h) => h.draw());
+      projectiles.forEach((p) => p.draw());
 
       player.trail.draw();
       player.draw();
