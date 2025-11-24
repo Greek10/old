@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -313,68 +312,62 @@
     const rand = (min, max) => Math.random() * (max - min) + min;
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-const MUSIC_URL = "https://cdn.pixabay.com/audio/2024/02/27/audio_9af0f3a1da.mp3"; 
-const MUSIC_FALLBACK = "./Blaze.mp3";
+    const MUSIC_URL = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+    const MUSIC_FALLBACK = './Blaze.mp3';
+    const soundtrack = new Audio();
+    soundtrack.loop = true;
+    soundtrack.volume = 0.35;
+    soundtrack.crossOrigin = 'anonymous';
+    soundtrack.preload = 'auto';
+    let musicLoaded = false;
+    let musicLoading = false;
 
-const soundtrack = new Audio();
-soundtrack.loop = true;
-soundtrack.volume = 0.4;
-soundtrack.preload = "auto";
-soundtrack.crossOrigin = "anonymous";
+    class Particle {
+      constructor(x, y, vx, vy, life, color, size = 2) {
+        this.x = x; this.y = y; this.vx = vx; this.vy = vy;
+        this.life = life; this.maxLife = life; this.color = color; this.size = size;
+      }
+      update(dt) {
+        this.x += this.vx * dt; this.y += this.vy * dt; this.life -= dt;
+      }
+      draw() {
+        const t = this.life / this.maxLife;
+        ctx.globalAlpha = t;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size * (0.5 + t * 0.5), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      get dead() { return this.life <= 0; }
+    }
 
-let musicLoaded = false;
-let musicLoading = false;
-
-async function ensureMusic() {
-  if (musicLoaded && soundtrack.paused) {
-    soundtrack.play().then(() => {
-      musicStatus.textContent = "On";
-    }).catch(() => {
-      musicStatus.textContent = "Ready";
-    });
-    return;
-  }
-
-  if (musicLoaded || musicLoading) return;
-  musicLoading = true;
-  musicStatus.textContent = "Loading…";
-
-  const sources = [
-    { url: MUSIC_URL, label: "Live" },
-    { url: MUSIC_FALLBACK, label: "Local" }
-  ];
-
-  for (const src of sources) {
-    try {
-      soundtrack.src = src.url;
-
-      await soundtrack.play()
-        .then(() => {
-          musicLoaded = true;
-          musicStatus.textContent = src.label;
-        })
-        .catch(() => {});
-
-      if (musicLoaded) break;
-    } catch (e) { }
-  }
-
-  if (!musicLoaded) musicStatus.textContent = "Offline";
-  musicLoading = false;
-}
-
-musicToggle.addEventListener("click", async () => {
-  await ensureMusic();
-  if (!musicLoaded) return;
-
-  if (soundtrack.paused) {
-    soundtrack.play();
-    musicStatus.textContent = "On";
-  } else {
-    soundtrack.pause();
-    musicStatus.textContent = "Off";
-  }
-});
+    class Trail {
+      constructor(entity, color) {
+        this.entity = entity;
+        this.color = color;
+        this.points = [];
+      }
+      update() {
+        this.points.push({ x: this.entity.x, y: this.entity.y, life: 1 });
+        this.points = this.points.slice(-80);
+      }
+      draw() {
+        ctx.save();
+        for (let i = 0; i < this.points.length; i++) {
+          const p = this.points[i];
+          const alpha = p.life;
+          ctx.globalAlpha = alpha * 0.5;
+          ctx.fillStyle = this.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 4 * alpha, 0, Math.PI * 2);
+          ctx.fill();
+          p.life -= 0.01;
+        }
+        ctx.restore();
+        this.points = this.points.filter((p) => p.life > 0);
+      }
+    }
 
     class Player {
       constructor() {
