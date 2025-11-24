@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -46,21 +47,26 @@
       inset: 0;
       pointer-events: none;
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      grid-template-rows: auto 1fr auto;
-      gap: 16px;
-      padding: 22px clamp(16px, 3vw, 32px);
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto 1fr;
+      gap: 12px;
+      padding: 16px clamp(12px, 2vw, 24px);
       align-items: start;
     }
     .hud {
-      grid-column: 1 / span 2;
+      grid-column: 1;
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 10px;
       align-items: center;
-      font-size: 14px;
+      font-size: 13px;
       letter-spacing: 0.02em;
-      max-width: 70vw;
+      max-width: 48vw;
+      padding: 8px 10px;
+      background: rgba(5, 6, 13, 0.35);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(6px);
     }
     .pill {
       background: rgba(255, 255, 255, 0.05);
@@ -75,7 +81,7 @@
       gap: 8px;
     }
     .title {
-      font-size: 22px;
+      font-size: 18px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.12em;
@@ -112,35 +118,40 @@
       display: flex;
       flex-direction: column;
       align-items: flex-start;
-      gap: 12px;
-      max-width: min(520px, 45vw);
+      gap: 10px;
+      max-width: 420px;
+      margin-top: auto;
+      padding: 8px 10px;
+      background: linear-gradient(160deg, rgba(9, 10, 21, 0.4), rgba(9, 10, 21, 0));
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
     }
 
     .cta-panel {
       grid-column: 2;
-      grid-row: 3;
-      align-self: end;
+      grid-row: 1 / span 2;
+      align-self: start;
       justify-self: end;
       pointer-events: auto;
       display: flex;
       flex-direction: column;
       align-items: flex-end;
       gap: 6px;
-      background: rgba(9, 10, 21, 0.7);
+      background: rgba(9, 10, 21, 0.55);
       border: 1px solid rgba(110, 243, 255, 0.08);
       border-radius: 14px;
       padding: 12px 14px;
       box-shadow: 0 16px 50px rgba(0, 0, 0, 0.38);
-      max-width: 280px;
+      max-width: 240px;
     }
     .card {
       pointer-events: auto;
-      background: rgba(9, 10, 21, 0.75);
+      background: rgba(9, 10, 21, 0.65);
       border: 1px solid rgba(110, 243, 255, 0.1);
-      border-radius: 16px;
-      padding: 12px 14px;
+      border-radius: 14px;
+      padding: 10px 12px;
       max-width: 360px;
-      box-shadow: 0 16px 60px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+      box-shadow: 0 16px 60px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.02);
     }
     .card h3 {
       margin: 0 0 8px 0;
@@ -154,6 +165,7 @@
       gap: 6px;
       font-size: 13px;
       color: var(--muted);
+      line-height: 1.35;
     }
     .controls span {
       color: var(--text);
@@ -161,8 +173,8 @@
     #cta {
       pointer-events: auto;
       align-self: stretch;
-      font-size: 16px;
-      padding: 12px 16px;
+      font-size: 15px;
+      padding: 10px 14px;
       cursor: pointer;
       background: linear-gradient(120deg, var(--accent), var(--accent-2));
       color: #040510;
@@ -171,7 +183,7 @@
       border-radius: 12px;
       box-shadow: 0 14px 50px rgba(110, 243, 255, 0.35);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
-      max-width: 230px;
+      max-width: 210px;
       text-align: center;
     }
     #cta:hover { transform: translateY(-1px) scale(1.01); }
@@ -201,14 +213,29 @@
     }
     .chip:hover { transform: translateY(-1px); border-color: rgba(110, 243, 255, 0.35); color: var(--accent); box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35); }
 
+    .pill.tight { padding: 8px 10px; }
+
+    .overlay.playing .bottom,
+    .overlay.playing .cta-panel {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-6px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .overlay.playing .hud {
+      max-width: 360px;
+      background: rgba(5, 6, 13, 0.28);
+    }
+
     @media (max-width: 860px) {
       .overlay {
         grid-template-columns: 1fr;
-        grid-template-rows: auto auto 1fr auto;
+        grid-template-rows: auto auto;
+        padding: 10px;
       }
       .hud { grid-column: 1; max-width: 100%; }
       .bottom { max-width: 100%; }
-      .cta-panel { grid-column: 1; align-items: flex-start; justify-self: start; }
+      .cta-panel { grid-column: 1; align-items: flex-start; justify-self: start; position: absolute; right: 12px; top: 12px; }
       #cta { grid-column: 1; justify-self: start; }
     }
     .chip strong { letter-spacing: 0.08em; }
@@ -216,10 +243,10 @@
 </head>
 <body>
   <canvas id="scene"></canvas>
-  <div class="overlay">
-    <div class="hud">
-      <div class="title pill"><span class="glow-dot"></span>NEON DRIFT ARENA</div>
-      <div class="stats pill">
+    <div class="overlay">
+      <div class="hud">
+      <div class="title pill tight"><span class="glow-dot"></span>NEON DRIFT ARENA</div>
+      <div class="stats pill tight">
         <div class="stat">Score <strong id="score">0</strong></div>
         <div class="stat">Combo <strong id="combo">x1</strong></div>
         <div class="stat">Shield <strong id="hp">100</strong></div>
@@ -238,9 +265,10 @@
           <div><span>Move</span>: WASD / Arrow Keys</div>
           <div><span>Dash</span>: Shift (short burst)</div>
           <div><span>Pulse</span>: Space / Click (area blast)</div>
+          <div><span>Well</span>: Q / E (drop gravity well that slows & drags)</div>
           <div><span>Survive</span>: Chain combos, grab power cells, avoid threats.</div>
           <div><span>Read</span>: Strikers dash, Weavers strafe, Bombers leave mines, Snipers fire beams.</div>
-          <div><span>Vibe</span>: Streamed synthwave soundtrack auto-plays when the match starts.</div>
+          <div><span>Vibe</span>: Streamed synthwave soundtrack auto-plays (tap Music to retry if blocked).</div>
         </div>
       </div>
       <div class="card" style="max-width: 320px;">
@@ -250,7 +278,8 @@
           <div>🔵 Shield cores to recover HP.</div>
           <div>🟢 Time prisms to slow down danger.</div>
           <div>🔥 Perfect dashes reset combo decay.</div>
-          <div>🌠 Overdrive bursts trigger when combos stay hot.</div>
+          <div>🌌 Gravity wells cluster foes and deflect shots.</div>
+          <div>🌠 Overdrive bursts pop sooner but with tighter blast.</div>
         </div>
       </div>
     </div>
@@ -264,6 +293,7 @@
   <script>
     const canvas = document.getElementById('scene');
     const ctx = canvas.getContext('2d');
+    const overlay = document.querySelector('.overlay');
     const scoreEl = document.getElementById('score');
     const comboEl = document.getElementById('combo');
     const hpEl = document.getElementById('hp');
@@ -283,7 +313,8 @@
     const rand = (min, max) => Math.random() * (max - min) + min;
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-    const MUSIC_URL = 'https://cdn.pixabay.com/download/audio/2023/10/11/audio_bdbfbced7a.mp3?filename=neon-lights-188626.mp3';
+    const MUSIC_URL = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+    const MUSIC_FALLBACK = './Blaze.mp3';
     const soundtrack = new Audio();
     soundtrack.loop = true;
     soundtrack.volume = 0.35;
@@ -344,7 +375,7 @@
         this.x = w / 2; this.y = h / 2; this.r = 12; this.speed = 320;
         this.vx = 0; this.vy = 0; this.hp = 100; this.combo = 1; this.comboTimer = 0;
         this.dashCD = 0; this.pulseCD = 0; this.invuln = 0; this.score = 0; this.wave = 1;
-        this.overdrive = 0;
+        this.overdrive = 0; this.wellCD = 0;
         this.trail = new Trail(this, 'rgba(110,243,255,0.9)');
       }
       update(dt) {
@@ -362,13 +393,14 @@
         this.x = clamp(this.x + this.vx * dt, 0, w); this.y = clamp(this.y + this.vy * dt, 0, h);
         this.dashCD = Math.max(0, this.dashCD - dt);
         this.pulseCD = Math.max(0, this.pulseCD - dt);
+        this.wellCD = Math.max(0, this.wellCD - dt);
         this.invuln = Math.max(0, this.invuln - dt);
         this.comboTimer = Math.max(0, this.comboTimer - dt);
-        if (this.combo > 2.4) this.overdrive = clamp(this.overdrive + dt * (this.combo * 0.12), 0, 1);
-        else this.overdrive = clamp(this.overdrive - dt * 0.35, 0, 1);
+        if (this.combo > 2.8) this.overdrive = clamp(this.overdrive + dt * (this.combo * 0.08), 0, 1);
+        else this.overdrive = clamp(this.overdrive - dt * 0.5, 0, 1);
         if (this.overdrive >= 1) {
-          pulses.push({ x: this.x, y: this.y, r: 12, max: 180, speed: 420, empowered: true });
-          addParticles(this.x, this.y, 30, '#9cfff7', 5);
+          pulses.push({ x: this.x, y: this.y, r: 10, max: 130, speed: 320, empowered: true });
+          addParticles(this.x, this.y, 26, '#9cfff7', 5);
           this.overdrive = 0;
           this.comboTimer = 2.8;
         }
@@ -408,6 +440,14 @@
         addParticles(this.x, this.y, 28, '#ff7bff', 5);
         return true;
       }
+      dropWell() {
+        if (this.wellCD > 0) return false;
+        wells.push(new GravityWell(this.x, this.y));
+        this.wellCD = 6;
+        this.comboTimer = 2.3;
+        addParticles(this.x, this.y, 18, '#6ef3ff', 4);
+        return true;
+      }
     }
 
     class Enemy {
@@ -435,12 +475,14 @@
         this.time = 0;
         this.cooldown = rand(1, 2.4);
         this.strength = 10 + this.hp * 2;
+        this.slow = 1;
       }
       update(dt) {
         this.time += dt;
         const dx = player.x - this.x; const dy = player.y - this.y;
         const len = Math.hypot(dx, dy) || 1;
-        const base = this.speed + player.wave * 7;
+        const base = (this.speed + player.wave * 7) * this.slow;
+        this.slow = 1;
 
         if (this.type === 'chaser') {
           this.x += (dx / len) * base * dt; this.y += (dy / len) * base * dt;
@@ -547,6 +589,28 @@
       get done() { return this.exploding && this.timer <= 0; }
     }
 
+    class GravityWell {
+      constructor(x, y) {
+        this.x = x; this.y = y; this.r = 26; this.max = 150; this.life = 4; this.pull = 140;
+      }
+      update(dt) {
+        this.life -= dt;
+        this.r = Math.min(this.max, this.r + dt * 60);
+      }
+      draw() {
+        ctx.save();
+        const alpha = Math.max(0, this.life / 4);
+        ctx.strokeStyle = `rgba(110,243,255,${0.5 * alpha})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([6, 10]);
+        ctx.strokeStyle = `rgba(255,123,255,${0.35 * alpha})`;
+        ctx.beginPath(); ctx.arc(this.x, this.y, this.r * 0.55, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      }
+      get dead() { return this.life <= 0; }
+    }
+
     class Powerup {
       constructor(kind) {
         this.kind = kind;
@@ -573,6 +637,7 @@
     const projectiles = [];
     const hazards = [];
     const powerups = [];
+    const wells = [];
 
     let spawnTimer = 0;
     let waveTimer = 0;
@@ -599,6 +664,9 @@
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
         if (running && player.dash()) addParticles(player.x, player.y, 12, '#6ef3ff', 4);
       }
+      if ((e.code === 'KeyQ' || e.code === 'KeyE') && running) {
+        player.dropWell();
+      }
       if (e.code === 'Enter' && !running) start();
     });
     addEventListener('keyup', (e) => keys.delete(e.code));
@@ -611,23 +679,29 @@
       if (musicLoaded || musicLoading) return;
       musicLoading = true;
       musicStatus.textContent = 'Loading…';
-      try {
-        const res = await fetch(MUSIC_URL, { mode: 'cors' });
-        if (!res.ok) throw new Error(`music fetch failed: ${res.status}`);
-        const blob = await res.blob();
-        soundtrack.src = URL.createObjectURL(blob);
-        musicLoaded = true;
-        await soundtrack.play().then(() => {
-          musicStatus.textContent = 'On';
-        }).catch(() => {
-          musicStatus.textContent = 'Ready';
-        });
-      } catch (err) {
-        console.error('music fetch failed', err);
-        musicStatus.textContent = 'Offline';
-      } finally {
-        musicLoading = false;
+      const sources = [
+        { url: MUSIC_URL, label: 'Live' },
+        { url: MUSIC_FALLBACK, label: 'Local' },
+      ];
+      for (const src of sources) {
+        try {
+          const res = await fetch(src.url, { mode: 'cors' });
+          if (!res.ok) throw new Error(`music fetch failed: ${res.status}`);
+          const blob = await res.blob();
+          soundtrack.src = URL.createObjectURL(blob);
+          musicLoaded = true;
+          await soundtrack.play().then(() => {
+            musicStatus.textContent = src.label;
+          }).catch(() => {
+            musicStatus.textContent = 'Ready';
+          });
+          break;
+        } catch (err) {
+          console.error('music fetch failed', err);
+        }
       }
+      if (!musicLoaded) musicStatus.textContent = 'Offline';
+      musicLoading = false;
     }
 
     musicToggle.addEventListener('click', async () => {
@@ -644,12 +718,19 @@
 
     cta.addEventListener('click', start);
 
+    function stopRun() {
+      running = false;
+      overlay.classList.remove('playing');
+    }
+
     function start() {
       running = true;
+      overlay.classList.add('playing');
       player.hp = 100; player.combo = 1; player.comboTimer = 0; player.score = 0; player.wave = 1; player.overdrive = 0;
-      enemies.length = 0; particles.length = 0; pulses.length = 0; powerups.length = 0; projectiles.length = 0; hazards.length = 0;
+      enemies.length = 0; particles.length = 0; pulses.length = 0; powerups.length = 0; projectiles.length = 0; hazards.length = 0; wells.length = 0;
       spawnTimer = 0; waveTimer = 0; last = performance.now();
       pointer.x = w / 2; pointer.y = h / 2;
+      waveEl.textContent = player.wave; scoreEl.textContent = 0; comboEl.textContent = 'x1'; hpEl.textContent = player.hp;
       ensureMusic();
     }
 
@@ -683,6 +764,7 @@
       spawnEnemies(dt);
       spawnPowerups(dt);
 
+      wells.forEach((g) => g.update(dt));
       enemies.forEach((e) => e.update(dt));
       projectiles.forEach((p) => p.update(dt));
       hazards.forEach((h) => h.update(dt));
@@ -691,6 +773,30 @@
 
       // Pulses expand
       for (const p of pulses) { p.r += p.speed * dt; }
+
+      // Gravity wells pull and slow threats
+      for (const g of wells) {
+        for (const enemy of enemies) {
+          const dx = enemy.x - g.x; const dy = enemy.y - g.y;
+          const dist = Math.hypot(dx, dy) || 1;
+          if (dist < g.r) {
+            const falloff = 1 - dist / g.r;
+            enemy.slow = Math.min(enemy.slow, 0.65 + dist / (g.r * 2));
+            enemy.x -= (dx / dist) * g.pull * falloff * dt;
+            enemy.y -= (dy / dist) * g.pull * falloff * dt;
+          }
+        }
+        for (const b of projectiles) {
+          const dx = b.x - g.x; const dy = b.y - g.y;
+          const dist = Math.hypot(dx, dy) || 1;
+          if (dist < g.r) {
+            const falloff = 1 - dist / g.r;
+            b.dx *= 0.99; b.dy *= 0.99;
+            b.x -= (dx / dist) * 60 * falloff * dt;
+            b.y -= (dy / dist) * 60 * falloff * dt;
+          }
+        }
+      }
 
       // Collisions
       enemies.forEach((enemy, i) => {
@@ -701,16 +807,16 @@
             player.hp -= 12;
             player.invuln = 0.4;
             addParticles(player.x, player.y, 18, '#ff3b6a');
-            if (player.hp <= 0) { running = false; } else player.combo = Math.max(1, player.combo * 0.5);
+            if (player.hp <= 0) { stopRun(); } else player.combo = Math.max(1, player.combo * 0.5);
           }
         }
         // Pulse hit
         for (const pulse of pulses) {
           if (pulse.r < pulse.max && Math.hypot(enemy.x - pulse.x, enemy.y - pulse.y) < pulse.r + enemy.r) {
-            enemy.hp -= pulse.empowered ? 3 : 2;
+            enemy.hp -= pulse.empowered ? 2.2 : 1.8;
             addParticles(enemy.x, enemy.y, 10, enemy.color, 2);
-            player.combo += pulse.empowered ? 0.09 : 0.05;
-            player.comboTimer = 2.4;
+            player.combo += pulse.empowered ? 0.07 : 0.05;
+            player.comboTimer = 2.2;
           }
         }
         // Orbiting trail damage (skill reward)
@@ -741,6 +847,7 @@
             player.hp -= 10;
             player.invuln = 0.4;
             addParticles(player.x, player.y, 12, '#c9afff', 3);
+            if (player.hp <= 0) stopRun();
           }
           projectiles.splice(i, 1);
           continue;
@@ -765,6 +872,7 @@
             player.invuln = 0.5;
             addParticles(player.x, player.y, 16, '#ffa4b2', 3);
             player.combo = Math.max(1, player.combo * 0.8);
+            if (player.hp <= 0) stopRun();
           }
         } else if (!hz.exploding && d < hz.r + player.r) {
           hz.timer = 0; // force explode if you bump it early
@@ -781,6 +889,8 @@
 
       // Pulse cleanup
       for (let i = pulses.length - 1; i >= 0; i--) if (pulses[i].r > pulses[i].max) pulses.splice(i, 1);
+      // Gravity well cleanup
+      for (let i = wells.length - 1; i >= 0; i--) if (wells[i].dead) wells.splice(i, 1);
       // Particle cleanup
       for (let i = particles.length - 1; i >= 0; i--) if (particles[i].dead) particles.splice(i, 1);
       // Powerup cleanup
@@ -865,6 +975,7 @@
         ctx.restore();
       });
 
+      wells.forEach((g) => g.draw());
       powerups.forEach((p) => p.draw());
       hazards.forEach((h) => h.draw());
       projectiles.forEach((p) => p.draw());
