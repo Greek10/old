@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -7,24 +8,27 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0d1117;
-  --card:#161b22;
-  --accent:#2d89ef;
-  --accent2:#7a6ff2;
+  --bg:#0c1024;
+  --card:#131a32;
+  --accent:#67d5ff;
+  --accent2:#ff7ad1;
+  --glow:0 20px 60px rgba(103,213,255,.18);
 }
 *{box-sizing:border-box}
 body{
   margin:0;
   font-family:Inter,system-ui,sans-serif;
-  background:linear-gradient(145deg,rgba(22,27,34,0.94),rgba(13,17,23,0.94));
-  color:#e6edf3;
-  padding:24px 16px 36px;
+  background:radial-gradient(160% 120% at 10% 20%,rgba(255,122,209,.08),transparent 50%),
+             radial-gradient(140% 90% at 80% 0%,rgba(103,213,255,.12),transparent 45%),
+             linear-gradient(145deg,#0c0f25,#111939);
+  color:#e9f2ff;
+  padding:28px 16px 48px;
 }
 h1{
   text-align:center;
-  letter-spacing:0.8px;
-  font-weight:700;
-  margin:6px 0 18px;
+  letter-spacing:1px;
+  font-weight:800;
+  margin:10px 0 22px;
 }
 nav{
   display:flex;
@@ -35,21 +39,21 @@ nav{
 }
 button{
   border-radius:10px;
-  border:1px solid rgba(45,137,239,.4);
-  background:#0f1722;
-  color:#e6edf3;
-  padding:9px 14px;
+  border:1px solid rgba(103,213,255,.5);
+  background:linear-gradient(135deg,rgba(103,213,255,.14),rgba(255,122,209,.18));
+  color:#f6fbff;
+  padding:10px 15px;
   cursor:pointer;
   font-weight:600;
   font-size:13px;
 }
 button:hover,button.active{
-  background:linear-gradient(135deg,rgba(45,137,239,.22),rgba(122,111,242,.35));
-  box-shadow:0 0 16px rgba(45,137,239,.35);
+  background:linear-gradient(135deg,rgba(103,213,255,.26),rgba(255,122,209,.3));
+  box-shadow:0 0 20px rgba(103,213,255,.35);
 }
 input,textarea,select{
-  background:#0f1722;
-  border:1px solid rgba(45,137,239,.35);
+  background:#0e1530;
+  border:1px solid rgba(103,213,255,.45);
   color:#e6edf3;
   border-radius:10px;
   padding:8px 10px;
@@ -64,11 +68,11 @@ textarea{width:100%;min-height:120px;resize:vertical}
 .controls input,.controls select{flex:1;min-width:160px}
 .section{
   display:none;
-  background:rgba(0,0,0,.25);
+  background:rgba(12,16,36,.5);
   border-radius:14px;
   padding:14px;
   border:1px solid rgba(230,237,243,.08);
-  box-shadow:0 18px 38px rgba(0,0,0,.45);
+  box-shadow:var(--glow);
 }
 .section.active{display:block}
 .grid{
@@ -82,7 +86,7 @@ textarea{width:100%;min-height:120px;resize:vertical}
   border-radius:12px;
   padding:12px;
   border:1px solid rgba(230,237,243,.06);
-  box-shadow:0 0 18px rgba(0,0,0,.6);
+  box-shadow:var(--glow);
 }
 .tag{
   display:inline-block;
@@ -184,6 +188,9 @@ th,td{
 }
 .outfit-card img{width:100%;border-radius:8px;display:block}
 .small{font-size:12px;opacity:.85}
+.profile-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.avatar-wrap{width:140px;height:140px;border-radius:16px;overflow:hidden;background:#0e1530;border:1px solid rgba(103,213,255,.35);display:flex;align-items:center;justify-content:center}
+.avatar-wrap img{width:100%;height:100%;object-fit:cover;display:block}
 </style>
 </head>
 <body>
@@ -392,6 +399,28 @@ async function renderProfile(username){
 
     rbxResults.innerHTML = '';
 
+    const profileCard = document.createElement('div');
+    profileCard.className='card';
+    profileCard.innerHTML = `
+      <h3>Profile</h3>
+      <div class="profile-head">
+        <div class="avatar-wrap" id="avatarSlot"><span class="small">Avatar preview ready</span></div>
+        <div>
+          <span class="tag">ID: ${id}</span><br>
+          <b>${profile.displayName}</b><br>@${profile.name}<br>
+          Created: ${profile.created? new Date(profile.created).toLocaleDateString(): 'Unknown'}<br>
+          Description: <span class="small">${profile.description || '(none)'}</span>
+        </div>
+      </div>
+    `;
+
+    const avatarBtn = document.createElement('button');
+    avatarBtn.textContent = 'Show Avatar';
+    avatarBtn.style.marginTop = '10px';
+    avatarBtn.onclick = ()=>loadAvatar(id, profile.name);
+    profileCard.appendChild(avatarBtn);
+    rbxResults.appendChild(profileCard);
+
     function makeCard(title,body,list,onClickName){
       const c = document.createElement('div');
       c.className='card';
@@ -405,12 +434,6 @@ async function renderProfile(username){
       rbxResults.appendChild(c);
     }
 
-    makeCard('Profile',`
-      <span class="tag">ID: ${id}</span><br>
-      <b>${profile.displayName}</b><br>@${profile.name}<br>
-      Created: ${profile.created? new Date(profile.created).toLocaleDateString(): 'Unknown'}<br>
-      Description: <span class="small">${profile.description || '(none)'}</span>
-    `);
     makeCard('Friends',friendsList.slice(0,6).join(', ')||'None',friendsList,name=>renderProfile(name));
     makeCard('Groups',groupsList.slice(0,5).join('<br>')||'None',groupsList,null);
     if(badgeList.length) makeCard('Badges',badgeList.slice(0,5).join(', '),badgeList,null);
@@ -419,6 +442,22 @@ async function renderProfile(username){
     rbxResults.innerHTML = `<div class="card"><h3>Error</h3><p>${err.message}</p></div>`;
   }
   setLoading(false);
+}
+
+async function loadAvatar(id, username){
+  const slot = document.getElementById('avatarSlot');
+  if(!slot) return;
+  slot.textContent = 'Loading avatar...';
+  try{
+    const data = await tryMulti([
+      `https://thumbnails.roproxy.com/v1/users/avatar?userIds=${id}&size=420x420&format=Png&isCircular=false`,
+      proxyWrap(`https://thumbnails.roblox.com/v1/users/avatar?userIds=${id}&size=420x420&format=Png&isCircular=false`)
+    ]);
+    const url = data?.data?.[0]?.imageUrl;
+    slot.innerHTML = url ? `<img src="${url}" alt="Avatar for ${username}">` : '<span class="small">No avatar preview available.</span>';
+  }catch(err){
+    slot.innerHTML = `<span class="small">Avatar preview failed: ${err.message}</span>`;
+  }
 }
 
 // ---------- badge leaderboard ----------
