@@ -431,16 +431,14 @@ async function renderProfile(username){
 
     const badgeArea = document.getElementById('badgeSummaryArea');
     badgeArea.innerHTML = '';
-    const fullBadges = await fetchAllBadges(id);
-    if(!fullBadges.length){
-      const emptyCard = document.createElement('div');
-      emptyCard.className='card';
-      emptyCard.innerHTML='<h3>Badge Details</h3><p class="small">No public badges available for this user.</p>';
-      badgeArea.appendChild(emptyCard);
-    }else{
-      renderBadgeGraph(badgeArea, fullBadges, profile.displayName || username);
-      renderBadgeAwards(badgeArea, fullBadges, profile.displayName || username);
-    }
+    const prompt = document.createElement('div');
+    prompt.className='card';
+    prompt.innerHTML = '<h3>Badge Award Dates</h3><p class="small">Load this user\'s badges to see the most recent award dates without plotting a graph.</p>';
+    const badgeBtn = document.createElement('button');
+    badgeBtn.textContent = 'Load Badge Award Dates';
+    badgeBtn.onclick = ()=>loadBadgeAwards(id, profile.displayName || username);
+    prompt.appendChild(badgeBtn);
+    badgeArea.appendChild(prompt);
 
   }catch(err){
     rbxResults.innerHTML = `<div class="card"><h3>Error</h3><p>${err.message}</p></div>`;
@@ -511,93 +509,27 @@ function renderBadgeAwards(target, badges, username){
   target.appendChild(card);
 }
 
-function renderBadgeGraph(target, badges, username){
-  const card = document.createElement('div');
-  card.className='card';
-  card.innerHTML = `<h3>${username}'s Badge Timeline</h3>`;
-  const canvas = document.createElement('canvas');
-  canvas.id = 'badgeCanvas';
-  canvas.width = 900;
-  canvas.height = 420;
-  canvas.style.width='100%';
-  canvas.style.maxWidth='960px';
-  canvas.style.background='#0b1124';
-  canvas.style.borderRadius='12px';
-  canvas.style.border='1px solid var(--border)';
-  const dated = badges
-    .filter(b=>b.awardedDate)
-    .map(b=>({name:b.name, date:new Date(b.awardedDate)}))
-    .sort((a,b)=>a.date-b.date);
-  if(!dated.length){
-    card.innerHTML += '<p class="small">No award dates to plot.</p>';
-    target.appendChild(card);
-    return;
+async function loadBadgeAwards(userId, username){
+  const target = document.getElementById('badgeSummaryArea');
+  if(!target) return;
+  target.innerHTML = '<div class="card"><h3>Badge Award Dates</h3><p class="small">Fetching badge awards...</p></div>';
+  setLoading(true);
+  try{
+    const fullBadges = await fetchAllBadges(userId);
+    target.innerHTML = '';
+    if(!fullBadges.length){
+      const emptyCard = document.createElement('div');
+      emptyCard.className='card';
+      emptyCard.innerHTML = `<h3>Badge Award Dates</h3><p class="small">No public badges available for ${username}.</p>`;
+      target.appendChild(emptyCard);
+      setLoading(false);
+      return;
+    }
+    renderBadgeAwards(target, fullBadges, username);
+  }catch(err){
+    target.innerHTML = `<div class="card"><h3>Badge Award Dates</h3><p class="small">Failed to load badge awards: ${err.message}</p></div>`;
   }
-  const points = dated.map((b,i)=>({x:b.date,y:i+1}));
-  drawBadgeGraph(canvas.getContext('2d'), points, username);
-  const meta = document.createElement('p');
-  meta.className='small';
-  meta.textContent = `${dated.length} badges from ${dated[0].date.toLocaleDateString()} to ${dated[dated.length-1].date.toLocaleDateString()}.`;
-  card.appendChild(canvas);
-  card.appendChild(meta);
-  target.appendChild(card);
-}
-
-function drawBadgeGraph(ctx, points, username){
-  const w = ctx.canvas.width;
-  const h = ctx.canvas.height;
-  ctx.clearRect(0,0,w,h);
-  const pad = 46;
-  const maxY = points[points.length-1].y;
-  const minX = points[0].x.getTime();
-  const maxX = points[points.length-1].x.getTime();
-  const spread = Math.max(maxX - minX, 1);
-
-  // background
-  const grad = ctx.createLinearGradient(0,0,w,h);
-  grad.addColorStop(0,'rgba(62,166,255,0.12)');
-  grad.addColorStop(1,'rgba(255,255,255,0.04)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0,0,w,h);
-
-  // axes
-  ctx.strokeStyle = 'rgba(154,166,181,0.9)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(pad,h-pad);
-  ctx.lineTo(w-pad,h-pad);
-  ctx.moveTo(pad,h-pad);
-  ctx.lineTo(pad,pad);
-  ctx.stroke();
-
-  // labels
-  ctx.fillStyle = '#e6ecf3';
-  ctx.font = '12px Inter, sans-serif';
-  ctx.fillText('Badges', pad-10, pad-12);
-  ctx.fillText('Time', w-pad-20, h-pad+26);
-  ctx.font = '14px Inter, sans-serif';
-  ctx.fillText(`${username} badge journey`, pad, pad-20);
-
-  ctx.strokeStyle = 'rgba(62,166,255,0.95)';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  points.forEach((p,i)=>{
-    const x = pad + ((p.x.getTime()-minX)/spread) * (w - pad*2);
-    const y = h - pad - (p.y/maxY) * (h - pad*2);
-    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-  });
-  ctx.stroke();
-
-  ctx.fillStyle = '#0f1424';
-  ctx.strokeStyle = '#8ac6ff';
-  points.forEach(p=>{
-    const x = pad + ((p.x.getTime()-minX)/spread) * (w - pad*2);
-    const y = h - pad - (p.y/maxY) * (h - pad*2);
-    ctx.beginPath();
-    ctx.arc(x,y,4,0,Math.PI*2);
-    ctx.fill();
-    ctx.stroke();
-  });
+  setLoading(false);
 }
 
 // ---------- game info (universe id) ----------
