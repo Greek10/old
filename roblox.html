@@ -4,30 +4,33 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Roblox Information Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0c1024;
-  --card:#131a32;
-  --accent:#67d5ff;
-  --accent2:#ff7ad1;
-  --glow:0 20px 60px rgba(103,213,255,.18);
+  --bg:#0c0f1a;
+  --card:#11162b;
+  --accent:#ffb347;
+  --accent2:#7cf2ff;
+  --glow:0 16px 50px rgba(255,179,71,.25);
 }
 *{box-sizing:border-box}
 body{
   margin:0;
-  font-family:Inter,system-ui,sans-serif;
-  background:radial-gradient(160% 120% at 10% 20%,rgba(255,122,209,.08),transparent 50%),
-             radial-gradient(140% 90% at 80% 0%,rgba(103,213,255,.12),transparent 45%),
-             linear-gradient(145deg,#0c0f25,#111939);
-  color:#e9f2ff;
-  padding:28px 16px 48px;
+  font-family:"Fredoka", "Inter", system-ui, sans-serif;
+  background:radial-gradient(circle at 10% 10%, rgba(255,179,71,.22), transparent 30%),
+             radial-gradient(circle at 90% 0%, rgba(124,242,255,.18), transparent 32%),
+             radial-gradient(circle at 25% 80%, rgba(255,114,182,.18), transparent 35%),
+             #0b0f1f;
+  color:#f7fbff;
+  padding:26px 14px 48px;
 }
 h1{
   text-align:center;
   letter-spacing:1px;
   font-weight:800;
-  margin:10px 0 22px;
+  margin:10px 0 18px;
+  color:#ffe6b5;
+  text-shadow:0 4px 0 rgba(0,0,0,.35);
 }
 nav{
   display:flex;
@@ -37,23 +40,25 @@ nav{
   margin-bottom:18px;
 }
 button{
-  border-radius:10px;
-  border:1px solid rgba(103,213,255,.5);
-  background:linear-gradient(135deg,rgba(103,213,255,.14),rgba(255,122,209,.18));
-  color:#f6fbff;
-  padding:10px 15px;
+  border-radius:12px;
+  border:2px dashed rgba(255,179,71,.6);
+  background:linear-gradient(135deg,rgba(255,179,71,.2),rgba(124,242,255,.18));
+  color:#0f1424;
+  padding:10px 16px;
   cursor:pointer;
-  font-weight:600;
+  font-weight:700;
   font-size:13px;
+  box-shadow:0 8px 0 rgba(0,0,0,.25);
 }
 button:hover,button.active{
-  background:linear-gradient(135deg,rgba(103,213,255,.26),rgba(255,122,209,.3));
-  box-shadow:0 0 20px rgba(103,213,255,.35);
+  background:linear-gradient(135deg,rgba(255,179,71,.32),rgba(124,242,255,.28));
+  transform:translateY(-1px);
+  box-shadow:0 10px 0 rgba(0,0,0,.2);
 }
 input,textarea,select{
-  background:#0e1530;
-  border:1px solid rgba(103,213,255,.45);
-  color:#e6edf3;
+  background:#0c1227;
+  border:1px solid rgba(255,179,71,.5);
+  color:#ffe6c9;
   border-radius:10px;
   padding:8px 10px;
 }
@@ -67,10 +72,10 @@ textarea{width:100%;min-height:120px;resize:vertical}
 .controls input,.controls select{flex:1;min-width:160px}
 .section{
   display:none;
-  background:rgba(12,16,36,.5);
-  border-radius:14px;
+  background:rgba(15,19,40,.72);
+  border-radius:16px;
   padding:14px;
-  border:1px solid rgba(230,237,243,.08);
+  border:2px solid rgba(255,179,71,.22);
   box-shadow:var(--glow);
 }
 .section.active{display:block}
@@ -82,9 +87,9 @@ textarea{width:100%;min-height:120px;resize:vertical}
 }
 .card{
   background:var(--card);
-  border-radius:12px;
+  border-radius:14px;
   padding:12px;
-  border:1px solid rgba(230,237,243,.06);
+  border:1px solid rgba(255,179,71,.28);
   box-shadow:var(--glow);
 }
 .tag{
@@ -92,8 +97,8 @@ textarea{width:100%;min-height:120px;resize:vertical}
   padding:2px 10px;
   border-radius:999px;
   font-size:11px;
-  border:1px solid rgba(45,137,239,.45);
-  color:#b7d6ff;
+  border:1px solid rgba(255,179,71,.55);
+  color:#ffd7a0;
   margin-bottom:4px;
 }
 #suggestionsList{
@@ -181,7 +186,7 @@ th,td{
   background:#050814;
   border-radius:10px;
   padding:6px;
-  border:1px solid rgba(0,255,255,.3);
+  border:1px solid rgba(255,179,71,.5);
   text-align:center;
   font-size:12px;
 }
@@ -197,7 +202,7 @@ th,td{
 
 <nav>
   <button data-section="profile" class="active">Profile</button>
-  <button data-section="badgeboard">Badge Leaderboard</button>
+  <button data-section="badgeboard">Badge Graph</button>
   <button data-section="gameinfo">Game Info</button>
   <button data-section="avatar">Avatar Evolution</button>
 </nav>
@@ -213,18 +218,16 @@ th,td{
   <div id="rbxResults" class="grid"></div>
 </section>
 
-<!-- BADGE LEADERBOARD -->
+<!-- BADGE GRAPH -->
 <section id="badgeboard" class="section">
-  <h2>Badge Leaderboard (Custom List)</h2>
-  <p class="small">Enter a badge ID and a list of usernames. This checks who owns the badge and sorts them by award date (fastest at top).</p>
+  <h2>Badge Timeline Graph</h2>
+  <p class="small">Enter a Roblox username and we will plot every badge they own in the order it was awarded.</p>
   <div class="controls">
-    <input id="lbBadgeId" placeholder="Badge ID">
+    <input id="bgUser" placeholder="Roblox username">
+    <button id="bgLoad">Graph Badges</button>
   </div>
-  <div class="controls">
-    <textarea id="lbUsernames" placeholder="One username per line"></textarea>
-  </div>
-  <button id="lbScan">Scan List</button>
   <div id="lbResult" style="margin-top:12px"></div>
+  <canvas id="badgeCanvas" width="900" height="420" style="width:100%;max-width:960px;background:#0b1124;border-radius:12px;border:1px dashed rgba(255,179,71,.35);display:none"></canvas>
 </section>
 
 <!-- GAME INFO -->
@@ -459,38 +462,126 @@ async function loadAvatar(id, username){
   }
 }
 
-// ---------- badge leaderboard ----------
-document.getElementById('lbScan').onclick = async()=>{
-  const badgeId = Number(document.getElementById('lbBadgeId').value.trim());
-  const raw = document.getElementById('lbUsernames').value.split(/\r?\n/).map(v=>v.trim()).filter(Boolean);
+// ---------- badge graph ----------
+document.getElementById('bgLoad').onclick = ()=>graphBadges();
+
+async function graphBadges(){
+  const username = document.getElementById('bgUser').value.trim();
   const box = document.getElementById('lbResult');
-  if(!badgeId || !raw.length){box.innerHTML='<div class="card">Enter badge ID and at least one username.</div>';return;}
-  box.innerHTML='<div class="card">Scanning list...</div>';
+  const canvas = document.getElementById('badgeCanvas');
+  const ctx = canvas.getContext('2d');
+  canvas.style.display='none';
+  if(!username){box.innerHTML='<div class="card">Enter a username to graph their badges.</div>';return;}
+  box.innerHTML='<div class="card">Loading badges...</div>';
   setLoading(true);
-  const results = [];
-  for(const name of raw){
-    try{
-      const u = await lookupUser(name);
-      const id = u.id;
-      const data = await tryMulti([
-        `https://badges.roproxy.com/v1/users/${id}/badges/awarded-dates?badgeIds=${badgeId}`,
-        `https://badges.rprxy.xyz/v1/users/${id}/badges/awarded-dates?badgeIds=${badgeId}`,
-        proxyWrap(`https://badges.roblox.com/v1/users/${id}/badges/awarded-dates?badgeIds=${badgeId}`)
-      ]);
-      const entry = data?.data?.find(x=>String(x.badgeId)===String(badgeId));
-      if(entry) results.push({name, id, date:new Date(entry.awardedDate)});
-    }catch{}
+  try{
+    const user = await lookupUser(username);
+    const id = user.id;
+    let cursor = null;
+    const badges = [];
+    let safety = 0;
+    while(safety < 12){
+      const urlBase = cursor ?
+        [`https://badges.roproxy.com/v1/users/${id}/badges?limit=100&cursor=${cursor}`,
+         proxyWrap(`https://badges.roblox.com/v1/users/${id}/badges?limit=100&cursor=${cursor}`)]:
+        [`https://badges.roproxy.com/v1/users/${id}/badges?limit=100&sortOrder=Desc`,
+         proxyWrap(`https://badges.roblox.com/v1/users/${id}/badges?limit=100&sortOrder=Desc`)];
+      const data = await tryMulti(urlBase);
+      if(!data?.data?.length) break;
+      badges.push(...data.data);
+      cursor = data.nextPageCursor;
+      if(!cursor) break;
+      safety++;
+    }
+
+    if(!badges.length){
+      box.innerHTML = `<div class="card"><h3>No badges found</h3><p>${username} does not have public badges.</p></div>`;
+      setLoading(false);
+      return;
+    }
+
+    const dated = badges
+      .filter(b=>b.awardedDate)
+      .map(b=>({
+        name:b.name,
+        date:new Date(b.awardedDate)
+      }))
+      .sort((a,b)=>a.date-b.date);
+
+    if(!dated.length){
+      box.innerHTML = `<div class="card"><h3>No award dates</h3><p>Badges for ${username} did not return award dates to plot.</p></div>`;
+      setLoading(false);
+      return;
+    }
+
+    const points = dated.map((b,i)=>({x:b.date, y:i+1}));
+    drawBadgeGraph(ctx, points, username);
+    canvas.style.display='block';
+    const first = dated[0].date.toLocaleDateString();
+    const last = dated[dated.length-1].date.toLocaleDateString();
+    box.innerHTML = `<div class="card"><h3>${username}'s Badge Timeline</h3><p class="small">${dated.length} badges from ${first} to ${last}</p></div>`;
+  }catch(err){
+    box.innerHTML = `<div class="card"><h3>Error</h3><p>${err.message}</p></div>`;
   }
   setLoading(false);
-  if(!results.length){box.innerHTML='<div class="card">None of these users own that badge.</div>';return;}
-  results.sort((a,b)=>a.date-b.date);
-  let html = `<div class="card"><h3>Owners (${results.length})</h3><table><tr><th>#</th><th>User</th><th>UserId</th><th>Awarded</th></tr>`;
-  results.forEach((r,i)=>{
-    html += `<tr><td>${i+1}</td><td>${r.name}</td><td>${r.id}</td><td>${r.date.toLocaleString()}</td></tr>`;
+}
+
+function drawBadgeGraph(ctx, points, username){
+  const w = ctx.canvas.width;
+  const h = ctx.canvas.height;
+  ctx.clearRect(0,0,w,h);
+  const pad = 46;
+  const maxY = points[points.length-1].y;
+  const minX = points[0].x.getTime();
+  const maxX = points[points.length-1].x.getTime();
+  const spread = Math.max(maxX - minX, 1);
+
+  // background doodle
+  const grad = ctx.createLinearGradient(0,0,w,h);
+  grad.addColorStop(0,'rgba(255,179,71,0.18)');
+  grad.addColorStop(1,'rgba(124,242,255,0.18)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,w,h);
+
+  // axes
+  ctx.strokeStyle = 'rgba(255,230,181,0.8)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(pad,h-pad);
+  ctx.lineTo(w-pad,h-pad);
+  ctx.moveTo(pad,h-pad);
+  ctx.lineTo(pad,pad);
+  ctx.stroke();
+
+  // labels
+  ctx.fillStyle = '#ffe6b5';
+  ctx.font = '12px Inter, sans-serif';
+  ctx.fillText('Badges', pad-10, pad-12);
+  ctx.fillText('Time', w-pad-20, h-pad+26);
+  ctx.font = '14px Fredoka, sans-serif';
+  ctx.fillText(`${username} badge journey`, pad, pad-20);
+
+  ctx.strokeStyle = 'rgba(255,179,71,0.9)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  points.forEach((p,i)=>{
+    const x = pad + ((p.x.getTime()-minX)/spread) * (w - pad*2);
+    const y = h - pad - (p.y/maxY) * (h - pad*2);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
   });
-  html+='</table></div>';
-  box.innerHTML=html;
-};
+  ctx.stroke();
+
+  ctx.fillStyle = '#0f1424';
+  ctx.strokeStyle = '#7cf2ff';
+  points.forEach(p=>{
+    const x = pad + ((p.x.getTime()-minX)/spread) * (w - pad*2);
+    const y = h - pad - (p.y/maxY) * (h - pad*2);
+    ctx.beginPath();
+    ctx.arc(x,y,4,0,Math.PI*2);
+    ctx.fill();
+    ctx.stroke();
+  });
+}
 
 // ---------- game info (universe id) ----------
 document.getElementById('giLoad').onclick = ()=>loadGameInfo();
