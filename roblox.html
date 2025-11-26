@@ -8,147 +8,94 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0d1117;
-  --panel:#0f1623;
-  --surface:#121b2b;
-  --border:#1f2a3d;
-  --muted:#96a3b8;
-  --text:#e8eef6;
-  --accent:#6dd0ff;
-  --accent-2:#9cf0c9;
-  --shadow:0 18px 48px rgba(0,0,0,.35);
+  --bg:#0c0f14;
+  --panel:#0f141d;
+  --surface:#111827;
+  --border:#1e2633;
+  --muted:#9aa4b5;
+  --text:#e6ecf4;
+  --accent:#66b8ff;
+  --shadow:0 14px 36px rgba(0,0,0,.28);
 }
 *{box-sizing:border-box}
 body{
   margin:0;
   font-family:"Inter", system-ui, -apple-system, sans-serif;
-  background:radial-gradient(circle at 20% 20%, rgba(109,208,255,.12), transparent 32%),
-             radial-gradient(circle at 80% 30%, rgba(156,240,201,.12), transparent 32%),
-             linear-gradient(180deg,#0b0f16 0%,#0d1117 55%,#0a0e15 100%);
+  background:var(--bg);
   color:var(--text);
   min-height:100vh;
 }
-h1{margin:0;font-size:28px;letter-spacing:0.3px}
-h2{margin:0 0 6px;font-size:18px}
-h3{margin:0 0 6px;font-size:16px}
+h1{margin:0;font-size:26px;letter-spacing:0.2px}
+h2{margin:0 0 4px;font-size:18px}
+h3{margin:0 0 4px;font-size:15px}
 p{margin:6px 0 10px}
 button{
-  border-radius:12px;
+  border-radius:10px;
   border:1px solid var(--border);
-  background:linear-gradient(180deg,#1b2434 0%,#131a28 100%);
+  background:#131a26;
   color:var(--text);
-  padding:10px 14px;
+  padding:10px 12px;
   font-weight:700;
   cursor:pointer;
-  transition:all .12s ease;
+  transition:all .1s ease;
 }
-button:hover,button.active{
-  border-color:var(--accent);
-  box-shadow:0 10px 24px rgba(109,208,255,.18);
-}
+button:hover,button.active{border-color:var(--accent);color:var(--accent)}
 input,textarea,select{
   width:100%;
   background:var(--surface);
   border:1px solid var(--border);
   color:var(--text);
-  border-radius:12px;
+  border-radius:10px;
   padding:12px 12px;
 }
 textarea{min-height:120px;resize:vertical}
-.page{
-  max-width:1200px;
-  margin:0 auto;
-  padding:28px 16px 48px;
-}
+.page{max-width:1100px;margin:0 auto;padding:22px 14px 36px}
 .hero{
   display:flex;
   justify-content:space-between;
-  gap:14px;
-  align-items:flex-start;
+  gap:10px;
+  align-items:center;
   background:var(--panel);
   border:1px solid var(--border);
-  border-radius:18px;
-  padding:16px 18px;
+  border-radius:14px;
+  padding:14px 16px;
   box-shadow:var(--shadow);
 }
 .hero small{color:var(--muted)}
-.hero-pill{
-  display:inline-flex;
-  gap:8px;
-  align-items:center;
-  padding:6px 10px;
-  border-radius:999px;
-  background:rgba(109,208,255,.12);
-  color:var(--accent);
-  font-weight:700;
-  font-size:12px;
-}
-.layout{
-  display:grid;
-  grid-template-columns:270px 1fr;
-  gap:16px;
-  margin-top:16px;
-}
+.layout{display:grid;grid-template-columns:240px 1fr;gap:12px;margin-top:12px}
 @media(max-width:900px){.layout{grid-template-columns:1fr}}
 .sidebar{
   background:var(--panel);
   border:1px solid var(--border);
-  border-radius:18px;
+  border-radius:14px;
   box-shadow:var(--shadow);
-  padding:12px;
+  padding:10px;
   position:sticky;
-  top:12px;
+  top:10px;
   height:fit-content;
 }
-.side-card{
-  background:var(--surface);
-  border:1px dashed rgba(150,163,184,.4);
-  border-radius:14px;
-  padding:12px;
-  margin-bottom:10px;
-}
-.nav-list{display:flex;flex-direction:column;gap:8px;margin:10px 0 4px}
-.nav-btn{width:100%;text-align:left;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.side-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px;margin-bottom:8px}
+.nav-list{display:flex;flex-direction:column;gap:6px;margin:10px 0 4px}
+.nav-btn{width:100%;text-align:left;font-weight:700;display:flex;justify-content:space-between;align-items:center}
 .nav-note{color:var(--muted);font-size:12px;line-height:1.5}
-.content{
-  display:flex;
-  flex-direction:column;
-  gap:14px;
-}
-.section{
-  display:none;
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:18px;
-  padding:16px;
-  box-shadow:var(--shadow);
-}
+.content{display:flex;flex-direction:column;gap:10px}
+.section{display:none;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--shadow)}
 .section.active{display:block}
 .section-lede{color:var(--muted);margin-top:0}
-.block-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:12px}
-.card{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding:12px;
-  box-shadow:0 12px 30px rgba(0,0,0,.28);
-}
+.block-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:10px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;box-shadow:0 10px 24px rgba(0,0,0,.22)}
 .stack{display:flex;flex-direction:column;gap:10px}
 .controls{display:flex;flex-wrap:wrap;gap:10px;position:relative}
-.controls .field{flex:1;min-width:220px}
+.controls .field{flex:1;min-width:200px}
 .tag{display:inline-block;padding:4px 10px;border-radius:999px;border:1px solid var(--border);color:var(--muted);font-size:12px;margin-right:6px}
 .muted{color:var(--muted);font-size:13px}
 .small{font-size:12px;color:var(--muted)}
-.avatar-wrap{width:140px;height:140px;border-radius:16px;overflow:hidden;background:#0e1530;border:1px solid var(--border);display:flex;align-items:center;justify-content:center}
+.avatar-wrap{width:140px;height:140px;border-radius:12px;overflow:hidden;background:#0e1320;border:1px solid var(--border);display:flex;align-items:center;justify-content:center}
 .avatar-wrap img{width:100%;height:100%;object-fit:cover;display:block}
-.profile-head{display:flex;gap:12px;flex-wrap:wrap}
+.profile-head{display:flex;gap:10px;flex-wrap:wrap}
 .table{width:100%;border-collapse:collapse;font-size:13px}
 .table th,.table td{border-bottom:1px solid rgba(230,237,243,.08);padding:6px 6px;text-align:left}
-.badge-pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;margin-right:4px}
-.badge-ok{background:rgba(0,255,140,.08);border:1px solid rgba(0,255,140,.5)}
-.badge-warn{background:rgba(255,180,0,.08);border:1px solid rgba(255,200,0,.6)}
-.badge-bad{background:rgba(255,40,100,.08);border:1px solid rgba(255,60,140,.7)}
-.outfit-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px}
+.outfit-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
 .outfit-card{min-width:130px;background:#0b111b;border-radius:10px;padding:6px;border:1px solid var(--border);text-align:center;font-size:12px}
 .outfit-card img{width:100%;border-radius:8px;display:block}
 #suggestionsList{display:none;position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-top:2px;width:100%;z-index:30;max-height:220px;overflow:auto}
@@ -168,9 +115,9 @@ textarea{min-height:120px;resize:vertical}
   <div class="hero">
     <div>
       <h1>Roblox Info Hub</h1>
-      <p class="muted">Quickly look up player profiles, awarded badges, game details, and outfit history in one page.</p>
+      <p class="muted">Focused tools for profiles, badges, games, and outfits. Built for clarity over flair.</p>
     </div>
-    <div class="hero-pill">Navigation made simple</div>
+    <small>Direct inputs. Plain results.</small>
   </div>
 
   <div class="layout">
@@ -179,6 +126,7 @@ textarea{min-height:120px;resize:vertical}
         <h3>Go to tool</h3>
         <div class="nav-list">
           <button class="nav-btn active" data-section="profile">Profile lookup <span>→</span></button>
+          <button class="nav-btn" data-section="badgecheck">Badge awarded date checker <span>→</span></button>
           <button class="nav-btn" data-section="gameinfo">Game info by ID <span>→</span></button>
           <button class="nav-btn" data-section="avatar">Avatar outfits <span>→</span></button>
         </div>
@@ -208,6 +156,21 @@ textarea{min-height:120px;resize:vertical}
           </div>
           <div id="rbxResults" class="block-grid"></div>
           <div id="badgeSummaryArea" class="stack"></div>
+        </div>
+      </section>
+
+      <section id="badgecheck" class="section">
+        <div class="stack">
+          <div>
+            <h2>Badge awarded date checker</h2>
+            <p class="section-lede">Enter a username and badge ID to see when that badge was awarded. Results stay minimal.</p>
+          </div>
+          <div class="controls">
+            <div class="field"><input id="bcUser" placeholder="Roblox username"></div>
+            <div class="field"><input id="bcBadge" placeholder="Badge ID"></div>
+            <button id="bcCheck">Check award date</button>
+          </div>
+          <div id="bcResult" class="card"></div>
         </div>
       </section>
 
@@ -529,6 +492,39 @@ async function loadBadgeAwards(userId, username){
     renderBadgeAwards(target, fullBadges, username);
   }catch(err){
     target.innerHTML = `<div class="card"><h3>Badge award dates</h3><p class="muted">Failed to load badge awards: ${err.message}</p></div>`;
+  }
+  setLoading(false);
+}
+
+// ---------- badge awarded date checker ----------
+document.getElementById('bcCheck').onclick = ()=>checkBadgeAward();
+
+async function checkBadgeAward(){
+  const username = document.getElementById('bcUser').value.trim();
+  const badgeId = document.getElementById('bcBadge').value.trim();
+  const box = document.getElementById('bcResult');
+  if(!username || !badgeId){
+    box.innerHTML = '<p class="small">Enter both username and badge ID to continue.</p>';
+    return;
+  }
+  box.innerHTML = '<p class="small">Checking award date...</p>';
+  setLoading(true);
+  try{
+    const user = await lookupUser(username);
+    const data = await tryMulti([
+      `https://badges.roproxy.com/v1/users/${user.id}/badges/awarded-dates?badgeIds=${badgeId}`,
+      proxyWrap(`https://badges.roblox.com/v1/users/${user.id}/badges/awarded-dates?badgeIds=${badgeId}`)
+    ]);
+    if(!data?.data) throw new Error('No award data returned.');
+    const entry = data?.data?.find(b=>String(b.badgeId) === String(badgeId));
+    box.innerHTML = `<h3>Award lookup</h3><p class="small">User ID: ${user.id} · Badge ID: ${badgeId}</p>`;
+    if(entry?.awardedDate){
+      box.innerHTML += `<p>Badge was awarded on <b>${new Date(entry.awardedDate).toLocaleString()}</b>.</p>`;
+    }else{
+      box.innerHTML += '<p class="muted">This badge does not show an award date for that user.</p>';
+    }
+  }catch(err){
+    box.innerHTML = `<h3>Error</h3><p class="muted">${err.message}</p>`;
   }
   setLoading(false);
 }
