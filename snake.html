@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Essential for mobile responsiveness -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mobile Snake Game</title>
+    
+    <!-- EMBEDDED CSS STYLES -->
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #333;
+            color: white;
+            font-family: sans-serif;
+            text-align: center;
+        }
+
+        canvas {
+            background-color: #000;
+            border: 2px solid white;
+            touch-action: none; /* Prevents default touch behavior like scrolling */
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: grid;
+            grid-template-areas: ". up ." "left down right";
+            gap: 10px;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            /* Make buttons slightly larger for mobile taps */
+            width: 80px; 
+            height: 50px;
+        }
+
+        #up { grid-area: up; }
+        #down { grid-area: down; }
+        #left { grid-area: left; }
+        #right { grid-area: right; }
+    </style>
+</head>
+<body>
+    <h1>Snake Game</h1>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    
+    <!-- Mobile Controls -->
+    <div class="controls">
+        <button id="up">Up</button>
+        <button id="down">Down</button>
+        <button id="left">Left</button>
+        <button id="right">Right</button>
+    </div>
+
+    <!-- EMBEDDED JAVASCRIPT LOGIC -->
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gridSize = 20;
+        let tileCount = canvas.width / gridSize;
+        let headX = 10;
+        let headY = 10;
+        let xVelocity = 0;
+        let yVelocity = 0;
+        let appleX = 5;
+        let appleY = 5;
+        const snakeParts = [];
+        let tailLength = 2;
+        let score = 0;
+
+        // Game loop
+        function drawGame() {
+            changeSnakePosition();
+            let result = isGameOver();
+            if (result) {
+                return;
+            }
+            clearScreen();
+            checkAppleCollision();
+            drawApple();
+            drawSnake();
+            drawScore();
+            setTimeout(drawGame, 1000 / 10); // Game speed
+        }
+
+        function isGameOver() {
+            let gameOver = false;
+            // Wall collisions
+            if (headX < 0 || headX >= tileCount || headY < 0 || headY >= tileCount) {
+                gameOver = true;
+            }
+            // Self collision (simplified)
+            for (let i = 0; i < snakeParts.length; i++) {
+                if (snakeParts[i].x === headX && snakeParts[i].y === headY) {
+                    gameOver = true;
+                    break;
+                }
+            }
+
+            if (gameOver) {
+                ctx.fillStyle = "white";
+                ctx.font = "50px Arial";
+                ctx.fillText("Game Over!", canvas.width / 6.5, canvas.height / 2);
+            }
+            return gameOver;
+        }
+
+        function drawScore() {
+            ctx.fillStyle = "white";
+            ctx.font = "16px Arial";
+            ctx.fillText("Score: " + score, canvas.width - 70, 20);
+        }
+
+        function clearScreen() {
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawSnake() {
+            ctx.fillStyle = 'green';
+            for (let i = 0; i < snakeParts.length; i++) {
+                let part = snakeParts[i];
+                ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize, gridSize);
+            }
+
+            snakeParts.push({x: headX, y: headY});
+            while (snakeParts.length > tailLength) {
+                snakeParts.shift();
+            }
+            ctx.fillStyle = 'orange'; // head color
+            ctx.fillRect(headX * gridSize, headY * gridSize, gridSize, gridSize);
+        }
+
+        function changeSnakePosition() {
+            headX = headX + xVelocity;
+            headY = headY + yVelocity;
+        }
+
+        function drawApple() {
+            ctx.fillStyle = 'red';
+            ctx.fillRect(appleX * gridSize, appleY * gridSize, gridSize, gridSize);
+        }
+
+        function checkAppleCollision() {
+            if (appleX === headX && appleY === headY) {
+                appleX = Math.floor(Math.random() * tileCount);
+                appleY = Math.floor(Math.random() * tileCount);
+                tailLength++;
+                score++;
+            }
+        }
+
+        // Function to handle movement
+        function setDirection(x, y) {
+            // Prevent reversing instantly
+            if (xVelocity === -x && x !== 0) return;
+            if (yVelocity === -y && y !== 0) return;
+
+            xVelocity = x;
+            yVelocity = y;
+        }
+
+        // Add touch/button controls for mobile
+        document.getElementById('up').addEventListener('click', () => setDirection(0, -1));
+        document.getElementById('down').addEventListener('click', () => setDirection(0, 1));
+        document.getElementById('left').addEventListener('click', () => setDirection(-1, 0));
+        document.getElementById('right').addEventListener('click', () => setDirection(1, 0));
+
+        // Start the game
+        drawGame();
+    </script>
+</body>
+</html>
