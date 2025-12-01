@@ -2,113 +2,224 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Click-a-Mole Game</title>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clash Royale Clone (Single File)</title>
+    <!-- CSS STYLES EMBEDDED HERE -->
     <style>
         body {
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            background-color: #333;
             margin: 0;
-            background-color: #f0f0f0;
-            font-family: sans-serif;
+            height: 100vh;
         }
-
-        #game-area {
-            width: 90vw;
-            height: 70vh;
-            border: 2px solid black;
+        #game-container {
+            width: 800px;
+            height: 600px;
+            background-color: #4CAF50; /* Green arena */
             position: relative;
-            background-color: #e0e0e0;
-            overflow: hidden; /* Keep the button inside the area */
+            border: 2px solid #000;
+            overflow: hidden;
         }
-
-        #mole-button {
+        #river {
             position: absolute;
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background-color: red;
-            color: white;
-            font-size: 14px;
-            border: none;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background-color: #2196F3; /* Blue river */
+            transform: translateY(-50%);
+            border-top: 2px solid #000;
+            border-bottom: 2px solid #000;
+        }
+        #ui-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            background-color: #555;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .card-slot {
+            width: 70px;
+            height: 90px;
+            background-color: #eee;
+            border: 2px solid #000;
             cursor: pointer;
-            display: none; /* Hidden until game starts */
-            transition: background-color 0.1s;
+            text-align: center;
+            padding-top: 5px;
+            box-sizing: border-box;
+            user-select: none;
         }
-
-        #mole-button:hover {
-            background-color: darkred;
+        .card-slot:hover {
+            background-color: #fff;
         }
-
-        #score-board {
-            margin-bottom: 10px;
-            font-size: 24px;
+        .troop {
+            position: absolute;
+            width: 30px;
+            height: 40px;
+            background-color: red; /* Enemy (Red) */
+            border-radius: 50%;
+            transition: top 0.1s linear, left 0.1s linear;
+        }
+        .troop.player {
+            background-color: blue; /* Player (Blue) */
+        }
+        .health-bar {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background-color: grey;
+        }
+        .health-bar-inner {
+            width: 100%;
+            height: 100%;
+            background-color: green;
         }
     </style>
 </head>
 <body>
-    <div id="score-board">Score: 0</div>
-    <div id="game-area">
-        <button id="mole-button">Hit Me!</button>
+    <div id="game-container">
+        <div id="river"></div>
+        <div id="ui-bar">
+            <!-- The JS function deployTroop is called inline here -->
+            <div class="card-slot" onclick="deployTroop(1)">Knight</div>
+            <div class="card-slot" onclick="deployTroop(2)">Archer</div>
+            <div class="card-slot" onclick="deployTroop(3)">Giant</div>
+        </div>
     </div>
-
+    
+    <!-- JAVASCRIPT LOGIC EMBEDDED HERE -->
     <script>
-        const gameArea = document.getElementById('game-area');
-        const moleButton = document.getElementById('mole-button');
-        const scoreBoard = document.getElementById('score-board');
-        let score = 0;
-        const gameDuration = 15000; // 15 seconds
-        let gameInterval;
-        let moleInterval;
+        const gameContainer = document.getElementById('game-container');
+        const uiBar = document.getElementById('ui-bar');
+        // Ensure dimensions are correct once loaded
+        const arenaHeight = 500; // Hardcoded height for simplicity in single script
+        const playerBaseY = arenaHeight - 50;
+        const enemyBaseY = 50;
 
-        function startGame() {
-            score = 0;
-            scoreBoard.textContent = 'Score: 0';
-            moleButton.style.display = 'block';
-            
-            // Move the mole every 800ms
-            moleInterval = setInterval(moveMole, 800); 
+        let troopId = 0;
+        const activeTroops = [];
 
-            // End the game after 15 seconds
-            gameInterval = setTimeout(endGame, gameDuration);
+        // Troop Stats (simple base stats)
+        const TROOP_STATS = {
+            1: { name: 'Knight', hp: 100, speed: 2, color: 'blue' },
+            2: { name: 'Archer', hp: 50, speed: 3, color: 'lightblue' },
+            3: { name: 'Giant', hp: 200, speed: 1, color: 'darkblue' },
+        };
+
+        function createTroopElement(type, isPlayer) {
+            const stats = TROOP_STATS[type];
+            const troopEl = document.createElement('div');
+            troopEl.classList.add('troop');
+            if (isPlayer) {
+                troopEl.classList.add('player');
+            }
+            troopEl.style.backgroundColor = stats.color;
+
+            // Health Bar
+            const healthBar = document.createElement('div');
+            healthBar.classList.add('health-bar');
+            const healthBarInner = document.createElement('div');
+            healthBarInner.classList.add('health-bar-inner');
+            healthBar.appendChild(healthBarInner);
+            troopEl.appendChild(healthBar);
+
+            return troopEl;
         }
 
-        function moveMole() {
-            const maxX = gameArea.offsetWidth - moleButton.offsetWidth;
-            const maxY = gameArea.offsetHeight - moleButton.offsetHeight;
-            
-            const randomX = Math.floor(Math.random() * maxX);
-            const randomY = Math.floor(Math.random() * maxY);
-            
-            moleButton.style.left = randomX + 'px';
-            moleButton.style.top = randomY + 'px';
+        // Make this function globally accessible because it's called from an inline HTML onclick
+        window.deployTroop = function(type) {
+            // Simple random X position deployment near the player base
+            const startX = Math.random() * (gameContainer.clientWidth - 40) + 20;
+            const startY = playerBaseY;
+
+            const troopEl = createTroopElement(type, true);
+            troopEl.style.left = `${startX}px`;
+            troopEl.style.top = `${startY}px`;
+
+            const troopData = {
+                id: troopId++,
+                type: type,
+                element: troopEl,
+                x: startX,
+                y: startY,
+                hp: TROOP_STATS[type].hp,
+                maxHp: TROOP_STATS[type].hp,
+                speed: TROOP_STATS[type].speed,
+                isPlayer: true,
+                targetY: enemyBaseY // Target the enemy base
+            };
+
+            activeTroops.push(troopData);
+            gameContainer.appendChild(troopEl);
+            console.log(`Deployed ${TROOP_STATS[type].name}`);
         }
 
-        function hitMole() {
-            score++;
-            scoreBoard.textContent = 'Score: ' + score;
-            // Instantly move the mole after a hit for faster gameplay
-            moveMole(); 
+        // Main game loop
+        function updateGame() {
+            activeTroops.forEach(troop => {
+                // Simple movement logic: move towards target Y position
+                if (troop.isPlayer) {
+                    if (troop.y > troop.targetY) {
+                        troop.y -= troop.speed;
+                    }
+                } else {
+                    if (troop.y < troop.targetY) {
+                        troop.y += troop.speed;
+                    }
+                }
+
+                // Update DOM position
+                troop.element.style.top = `${troop.y}px`;
+            });
+
+            // In a real game, you would handle collision detection, combat, and troop removal here.
+            requestAnimationFrame(updateGame);
         }
 
-        function endGame() {
-            clearInterval(moleInterval);
-            clearTimeout(gameInterval);
-            moleButton.style.display = 'none';
-            alert('Game Over! Your final score is: ' + score);
-            // Optional: Reload or add a restart button
-            setTimeout(startGame, 2000); // Auto restart after 2 seconds
+        // Start the game loop
+        requestAnimationFrame(updateGame);
+
+        // Optional: Spawn a dummy enemy troop to fight against
+        function spawnInitialEnemy() {
+            const startX = Math.random() * (gameContainer.clientWidth - 40) + 20;
+            const startY = enemyBaseY;
+            const type = 1; // Knight enemy
+
+            const troopEl = createTroopElement(type, false);
+            troopEl.style.left = `${startX}px`;
+            troopEl.style.top = `${startY}px`;
+            troopEl.style.backgroundColor = 'red'; // Ensure enemy is red
+
+            const troopData = {
+                id: troopId++,
+                type: type,
+                element: troopEl,
+                x: startX,
+                y: startY,
+                hp: TROOP_STATS[type].hp,
+                maxHp: TROOP_STATS[type].hp,
+                speed: TROOP_STATS[type].speed * 0.8, // Slower enemy
+                isPlayer: false,
+                targetY: playerBaseY // Target the player base
+            };
+
+            activeTroops.push(troopData);
+            gameContainer.appendChild(troopEl);
+            console.log("Spawned initial enemy Knight");
         }
 
-        // Add event listener for mobile taps/clicks
-        moleButton.addEventListener('click', hitMole);
-
-        // Start the game automatically when the page loads
-        startGame();
+        // Run the initial enemy spawn after the DOM loads
+        document.addEventListener('DOMContentLoaded', (event) => {
+            spawnInitialEnemy();
+        });
     </script>
 </body>
 </html>
