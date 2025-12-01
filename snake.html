@@ -3,108 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clash Royale Clone (Advanced Effects & AI)</title>
+    <title>Clash Royale Clone (Final Enhanced Version)</title>
     <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #333;
-            margin: 0;
-            height: 100vh;
-            font-family: sans-serif;
-        }
-        #game-container {
-            width: 800px;
-            height: 600px;
-            background-color: #4CAF50;
-            position: relative;
-            border: 2px solid #000;
-            overflow: hidden;
-        }
-        #river {
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 40px;
-            background-color: #2196F3;
-            transform: translateY(-50%);
-            border-top: 2px solid #000;
-            border-bottom: 2px solid #000;
-        }
-        #ui-bar {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 100px;
-            background-color: #555;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-        }
-        .card-slot {
-            width: 70px;
-            height: 90px;
-            background-color: #eee;
-            border: 2px solid #000;
-            cursor: pointer;
-            text-align: center;
-            padding-top: 5px;
-            box-sizing: border-box;
-            user-select: none;
-            position: relative;
-        }
+        body { display: flex; justify-content: center; align-items: center; background-color: #333; margin: 0; height: 100vh; font-family: sans-serif; }
+        #game-container { width: 800px; height: 600px; background-color: #4CAF50; position: relative; border: 2px solid #000; overflow: hidden; }
+        #river { position: absolute; top: 50%; left: 0; right: 0; height: 40px; background-color: #2196F3; transform: translateY(-50%); border-top: 2px solid #000; border-bottom: 2px solid #000; }
+        #ui-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 100px; background-color: #555; display: flex; justify-content: space-around; align-items: center; }
+        .card-slot { width: 70px; height: 90px; background-color: #eee; border: 2px solid #000; cursor: pointer; text-align: center; padding-top: 5px; box-sizing: border-box; user-select: none; position: relative; transition: background-color 0.1s; }
         .card-slot:hover:not(.disabled) { background-color: #fff; }
-        .card-slot.disabled { opacity: 0.5; cursor: not-allowed; }
-        .elixir-cost {
-            position: absolute;
-            bottom: 5px;
-            right: 5px;
-            background: #f44336;
-            color: white;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 14px;
-        }
-        .troop, .tower { position: absolute; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; }
+        .card-slot.disabled { opacity: 0.5; cursor: not-allowed; background-color: #aaa; }
+        .elixir-cost { position: absolute; bottom: 5px; right: 5px; background: #f44336; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; justify-content: center; align-items: center; font-size: 14px; }
+
+        .unit { position: absolute; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; }
         .troop { width: 30px; height: 40px; border-radius: 50%; }
         .tower { width: 60px; height: 80px; }
         .tower.player { background-color: lightblue; border: 2px solid blue; }
         .tower.enemy { background-color: lightcoral; border: 2px solid red; }
+        .tower.king { background-color: gold; border-color: #DAA520; }
 
         .health-bar { width: 100%; height: 5px; background-color: grey; margin-bottom: 2px; }
-        .health-bar-inner { height: 100%; background-color: green; }
+        .health-bar-inner { height: 100%; background-color: green; transition: width 0.1s linear; }
 
         /* Effects Styles */
-        .projectile {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background-color: yellow; /* Tower shots */
-            border-radius: 50%;
-            pointer-events: none; /* Allows clicks to go through */
-        }
-        .effect-explosion {
-            position: absolute;
-            width: 50px;
-            height: 50px;
-            background-color: orange;
-            border-radius: 50%;
-            opacity: 0;
-            transform: scale(0);
-            animation: explode 0.3s forwards;
-            pointer-events: none;
-        }
-        @keyframes explode {
-            0% { opacity: 1; transform: scale(0); }
-            100% { opacity: 0; transform: scale(1.5); }
-        }
+        .projectile { position: absolute; width: 10px; height: 10px; background-color: yellow; border-radius: 50%; pointer-events: none; transition: transform 0.05s ease-out; }
+        .effect-explosion { position: absolute; width: 50px; height: 50px; background-color: orange; border-radius: 50%; opacity: 0; transform: scale(0); animation: explode 0.3s forwards; pointer-events: none; }
+        @keyframes explode { 0% { opacity: 1; transform: scale(0); } 100% { opacity: 0; transform: scale(1.5); } }
 
         #elixir-bar-container { position: absolute; bottom: 110px; left: 20px; width: 200px; height: 20px; background-color: black; border: 2px solid white; }
         #elixir-bar { height: 100%; width: 0%; background-color: purple; transition: width 0.1s linear; }
@@ -123,15 +46,9 @@
         </div>
 
         <div id="ui-bar">
-            <div id="card-1" class="card-slot" onclick="deployTroop(1)">
-                Knight <span class="elixir-cost">3</span>
-            </div>
-            <div id="card-2" class="card-slot" onclick="deployTroop(2)">
-                Archer <span class="elixir-cost">4</span>
-            </div>
-            <div id="card-3" class="card-slot" onclick="deployTroop(3)">
-                Giant <span class="elixir-cost">5</span>
-            </div>
+            <div id="card-1" class="card-slot" onclick="deployTroop(1)">Knight <span class="elixir-cost">3</span></div>
+            <div id="card-2" class="card-slot" onclick="deployTroop(2)">Archer <span class="elixir-cost">4</span></div>
+            <div id="card-3" class="card-slot" onclick="deployTroop(3)">Giant <span class="elixir-cost">5</span></div>
         </div>
     </div>
     
@@ -140,31 +57,31 @@
         const elixirBar = document.getElementById('elixir-bar');
         const elixirCountEl = document.getElementById('elixir-count');
         const gameMessageEl = document.getElementById('game-message');
-        const arenaHeight = 500; 
+        const ARENA_HEIGHT = 500; 
         const TROOP_RADIUS = 15;
 
         let unitId = 0;
         const activeUnits = [];
         let playerElixir = 0;
         const MAX_ELIXIR = 10;
-        const ELIXIR_RATE = 1000;
+        const ELIXIR_RATE = 1000; 
 
         const TROOP_STATS = {
-            1: { name: 'Knight', hp: 100, speed: 2, cost: 3, dmg: 15, range: 40, attackSpeed: 1000, color: 'blue' },
-            2: { name: 'Archer', hp: 50, speed: 3, cost: 4, dmg: 10, range: 150, attackSpeed: 800, color: 'lightblue' },
-            3: { name: 'Giant', hp: 200, speed: 1, cost: 5, dmg: 25, range: 40, attackSpeed: 1200, color: 'darkblue' },
+            1: { name: 'Knight', hp: 500, speed: 2, cost: 3, dmg: 75, range: 40, attackSpeed: 1000, color: 'blue' },
+            2: { name: 'Archer', hp: 200, speed: 3, cost: 4, dmg: 50, range: 180, attackSpeed: 800, color: 'lightblue' },
+            3: { name: 'Giant', hp: 1200, speed: 1, cost: 5, dmg: 100, range: 40, attackSpeed: 1500, color: 'darkblue' },
         };
-        const TOWER_STATS = { hp: 1500, maxHp: 1500, dmg: 50, range: 250, attackSpeed: 900, speed: 0 };
+        const TOWER_STATS = { hp: 2000, dmg: 80, range: 250, attackSpeed: 900, speed: 0 };
+        const KING_TOWER_STATS = { hp: 3000, dmg: 100, range: 250, attackSpeed: 1000, speed: 0 };
 
 
         // --- Effects ---
         function createExplosion(x, y) {
             const effectEl = document.createElement('div');
             effectEl.classList.add('effect-explosion');
-            effectEl.style.left = `${x - 25}px`; // Center the explosion effect
+            effectEl.style.left = `${x - 25}px`;
             effectEl.style.top = `${y - 25}px`;
             gameContainer.appendChild(effectEl);
-            // Remove the element after the animation finishes (0.3s)
             setTimeout(() => effectEl.remove(), 300);
         }
 
@@ -173,10 +90,9 @@
             projectile.classList.add('projectile');
             gameContainer.appendChild(projectile);
 
-            const startX = shooter.x;
-            const startY = shooter.y;
-            projectile.style.left = `${startX}px`;
-            projectile.style.top = `${startY}px`;
+            // Set initial position to center of shooter
+            projectile.style.left = `${shooter.x}px`;
+            projectile.style.top = `${shooter.y}px`;
 
             const interval = setInterval(() => {
                 if (!target || target.hp <= 0 || !document.body.contains(projectile)) {
@@ -185,9 +101,7 @@
                     return;
                 }
 
-                const speed = 10; // Projectile speed
-                const dist = getDistance({x: startX, y: startY}, {x: target.x, y: target.y});
-                // Calculate direction based on current position and target position
+                const speed = 15; // Fast projectiles
                 const angle = Math.atan2(target.y - parseFloat(projectile.style.top), target.x - parseFloat(projectile.style.left));
                 
                 projectile.style.left = `${parseFloat(projectile.style.left) + Math.cos(angle) * speed}px`;
@@ -198,45 +112,22 @@
                     clearInterval(interval);
                     applyDamage(target, shooter.dmg);
                     projectile.remove();
-                    // Add a tiny effect where it lands
-                    if (target.hp > 0) {
-                         createExplosion(target.x, target.y);
-                    }
                 }
-            }, 30);
+            }, 16); // Faster interval for smoother movement
         }
 
         function applyDamage(target, amount) {
             target.hp -= amount;
-            const hpPercent = (target.hp / target.maxHp) * 100;
             if (target.healthBar) {
+                const hpPercent = (target.hp / target.maxHp) * 100;
                 target.healthBar.style.width = `${Math.max(0, hpPercent)}%`;
             }
-            if (target.hp <= 0) {
+            if (target.hp <= 0 && target.element) {
                 createExplosion(target.x, target.y);
             }
         }
 
-        // --- Elixir System (Same as before) ---
-        function updateElixir(amount) {
-            playerElixir = Math.min(MAX_ELIXIR, playerElixir + amount);
-            elixirBar.style.width = `${(playerElixir / MAX_ELIXIR) * 100}%`;
-            elixirCountEl.textContent = `${Math.floor(playerElixir)} / ${MAX_ELIXIR}`;
-            updateCardAvailability();
-        }
-        setInterval(() => updateElixir(1), ELIXIR_RATE);
-        function updateCardAvailability() {
-            Object.keys(TROOP_STATS).forEach(type => {
-                const cardEl = document.getElementById(`card-${type}`);
-                if (playerElixir >= TROOP_STATS[type].cost) {
-                    cardEl.classList.remove('disabled');
-                } else {
-                    cardEl.classList.add('disabled');
-                }
-            });
-        }
-
-        // --- Unit Creation ---
+        // --- Unit Creation & Management ---
         function createHealthBar(unitData) {
             const healthBar = document.createElement('div');
             healthBar.classList.add('health-bar');
@@ -247,16 +138,20 @@
             return healthBar;
         }
 
-        function createUnit(type, isPlayer, x, y, isTower = false) {
-            const stats = isTower ? TOWER_STATS : TROOP_STATS[type];
+        function createUnit(type, isPlayer, x, y, unitClass = 'troop') {
+            const isTower = unitClass.includes('tower');
+            const isKing = unitClass.includes('king');
+            const stats = isKing ? KING_TOWER_STATS : (isTower ? TOWER_STATS : TROOP_STATS[type]);
+            
             const unitEl = document.createElement('div');
-            unitEl.classList.add(isTower ? 'tower' : 'troop');
+            unitEl.classList.add('unit', unitClass);
             unitEl.classList.add(isPlayer ? 'player' : 'enemy');
-            if (!isTower) unitEl.style.backgroundColor = stats.color;
-            // Adjust position based on size (towers are bigger)
+
+            if (unitClass === 'troop') unitEl.style.backgroundColor = stats.color;
+
+            // Positioning logic for center point (x, y)
             const width = isTower ? 60 : 30;
             const height = isTower ? 80 : 40;
-
             unitEl.style.left = `${x - width / 2}px`;
             unitEl.style.top = `${y - height / 2}px`;
 
@@ -268,12 +163,13 @@
                 y: y,
                 hp: stats.hp,
                 maxHp: stats.hp,
-                speed: stats.speed,
+                speed: stats.speed || 0,
                 dmg: stats.dmg,
                 range: stats.range,
                 attackSpeed: stats.attackSpeed,
                 isPlayer: isPlayer,
-                isTower: isTower,
+                isTower: isTower || isKing,
+                isKing: isKing,
                 target: null,
                 attackCooldown: 0,
             };
@@ -287,25 +183,24 @@
         window.deployTroop = function(type) {
             const stats = TROOP_STATS[type];
             if (playerElixir >= stats.cost) {
-                // Deploy in the player's half
+                // Deploy in player's half, below the river line (Y > 300)
                 const startX = Math.random() * (gameContainer.clientWidth - 40) + 20;
-                const startY = Math.random() * (arenaHeight / 2 - 100) + (arenaHeight / 2 + 50);
-                createUnit(type, true, startX, startY);
+                const startY = Math.random() * (ARENA_HEIGHT / 2 - 50) + (ARENA_HEIGHT / 2 + 50);
+                createUnit(type, true, startX, startY, 'troop');
                 updateElixir(-stats.cost);
             }
         }
         
         // --- Enemy AI ---
         function spawnEnemyTroop() {
-            const types = [1, 2, 3];
-            const randomType = types[Math.floor(Math.random() * types.length)];
-            // Deploy in the enemy's half
+            // Deploy in enemy's half, above the river line (Y < 300)
             const startX = Math.random() * (gameContainer.clientWidth - 40) + 20;
-            const startY = Math.random() * (arenaHeight / 2 - 100) + 50; 
-            createUnit(randomType, false, startX, startY);
+            const startY = Math.random() * (ARENA_HEIGHT / 2 - 50) + 50; 
+            // Enemy randomly chooses between Knight or Archer type for simplicity
+            const type = Math.random() > 0.5 ? 1 : 2; 
+            createUnit(type, false, startX, startY, 'troop');
         }
-        // Enemy spawns a troop roughly every 3-6 seconds
-        setInterval(spawnEnemyTroop, Math.random() * 3000 + 3000);
+        setInterval(spawnEnemyTroop, 5000); // Deploy enemy every 5 seconds
 
 
         // --- Combat & Movement Logic ---
@@ -320,8 +215,9 @@
             let minDist = Infinity;
 
             for (const otherUnit of activeUnits) {
-                if (unit.isPlayer !== otherUnit.isPlayer && otherUnit.hp > 0) { // Target living enemies
+                if (unit.isPlayer !== otherUnit.isPlayer && otherUnit.hp > 0) {
                     const dist = getDistance(unit, otherUnit);
+                    // CR Targeting logic: prioritize closest unit/building
                     if (dist < minDist) {
                         minDist = dist;
                         closestTarget = otherUnit;
@@ -334,7 +230,7 @@
         function handleCombatAndMovement(unit) {
             if (!unit.target || unit.target.hp <= 0) {
                 findTarget(unit);
-                return;
+                if (!unit.target) return; // No targets available
             }
 
             const distanceToTarget = getDistance(unit, unit.target);
@@ -343,18 +239,11 @@
                 // Stop moving and attack
                 unit.attackCooldown -= 16; 
                 if (unit.attackCooldown <= 0) {
-                    // Decide if it's a ranged or melee attack
-                    if (unit.range > 50 || unit.isTower) {
-                        launchProjectile(unit, unit.target);
-                    } else {
-                        // Melee: apply damage instantly
-                        applyDamage(unit.target, unit.dmg);
-                         createExplosion(unit.target.x, unit.target.y);
-                    }
-                    unit.attackCooldown = unit.attackSpeed; // Reset cooldown
+                    launchProjectile(unit, unit.target);
+                    unit.attackCooldown = unit.attackSpeed; 
                 }
             } else if (!unit.isTower) {
-                // Move towards target if out of range and not a tower
+                // Move towards target if out of range and not a tower/building
                 const angle = Math.atan2(unit.target.y - unit.y, unit.target.x - unit.x);
                 unit.x += Math.cos(angle) * unit.speed;
                 unit.y += Math.sin(angle) * unit.speed;
@@ -362,14 +251,21 @@
         }
 
         function checkWinLoss() {
-            const enemyTowers = activeUnits.filter(u => u.isTower && !u.isPlayer && u.hp > 0);
-
-            if (enemyTowers.length === 0) {
-                gameMessageEl.textContent = "YOU WIN! 🎉";
+            // Win condition: Destroy enemy King Tower
+            const enemyKing = activeUnits.find(u => u.isKing && !u.isPlayer);
+            if (!enemyKing || enemyKing.hp <= 0) {
+                gameMessageEl.textContent = "VICTORY! 🎉";
                 gameMessageEl.style.display = 'block';
                 return true;
             }
-            // A real CR game has a 3-minute timer and tiebreakers, which is complex for this example. 
+            
+            // Loss condition: Player King Tower destroyed
+            const playerKing = activeUnits.find(u => u.isKing && u.isPlayer);
+            if (!playerKing || playerKing.hp <= 0) {
+                gameMessageEl.textContent = "DEFEAT! 💀";
+                gameMessageEl.style.display = 'block';
+                return true;
+            }
             return false;
         }
 
@@ -377,34 +273,37 @@
         function updateGame() {
             if (checkWinLoss()) return; 
 
-            // Filter out destroyed units
+            // Filter out destroyed units and update logic
             for (let i = activeUnits.length - 1; i >= 0; i--) {
-                if (activeUnits[i].hp <= 0) {
-                    activeUnits[i].element.remove();
+                const unit = activeUnits[i];
+                if (unit.hp <= 0) {
+                    unit.element.remove();
                     activeUnits.splice(i, 1);
+                } else {
+                    handleCombatAndMovement(unit);
+                    // Update DOM position
+                    const width = unit.isTower ? 60 : 30;
+                    const height = unit.isTower ? 80 : 40;
+                    unit.element.style.left = `${unit.x - width / 2}px`;
+                    unit.element.style.top = `${unit.y - height / 2}px`;
                 }
             }
             
-            // Handle all units (combat, movement, targeting)
-            activeUnits.forEach(unit => {
-                handleCombatAndMovement(unit);
-
-                // Update DOM position
-                const width = unit.isTower ? 60 : 30;
-                const height = unit.isTower ? 80 : 40;
-                unit.element.style.left = `${unit.x - width / 2}px`;
-                unit.element.style.top = `${unit.y - height / 2}px`;
-            });
-
             requestAnimationFrame(updateGame);
         }
 
         // Initialization
         document.addEventListener('DOMContentLoaded', (event) => {
-            // Spawn towers (one for player, one for enemy)
-            createUnit(null, true, gameContainer.clientWidth / 2, arenaHeight - 120, true);
-            createUnit(null, false, gameContainer.clientWidth / 2, 100, true);
-            
+            const centerX = gameContainer.clientWidth / 2;
+
+            // Player Towers (King in center, Princess towers on sides)
+            createUnit(null, true, centerX, ARENA_HEIGHT - 120, 'tower');
+            createUnit(null, true, centerX, ARENA_HEIGHT - 30, 'king tower'); // King tower at very bottom center
+
+            // Enemy Towers
+            createUnit(null, false, centerX, 120, 'tower');
+            createUnit(null, false, centerX, 30, 'king tower'); // Enemy King tower at very top center
+
             updateElixir(0); 
             requestAnimationFrame(updateGame);
         });
