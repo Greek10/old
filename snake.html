@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mobile Space Shooter</title>
+    <title>Phaser Platformer Mobile</title>
     
+    <!-- Load Phaser 3 Game Engine from a CDN -->
+    <script src="cdn.jsdelivr.net"></script>
+
     <style>
         body {
             display: flex;
@@ -13,134 +16,141 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            background-color: #000;
-            color: white;
-            font-family: sans-serif;
-            text-align: center;
-            overflow: hidden;
-        }
-
-        canvas {
-            background-color: #000;
-            border: 2px solid white;
-            touch-action: none; 
-        }
-
-        .controls {
-            margin-top: 20px;
-            display: flex;
-            justify-content: space-around;
-            width: 100%;
-            max-width: 400px;
-        }
-
-        button {
-            padding: 15px 30px;
-            font-size: 16px;
-            cursor: pointer;
-            background-color: #007BFF;
-            border: none;
-            color: white;
-            border-radius: 5px;
-            width: 100px;
+            background-color: #444;
+            overflow: hidden; /* Hide scrollbars */
         }
     </style>
 </head>
 <body>
-    <h1>Space Shooter</h1>
-    <canvas id="gameCanvas" width="400" height="400"></canvas>
-    
-    <div class="controls">
-        <button id="left">Left</button>
-        <button id="shoot">Shoot</button>
-        <button id="right">Right</button>
-    </div>
+    <!-- Game container - Phaser injects the canvas here -->
+    <div id="game-container"></div>
 
     <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const CANVAS_WIDTH = canvas.width;
-        const CANVAS_HEIGHT = canvas.height;
-        
-        // Game Variables
-        let playerX = CANVAS_WIDTH / 2;
-        const playerWidth = 32;
-        const playerHeight = 32;
-        let bullets = [];
-        let enemies = [];
-        let score = 0;
-        let gameOver = false;
-
-        // Load a simple sprite image from an external URL
-        const playerImg = new Image();
-        // A simple spaceship icon URL hosted online
-        playerImg.src = 'i.imgur.com'; 
-
-        // Game Loop
-        function updateGame() {
-            if (gameOver) return;
-
-            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-            
-            drawPlayer();
-            updateBullets();
-            updateEnemies();
-            checkCollisions();
-            drawScore();
-            
-            requestAnimationFrame(updateGame);
-        }
-
-        function drawPlayer() {
-            ctx.drawImage(playerImg, playerX - playerWidth / 2, CANVAS_HEIGHT - playerHeight - 10, playerWidth, playerHeight);
-        }
-
-        function updateBullets() {
-            for (let i = bullets.length - 1; i >= 0; i--) {
-                bullets[i].y -= 5;
-                ctx.fillStyle = 'yellow';
-                ctx.fillRect(bullets[i].x, bullets[i].y, 3, 10);
-
-                if (bullets[i].y < 0) {
-                    bullets.splice(i, 1);
+        // --- Phaser Game Configuration ---
+        const config = {
+            type: Phaser.AUTO,
+            width: 400, // Mobile-friendly width
+            height: 600, // Mobile-friendly height
+            parent: 'game-container',
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 500 },
+                    debug: false
                 }
+            },
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+
+        // --- Game Variables ---
+        let player;
+        let platforms;
+        let cursors;
+        let gameOver = false;
+        let jumpButton, leftButton, rightButton; // Mobile controls
+
+        const game = new Phaser.Game(config);
+
+        function preload ()
+        {
+            // Load necessary visual assets from online URLs
+            this.load.image('sky', 'labs.phaser.io');
+            this.load.image('ground', 'labs.phaser.io');
+            this.load.image('star', 'labs.phaser.io');
+            // This URL loads a sprite sheet for animation
+            this.load.spritesheet('dude', 
+                'labs.phaser.io',
+                { frameWidth: 32, frameHeight: 48 }
+            );
+        }
+
+        function create ()
+        {
+            // Add a background image
+            this.add.image(200, 300, 'sky');
+
+            // --- Platforms ---
+            platforms = this.physics.add.staticGroup();
+            // Main ground platform
+            platforms.create(200, 580, 'ground').setScale(2).refreshBody(); 
+            // Additional platforms
+            platforms.create(600, 400, 'ground');
+            platforms.create(50, 250, 'ground');
+            platforms.create(350, 150, 'ground');
+
+            // --- Player ---
+            player = this.physics.add.sprite(100, 450, 'dude');
+            player.setBounce(0.2);
+            player.setCollideWorldBounds(true);
+            this.physics.add.collider(player, platforms); // Add collision physics
+
+            // Player animations
+            this.anims.create({
+                key: 'left',
+                frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
+                frameRate: 10,
+                repeat: -1
+            });
+
+            this.anims.create({
+                key: 'turn',
+                frames: [ { key: 'dude', frame: 4 } ],
+                frameRate: 20
+            });
+
+            this.anims.create({
+                key: 'right',
+                frames: this.anims.generateFrameNumbers('dude', { start: 5, end: 8 }),
+                frameRate: 10,
+                repeat: -1
+            });
+
+            // Add keyboard input for testing on PC
+            cursors = this.input.keyboard.createCursorKeys();
+
+            // --- Mobile Controls (Touch events for jumping/moving) ---
+            this.input.on('pointerdown', function (pointer) {
+                // If player is touching the ground, they can jump using a screen tap
+                if (player.body.touching.down) {
+                    player.setVelocityY(-330);
+                }
+            }, this);
+        }
+
+        function update ()
+        {
+            if (gameOver)
+            {
+                return;
+            }
+
+            // Keyboard input handling (works in browser/PC)
+            if (cursors.left.isDown)
+            {
+                player.setVelocityX(-160);
+                player.anims.play('left', true);
+            }
+            else if (cursors.right.isDown)
+            {
+                player.setVelocityX(160);
+                player.anims.play('right', true);
+            }
+            else
+            {
+                player.setVelocityX(0);
+                player.anims.play('turn');
+            }
+            
+            // Allow keyboard up arrow to jump as well
+            if (cursors.up.isDown && player.body.touching.down)
+            {
+                player.setVelocityY(-330);
             }
         }
-
-        function shoot() {
-            bullets.push({ 
-                x: playerX, 
-                y: CANVAS_HEIGHT - playerHeight - 10 
-            });
-        }
-
-        // Add controls
-        document.getElementById('left').addEventListener('click', () => playerX -= 20);
-        document.getElementById('right').addEventListener('click', () => playerX += 20);
-        document.getElementById('shoot').addEventListener('click', shoot);
-
-        // More game logic needs to be added (enemy spawning, collision detection, game over state)
-        // The above code provides a basic, playable core structure with mobile controls and *some* graphics.
-
-        function updateEnemies() { /* Not fully implemented but needed for a complete game */ }
-        function checkCollisions() { /* Not fully implemented but needed for a complete game */ }
-        function drawScore() {
-            ctx.fillStyle = "white";
-            ctx.font = "16px Arial";
-            ctx.fillText("Score: " + score, 20, 20);
-        }
-
-
-        // Start the game loop once the image is loaded
-        playerImg.onload = () => {
-            requestAnimationFrame(updateGame);
-        };
-        // Handle image load errors if you want
-        playerImg.onerror = () => {
-            console.error("Failed to load player image.");
-            requestAnimationFrame(updateGame); // Start game even without image
-        };
-
     </script>
 </body>
 </html>
