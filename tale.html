@@ -67,13 +67,30 @@
         const ctx = canvas.getContext('2d');
         const controls = document.getElementById('controls');
 
+        // ---- PLAYER, BOSS, GAME STATE ----
         const player = {
             x: canvas.width / 2,
-            y: canvas.height / 2,
-            size: 20,
+            y: canvas.height / 2 + 60,
+            size: 16,
             speed: 3,
-            color: '#fff'
+            baseColor: '#fff',
+            maxHp: 5,
+            hp: 5,
+            invincible: 0 // frames of invincibility after hit
         };
+
+        const boss = {
+            x: canvas.width / 2,
+            y: 90,
+            size: 30,
+            maxHp: 100,
+            hp: 100
+        };
+
+        let gameState = 'intro'; // 'intro' | 'fight' | 'win' | 'lose'
+        let bullets = [];
+        let spawnTimer = 60;
+        let frameCount = 0;
 
         const keys = {};
 
@@ -86,18 +103,7 @@
             controls.style.display = 'block';
         }
 
-        // --- Input Handling (Keyboard & Mobile Buttons) ---
-
-        // Keyboard Events
-        document.addEventListener('keydown', (e) => {
-            keys[e.key] = true;
-        });
-
-        document.addEventListener('keyup', (e) => {
-            keys[e.key] = false;
-        });
-
-        // Mobile Button Events
+        // --- Mobile Button Events (mapped to arrow keys) ---
         function setupButton(id, keyName) {
             const btn = document.getElementById(id);
             btn.addEventListener('touchstart', (e) => {
@@ -115,30 +121,294 @@
         setupButton('left', 'ArrowLeft');
         setupButton('right', 'ArrowRight');
 
+        // --- Keyboard Events ---
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+
+            // Start fight from intro
+            if ((e.key === 'Enter' || e.key === ' ') && gameState === 'intro') {
+                startFight();
+            }
+
+            // Restart after win/lose
+            if ((e.key === 'r' || e.key === 'R') && (gameState === 'win' || gameState === 'lose')) {
+                resetGame();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        // Also allow clicking/tapping the canvas to start / restart
+        canvas.addEventListener('click', () => {
+            if (gameState === 'intro') startFight();
+            else if (gameState === 'win' || gameState === 'lose') resetGame();
+        });
+
+        canvas.addEventListener('touchstart', () => {
+            if (gameState === 'intro') startFight();
+        });
+
+        // ---- BOSS FIGHT LOGIC ----
+
+        function startFight() {
+            gameState = 'fight';
+            bullets = [];
+            spawnTimer = 60;
+        }
+
+        function resetGame() {
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2 + 60;
+            player.hp = player.maxHp;
+            player.invincible = 0;
+            boss.hp = boss.maxHp;
+            bullets = [];
+            spawnTimer = 60;
+            gameState = 'intro';
+        }
+
+        function spawnPattern() {
+            const patternIndex = Math.floor(Math.random() * 3);
+
+            // Simple centered room
+            const box = { x: 50, y: 50, width: 300, height: 300 };
+
+            if (patternIndex === 0) {
+                // Horizontal wave from top
+                for (let i = 0; i < 10; i++) {
+                    bullets.push({
+                        x: box.x + (i + 0.5) * (box.width / 10),
+                        y: box.y,
+                        vx: 0,
+                        vy: 2.5,
+                        size: 10,
+                        ttl: 240
+                    });
+                }
+            } else if (patternIndex === 1) {
+                // Vertical cross from left and right
+                for (let i = 0; i < 6; i++) {
+                    const y = box.y + (i + 0.5) * (box.height / 6);
+                    bullets.push({
+                        x: box.x,
+                        y: y,
+                        vx: 2.5,
+                        vy: 0,
+                        size: 10,
+                        ttl: 240
+                    });
+                    bullets.push({
+                        x: box.x + box.width,
+                        y: y,
+                        vx: -2.5,
+                        vy: 0,
+                        size: 10,
+                        ttl: 240
+                    });
+                }
+            } else {
+                // Aimed shots from boss position
+                for (let i = 0; i < 6; i++) {
+                    const angle = Math.atan2(player.y - boss.y, player.x - boss.x) + (i - 2.5) * 0.15;
+                    const speed = 3;
+                    bullets.push({
+                        x: boss.x,
+                        y: boss.y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        size: 8,
+                        ttl: 240
+                    });
+                }
+            }
+
+            // Boss slowly loses HP as you survive attacks
+            boss.hp = Math.max(0, boss.hp - 5);
+            if (boss.hp <= 0 && gameState === 'fight') {
+                gameState = 'win';
+            }
+        }
+
+        function checkCollision(a, b) {
+            // simple square hitbox
+            return (
+                Math.abs(a.x - b.x) < (a.size + b.size) / 2 &&
+                Math.abs(a.y - b.y) < (a.size + b.size) / 2
+            );
+        }
+
         // --- Game Loop and Rendering ---
 
         function update() {
+            frameCount++;
+
             // Movement Logic (WASD and Arrows)
-            if (keys['ArrowUp'] || keys['w']) player.y -= player.speed;
-            if (keys['ArrowDown'] || keys['s']) player.y += player.speed;
-            if (keys['ArrowLeft'] || keys['a']) player.x -= player.speed;
-            if (keys['ArrowRight'] || keys['d']) player.x += player.speed;
+            if (keys['ArrowUp'] || keys['w'] || keys['W']) player.y -= player.speed;
+            if (keys['ArrowDown'] || keys['s'] || keys['S']) player.y += player.speed;
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) player.x -= player.speed;
+            if (keys['ArrowRight'] || keys['d'] || keys['D']) player.x += player.speed;
 
             // Keep player within canvas boundaries
             player.x = Math.max(player.size / 2, Math.min(canvas.width - player.size / 2, player.x));
             player.y = Math.max(player.size / 2, Math.min(canvas.height - player.size / 2, player.y));
+
+            if (player.invincible > 0) {
+                player.invincible--;
+            }
+
+            if (gameState !== 'fight') {
+                return;
+            }
+
+            // Boss attack timer
+            spawnTimer--;
+            if (spawnTimer <= 0) {
+                spawnPattern();
+                spawnTimer = 90; // time between patterns
+            }
+
+            // Update bullets
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                b.x += b.vx;
+                b.y += b.vy;
+                b.ttl--;
+
+                // Remove bullets offscreen / expired
+                if (
+                    b.ttl <= 0 ||
+                    b.x < 0 || b.x > canvas.width ||
+                    b.y < 0 || b.y > canvas.height
+                ) {
+                    bullets.splice(i, 1);
+                    continue;
+                }
+
+                // Check collision with player
+                if (player.invincible <= 0 && checkCollision(player, b)) {
+                    player.hp--;
+                    player.invincible = 60; // 1 second of i-frames (at ~60 fps)
+
+                    if (player.hp <= 0) {
+                        gameState = 'lose';
+                    }
+                }
+            }
+        }
+
+        function drawRoom() {
+            // Draw simple background elements (e.g., floor)
+            ctx.fillStyle = '#333';
+            ctx.fillRect(50, 50, 300, 300); // The "room" area
+        }
+
+        function drawPlayer() {
+            // Player "SOUL" (square, flickers red when hit)
+            const flicker = player.invincible > 0 && Math.floor(player.invincible / 5) % 2 === 0;
+            ctx.fillStyle = flicker ? '#ff4444' : player.baseColor;
+            ctx.fillRect(
+                player.x - player.size / 2,
+                player.y - player.size / 2,
+                player.size,
+                player.size
+            );
+        }
+
+        function drawBoss() {
+            // Boss sprite (simple white square at the top)
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(
+                boss.x - boss.size / 2,
+                boss.y - boss.size / 2,
+                boss.size,
+                boss.size
+            );
+
+            // Boss HP bar
+            const barWidth = 260;
+            const barX = (canvas.width - barWidth) / 2;
+            const barY = 20;
+            const hpPercent = boss.hp / boss.maxHp;
+
+            ctx.strokeStyle = '#ffffff';
+            ctx.strokeRect(barX, barY, barWidth, 10);
+
+            ctx.fillStyle = '#ff5555';
+            ctx.fillRect(barX, barY, barWidth * hpPercent, 10);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '12px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('BOSS', canvas.width / 2, barY - 4);
+        }
+
+        function drawBullets() {
+            ctx.fillStyle = '#ffdd55';
+            for (const b of bullets) {
+                ctx.fillRect(
+                    b.x - b.size / 2,
+                    b.y - b.size / 2,
+                    b.size,
+                    b.size
+                );
+            }
+        }
+
+        function drawUI() {
+            // Player HP bar at bottom
+            const barWidth = 260;
+            const barX = (canvas.width - barWidth) / 2;
+            const barY = canvas.height - 30;
+            const hpPercent = player.hp / player.maxHp;
+
+            ctx.strokeStyle = '#ffffff';
+            ctx.strokeRect(barX, barY, barWidth, 12);
+
+            ctx.fillStyle = '#55ff55';
+            ctx.fillRect(barX, barY, barWidth * hpPercent, 12);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '12px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(`HP: ${player.hp}/${player.maxHp}`, canvas.width / 2, barY - 4);
+        }
+
+        function drawTextCentered(text, y) {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '14px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(text, canvas.width / 2, y);
         }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw simple background elements (e.g., floor)
-            ctx.fillStyle = '#333';
-            ctx.fillRect(50, 50, 300, 300); // A "room" area
+            drawRoom();
+            drawPlayer();
 
-            // Draw the player character (a simple white square "SOUL")
-            ctx.fillStyle = player.color;
-            ctx.fillRect(player.x - player.size / 2, player.y - player.size / 2, player.size, player.size);
+            if (gameState === 'fight' || gameState === 'intro') {
+                drawBoss();
+            }
+
+            if (gameState === 'fight') {
+                drawBullets();
+            }
+
+            drawUI();
+
+            // State-dependent text
+            if (gameState === 'intro') {
+                drawTextCentered('Move with WASD / Arrows.', 160);
+                drawTextCentered('Press ENTER or TAP CANVAS to start the boss fight.', 180);
+            } else if (gameState === 'win') {
+                drawTextCentered('YOU WON!', 180);
+                drawTextCentered('Press R or CLICK to restart.', 200);
+            } else if (gameState === 'lose') {
+                drawTextCentered('YOU DIED.', 180);
+                drawTextCentered('Press R or CLICK to try again.', 200);
+            }
         }
 
         function gameLoop() {
@@ -147,9 +417,8 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // Start the game
+        // Start the game loop
         gameLoop();
-
     </script>
 </body>
 </html>
